@@ -5,9 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Activity, DollarSign, TrendingUp, Users, ChevronLeft, ChevronRight, Calendar, X, Database, BarChart3 } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { 
+  Users, 
+  Calendar, 
+  Database, 
+  BarChart3, 
+  ChevronLeft, 
+  ChevronRight,
+  DollarSign,
+  Activity,
+  TrendingUp
+} from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { UsageChart } from '@/components/charts/usage-chart'
 import { UsageMetrics } from '@/types/database'
 
 type TimePeriod = 'days' | 'weeks' | 'months'
@@ -36,7 +46,6 @@ function getTimeRange(period: TimePeriod, offset: number) {
       return { days: undefined, label: 'All Time' }
   }
   
-  // Calculate the actual date range based on offset
   const endDate = new Date(now)
   endDate.setDate(endDate.getDate() + (offset * days))
   
@@ -63,18 +72,18 @@ function getPeriodLabel(period: TimePeriod, offset: number) {
   }
 }
 
-export default function DashboardPage() {
+export default function OrganizationsPage() {
   const [metrics, setMetrics] = useState<UsageMetrics | null>(null)
-  const [chartData, setChartData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('days')
-  const [timeOffset, setTimeOffset] = useState(0) // 0 = current period, -1 = previous, etc.
-  const [selectedOrg, setSelectedOrg] = useState<string>('')
+  const [timeOffset, setTimeOffset] = useState(0)
   const [dataSource, setDataSource] = useState<DataSource>('database')
+  const [sortBy, setSortBy] = useState<'requests' | 'cost' | 'name'>('requests')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     fetchData()
-  }, [timePeriod, timeOffset, selectedOrg, dataSource])
+  }, [timePeriod, timeOffset, dataSource])
 
   const fetchData = async () => {
     try {
@@ -92,24 +101,19 @@ export default function DashboardPage() {
         if (timeRange.days) {
           params.set('days', timeRange.days.toString())
         }
-        if (selectedOrg && selectedOrg !== '') {
-          params.set('selectedOrg', selectedOrg)
-        }
         
-        console.log('Fetching Langfuse data with params:', params.toString())
+        console.log('Fetching Langfuse organizations data with params:', params.toString())
         
         const response = await fetch(`/api/langfuse-metrics?${params}`)
         if (response.ok) {
           const langfuseData = await response.json()
-          console.log('Langfuse data received:', langfuseData)
           
-          // Transform Langfuse data to match existing metrics format
           const transformedMetrics: UsageMetrics = {
             totalRequests: langfuseData.summary.totalTraces,
             totalCost: langfuseData.summary.totalCost,
             totalTokens: langfuseData.summary.totalTokens || 0,
-            averageResponseTime: 0, // Not available in Langfuse daily metrics
-            successRate: 100, // Langfuse tracks successful traces
+            averageResponseTime: 0,
+            successRate: 100,
             organizationBreakdown: langfuseData.organizations.map((org: any) => ({
               org_id: org.name,
               org_name: org.name,
@@ -120,46 +124,60 @@ export default function DashboardPage() {
           }
           
           setMetrics(transformedMetrics)
-          setChartData(langfuseData.chartData || [])
         }
       } else {
-        // Fetch from database (original logic)
+        // Fetch from database
         const timeRange = getTimeRange(timePeriod, timeOffset)
-        
-        // Build query parameters
         const params = new URLSearchParams()
+        
         if (timeRange.startDate && timeRange.endDate) {
           params.set('startDate', timeRange.startDate)
           params.set('endDate', timeRange.endDate)
         }
-        if (selectedOrg) {
-          params.set('orgId', selectedOrg)
-        }
         
-        console.log('Fetching database data with params:', params.toString())
+        console.log('Fetching database organizations data with params:', params.toString())
         
-        // Fetch metrics and chart data in parallel
-        const [metricsResponse, chartResponse] = await Promise.all([
-          fetch(`/api/metrics?${params}`),
-          fetch(`/api/charts-optimized?${params}`)
-        ])
-        
-        if (metricsResponse.ok) {
-          const metricsData = await metricsResponse.json()
+        const response = await fetch(`/api/metrics?${params}`)
+        if (response.ok) {
+          const metricsData = await response.json()
           setMetrics(metricsData)
-        }
-        
-        if (chartResponse.ok) {
-          const chartDataResult = await chartResponse.json()
-          setChartData(chartDataResult)
         }
       }
     } catch (error) {
-      console.error('Failed to fetch data:', error)
+      console.error('Failed to fetch organizations data:', error)
     } finally {
       setLoading(false)
     }
   }
+
+  const sortedOrganizations = metrics?.organizationBreakdown.sort((a, b) => {
+    let aValue: number | string
+    let bValue: number | string
+    
+    switch (sortBy) {
+      case 'requests':
+        aValue = a.requests
+        bValue = b.requests
+        break
+      case 'cost':
+        aValue = a.cost
+        bValue = b.cost
+        break
+      case 'name':
+        aValue = a.org_name
+        bValue = b.org_name
+        break
+      default:
+        aValue = a.requests
+        bValue = b.requests
+    }
+    
+    if (sortOrder === 'asc') {
+      return aValue > bValue ? 1 : -1
+    } else {
+      return aValue < bValue ? 1 : -1
+    }
+  }) || []
 
   if (loading) {
     return (
@@ -167,7 +185,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading dashboard...</p>
+            <p className="text-muted-foreground">Loading organizations...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -180,9 +198,9 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard Overview</h1>
+            <h1 className="text-3xl font-bold">Organizations</h1>
             <p className="text-muted-foreground">
-              Monitor your API usage, costs, and performance metrics
+              View and analyze API usage by organization
             </p>
           </div>
           
@@ -191,10 +209,7 @@ export default function DashboardPage() {
             <Button
               variant={dataSource === 'database' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => {
-                setDataSource('database')
-                setSelectedOrg('') // Reset organization filter when switching
-              }}
+              onClick={() => setDataSource('database')}
               className="flex items-center space-x-1"
             >
               <Database className="h-4 w-4" />
@@ -203,10 +218,7 @@ export default function DashboardPage() {
             <Button
               variant={dataSource === 'langfuse' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => {
-                setDataSource('langfuse')
-                setSelectedOrg('') // Reset organization filter when switching
-              }}
+              onClick={() => setDataSource('langfuse')}
               className="flex items-center space-x-1"
             >
               <BarChart3 className="h-4 w-4" />
@@ -227,7 +239,7 @@ export default function DashboardPage() {
                 
                 <Select value={timePeriod} onValueChange={(value: TimePeriod) => {
                   setTimePeriod(value)
-                  setTimeOffset(0) // Reset to current period when changing time period
+                  setTimeOffset(0)
                 }}>
                   <SelectTrigger className="w-32">
                     <SelectValue />
@@ -263,40 +275,63 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Selected Organization Filter */}
-              {selectedOrg && (
-                <div className="flex items-center space-x-2">
-                  <Badge variant="secondary" className="flex items-center space-x-1">
-                    <Users className="h-3 w-3" />
-                    <span>{selectedOrg}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 ml-1"
-                      onClick={() => setSelectedOrg('')}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </Badge>
-                </div>
-              )}
+              {/* Sort Controls */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium">Sort by:</span>
+                <Select value={sortBy} onValueChange={(value: 'requests' | 'cost' | 'name') => setSortBy(value)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="requests">Requests</SelectItem>
+                    <SelectItem value="cost">Cost</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="flex items-center space-x-1"
+                >
+                  <TrendingUp className={`h-4 w-4 ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                  <span>{sortOrder === 'asc' ? 'Asc' : 'Desc'}</span>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Organizations</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{sortedOrganizations.length}</div>
+              <p className="text-xs text-muted-foreground">
+                {dataSource === 'langfuse' ? 'Different trace types' : 'Active organizations'}
+                {dataSource === 'langfuse' && (
+                  <span className="ml-2 text-blue-600">• Langfuse</span>
+                )}
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {dataSource === 'langfuse' ? 'Total Traces' : 'Total Requests'}
+                Total {dataSource === 'langfuse' ? 'Traces' : 'Requests'}
               </CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{metrics?.totalRequests.toLocaleString() || '0'}</div>
               <p className="text-xs text-muted-foreground">
-                {getPeriodLabel(timePeriod, timeOffset)}
+                Across all organizations
                 {dataSource === 'langfuse' && (
                   <span className="ml-2 text-blue-600">• Langfuse</span>
                 )}
@@ -312,48 +347,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">${metrics?.totalCost.toFixed(2) || '0.00'}</div>
               <p className="text-xs text-muted-foreground">
-                {getPeriodLabel(timePeriod, timeOffset)}
-                {dataSource === 'langfuse' && (
-                  <span className="ml-2 text-blue-600">• Langfuse</span>
-                )}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {dataSource === 'langfuse' ? 'Total Tokens' : 'Success Rate'}
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {dataSource === 'langfuse' 
-                  ? (metrics?.totalTokens?.toLocaleString() || '0')
-                  : `${metrics?.successRate.toFixed(1) || '0.0'}%`
-                }
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {dataSource === 'langfuse' ? 'Token usage' : 'HTTP 2xx responses'}
-                {dataSource === 'langfuse' && (
-                  <span className="ml-2 text-blue-600">• Langfuse</span>
-                )}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {dataSource === 'langfuse' ? 'Trace Types' : 'Organizations'}
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics?.organizationBreakdown.length || '0'}</div>
-              <p className="text-xs text-muted-foreground">
-                {dataSource === 'langfuse' ? 'Different trace types' : 'Active organizations'}
+                Across all organizations
                 {dataSource === 'langfuse' && (
                   <span className="ml-2 text-blue-600">• Langfuse</span>
                 )}
@@ -362,77 +356,80 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>API Usage Trends</CardTitle>
-              <CardDescription>
-                Daily API requests and costs over time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UsageChart data={chartData} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {dataSource === 'langfuse' ? 'Top Trace Types' : 'Top Organizations'}
-              </CardTitle>
-              <CardDescription>
-                {dataSource === 'langfuse' ? 'Usage by trace type' : 'API usage by organization'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {metrics?.organizationBreakdown.map((org, index) => (
-                  <div 
-                    key={org.org_id} 
-                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all hover:bg-muted/50 ${
-                      selectedOrg === org.org_id ? 'bg-primary/10 border border-primary/20' : ''
-                    }`}
-                    onClick={() => {
-                      if (selectedOrg === org.org_id) {
-                        setSelectedOrg('') // Deselect if already selected
-                      } else {
-                        setSelectedOrg(org.org_id) // Select this organization
-                      }
-                    }}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        selectedOrg === org.org_id ? 'bg-primary' : 'bg-muted-foreground'
-                      }`}></div>
-                      <span className={`text-sm font-medium ${
-                        selectedOrg === org.org_id ? 'text-primary' : ''
-                      }`}>
-                        {org.org_name}
-                      </span>
-                      {selectedOrg === org.org_id && (
-                        <Badge variant="default" className="text-xs">
-                          Selected
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="secondary">{org.requests.toLocaleString()} requests</Badge>
-                      <span className="text-sm text-muted-foreground">${org.cost.toFixed(2)}</span>
-                    </div>
-                  </div>
-                ))}
+        {/* Organizations Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {dataSource === 'langfuse' ? 'Trace Types Detail' : 'Organizations Detail'}
+            </CardTitle>
+            <CardDescription>
+              Detailed breakdown of API usage by {dataSource === 'langfuse' ? 'trace type' : 'organization'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {sortedOrganizations.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
+                      {dataSource === 'langfuse' ? 'Trace Type' : 'Organization Name'}
+                    </TableHead>
+                    <TableHead>{dataSource === 'langfuse' ? 'Trace Type ID' : 'Organization ID'}</TableHead>
+                    <TableHead className="text-right">
+                      {dataSource === 'langfuse' ? 'Traces' : 'Requests'}
+                    </TableHead>
+                    <TableHead className="text-right">Cost</TableHead>
+                    {dataSource === 'langfuse' && (
+                      <TableHead className="text-right">Tokens</TableHead>
+                    )}
+                    <TableHead className="text-right">% of Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedOrganizations.map((org) => {
+                    const percentage = metrics?.totalRequests 
+                      ? ((org.requests / metrics.totalRequests) * 100).toFixed(1)
+                      : '0.0'
+                    
+                    return (
+                      <TableRow key={org.org_id}>
+                        <TableCell className="font-medium">{org.org_name}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="font-mono text-xs">
+                            {org.org_id}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {org.requests.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="font-semibold">${org.cost.toFixed(2)}</span>
+                        </TableCell>
+                        {dataSource === 'langfuse' && (
+                          <TableCell className="text-right">
+                            {org.tokens?.toLocaleString() || '0'}
+                          </TableCell>
+                        )}
+                        <TableCell className="text-right">
+                          <Badge variant={parseFloat(percentage) > 10 ? 'default' : 'secondary'}>
+                            {percentage}%
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-medium mb-2">No organizations found</h3>
+                <p>No data available for the selected time period.</p>
               </div>
-              
-              {metrics?.organizationBreakdown.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No organizations found for the selected time period
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-    </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </DashboardLayout>
   )
-}
+} 

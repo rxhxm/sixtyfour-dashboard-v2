@@ -1,0 +1,1363 @@
+
+> api-dashboard@0.1.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.3.5 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.39:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 727ms
+ ○ Compiling /api/metrics ...
+ ✓ Compiled /api/metrics in 642ms
+ GET /api/metrics 200 in 1273ms
+ ✓ Compiled /api/test-count in 271ms
+ GET /api/test-count 200 in 4102ms
+ GET /api/metrics 200 in 997ms
+ ✓ Compiled /api/charts in 331ms
+ GET /api/charts 200 in 1067ms
+ GET /api/charts 200 in 464ms
+ GET /api/charts 200 in 476ms
+ GET /api/charts 200 in 505ms
+ GET /api/charts 200 in 214ms
+ GET /api/charts 200 in 689ms
+ GET /api/test-count 200 in 1185ms
+ ✓ Compiled /api/charts-optimized in 313ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized 200 in 3773ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized 200 in 2956ms
+ GET /api/metrics 200 in 629ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.7s
+ GET / 200 in 969ms
+ ○ Compiling /favicon.ico ...
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ ✓ Compiled /favicon.ico in 569ms
+ GET /api/placeholder/32/32 404 in 586ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 690ms
+ GET /api/metrics 200 in 696ms
+ GET /api/charts-optimized 200 in 3193ms
+ ✓ Compiled in 172ms
+ GET /api/placeholder/32/32 404 in 101ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics 200 in 837ms
+ GET /api/charts-optimized 200 in 3468ms
+ ✓ Compiled in 91ms
+ ✓ Compiled in 72ms
+ ✓ Compiled in 111ms
+ ✓ Compiled in 314ms
+ ✓ Compiled in 72ms
+ GET / 200 in 262ms
+ GET /api/placeholder/32/32 404 in 64ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 243ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=1 200 in 565ms
+ GET /api/charts-optimized?days=1 200 in 2524ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ ✓ Compiled in 48ms
+ GET /api/metrics?days=30 200 in 1238ms
+ GET /api/charts-optimized?days=30 200 in 2333ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=30 200 in 473ms
+ GET /api/charts-optimized?days=30 200 in 2316ms
+ GET /api/metrics?days=30 200 in 542ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=30 200 in 418ms
+ GET /api/charts-optimized?days=30 200 in 2762ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=30 200 in 534ms
+ GET /api/charts-optimized?days=30 200 in 2249ms
+ GET /api/metrics?days=30 200 in 679ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?days=30 200 in 2155ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ ✓ Compiled in 151ms
+ GET /api/charts-optimized?days=30 200 in 2059ms
+ ✓ Compiled in 51ms
+ GET / 200 in 250ms
+ GET /api/placeholder/32/32 404 in 144ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 249ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=1 200 in 502ms
+ GET /api/charts-optimized?days=1 200 in 2737ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=1 200 in 362ms
+ GET /api/charts-optimized?days=1 200 in 1930ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=1 200 in 321ms
+ GET /api/metrics?days=1 200 in 330ms
+ GET /api/charts-optimized?days=1 200 in 2115ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=1 200 in 379ms
+ GET /api/metrics?days=1 200 in 300ms
+ GET /api/metrics?days=1 200 in 318ms
+ GET /api/charts-optimized?days=1 200 in 1800ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=1 200 in 416ms
+ GET /api/metrics?days=1 200 in 331ms
+ GET /api/charts-optimized?days=1 200 in 2170ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?days=1 200 in 1891ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?days=1 200 in 1878ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?days=1 200 in 1994ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?days=1 200 in 2138ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=1 200 in 273ms
+ GET /api/charts-optimized?days=1 200 in 2003ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=30 200 in 613ms
+ GET /api/metrics?days=30 200 in 423ms
+ GET /api/charts-optimized?days=30 200 in 2352ms
+ GET /api/metrics?days=30 200 in 418ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?days=30 200 in 2126ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=30 200 in 430ms
+ GET /api/charts-optimized?days=30 200 in 1917ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?days=30 200 in 1927ms
+ GET /keys 404 in 24ms
+ GET /keys 404 in 36ms
+ GET / 200 in 66ms
+ GET /api/placeholder/32/32 404 in 55ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=1 200 in 356ms
+ ○ Compiling /usage ...
+ ✓ Compiled /usage in 1210ms
+ GET /usage 200 in 1229ms
+ GET /api/charts-optimized?days=1 200 in 2010ms
+ GET /api/placeholder/32/32 404 in 84ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ ✓ Compiled /api/usage in 489ms
+ GET /api/organizations 200 in 738ms
+ GET /api/usage?days=7 200 in 754ms
+ GET /api/organizations 200 in 146ms
+ GET /api/usage?days=7 200 in 255ms
+ GET /api/charts-optimized?days=7 200 in 2148ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /favicon.ico 200 in 222ms
+ GET /api/charts-optimized?days=7 200 in 1813ms
+ GET / 200 in 133ms
+ GET /api/placeholder/32/32 404 in 71ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?days=1 200 in 471ms
+ GET /api/charts-optimized?days=1 200 in 1923ms
+ ✓ Compiled in 85ms
+ ✓ Compiled in 89ms
+ GET / 200 in 464ms
+API received params: {
+  startDate: '2025-07-10T19:23:23.779Z',
+  endDate: '2025-07-10T19:23:23.779Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-07-10T19:23:23.779Z',
+  endDate: '2025-07-10T19:23:23.779Z',
+  orgId: null
+}
+ GET /api/placeholder/32/32 404 in 176ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 330ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-07-10T19%3A23%3A23.779Z&endDate=2025-07-10T19%3A23%3A23.779Z 200 in 680ms
+ GET /api/charts-optimized?startDate=2025-07-10T19%3A23%3A23.779Z&endDate=2025-07-10T19%3A23%3A23.779Z 200 in 2411ms
+Charts API received params: {
+  startDate: '2025-07-09T19:23:29.294Z',
+  endDate: '2025-07-09T19:23:29.294Z',
+  orgId: null
+}
+API received params: {
+  startDate: '2025-07-09T19:23:29.294Z',
+  endDate: '2025-07-09T19:23:29.294Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-07-09T19%3A23%3A29.294Z&endDate=2025-07-09T19%3A23%3A29.294Z 200 in 296ms
+Charts API received params: {
+  startDate: '2025-07-08T19:23:30.589Z',
+  endDate: '2025-07-08T19:23:30.589Z',
+  orgId: null
+}
+API received params: {
+  startDate: '2025-07-08T19:23:30.589Z',
+  endDate: '2025-07-08T19:23:30.589Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-07-08T19%3A23%3A30.589Z&endDate=2025-07-08T19%3A23%3A30.589Z 200 in 321ms
+API received params: {
+  startDate: '2025-07-07T19:23:31.164Z',
+  endDate: '2025-07-07T19:23:31.164Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-07-07T19:23:31.164Z',
+  endDate: '2025-07-07T19:23:31.164Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?startDate=2025-07-09T19%3A23%3A29.294Z&endDate=2025-07-09T19%3A23%3A29.294Z 200 in 2079ms
+ GET /api/metrics?startDate=2025-07-07T19%3A23%3A31.164Z&endDate=2025-07-07T19%3A23%3A31.164Z 200 in 329ms
+ GET /api/charts-optimized?startDate=2025-07-08T19%3A23%3A30.589Z&endDate=2025-07-08T19%3A23%3A30.589Z 200 in 1931ms
+API received params: {
+  startDate: '2025-07-06T19:23:32.626Z',
+  endDate: '2025-07-06T19:23:32.626Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-07-06T19:23:32.626Z',
+  endDate: '2025-07-06T19:23:32.626Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-07-06T19%3A23%3A32.626Z&endDate=2025-07-06T19%3A23%3A32.626Z 200 in 295ms
+API received params: {
+  startDate: '2025-07-05T19:23:32.942Z',
+  endDate: '2025-07-05T19:23:32.942Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-07-05T19:23:32.942Z',
+  endDate: '2025-07-05T19:23:32.942Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API received params: {
+  startDate: '2025-07-04T19:23:33.108Z',
+  endDate: '2025-07-04T19:23:33.108Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-07-04T19:23:33.108Z',
+  endDate: '2025-07-04T19:23:33.108Z',
+  orgId: null
+}
+ GET /api/charts-optimized?startDate=2025-07-07T19%3A23%3A31.164Z&endDate=2025-07-07T19%3A23%3A31.164Z 200 in 2071ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API received params: {
+  startDate: '2025-07-03T19:23:33.275Z',
+  endDate: '2025-07-03T19:23:33.275Z',
+  orgId: null
+}
+ GET /api/metrics?startDate=2025-07-05T19%3A23%3A32.942Z&endDate=2025-07-05T19%3A23%3A32.942Z 200 in 372ms
+Charts API received params: {
+  startDate: '2025-07-03T19:23:33.275Z',
+  endDate: '2025-07-03T19:23:33.275Z',
+  orgId: null
+}
+ GET /api/metrics?startDate=2025-07-04T19%3A23%3A33.108Z&endDate=2025-07-04T19%3A23%3A33.108Z 200 in 305ms
+API received params: {
+  startDate: '2025-07-02T19:23:33.399Z',
+  endDate: '2025-07-02T19:23:33.399Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-07-02T19%3A23%3A33.399Z&endDate=2025-07-02T19%3A23%3A33.399Z 200 in 265ms
+ GET /api/metrics?startDate=2025-07-03T19%3A23%3A33.275Z&endDate=2025-07-03T19%3A23%3A33.275Z 200 in 587ms
+Charts API received params: {
+  startDate: '2025-07-02T19:23:33.399Z',
+  endDate: '2025-07-02T19:23:33.399Z',
+  orgId: null
+}
+API received params: {
+  startDate: '2025-07-01T19:23:33.795Z',
+  endDate: '2025-07-01T19:23:33.795Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-07-01T19%3A23%3A33.795Z&endDate=2025-07-01T19%3A23%3A33.795Z 200 in 389ms
+Charts API received params: {
+  startDate: '2025-07-01T19:23:33.795Z',
+  endDate: '2025-07-01T19:23:33.795Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?startDate=2025-07-06T19%3A23%3A32.626Z&endDate=2025-07-06T19%3A23%3A32.626Z 200 in 2020ms
+API received params: {
+  startDate: '2025-06-30T19:23:34.119Z',
+  endDate: '2025-06-30T19:23:34.119Z',
+  orgId: null
+}
+ GET /api/metrics?startDate=2025-06-30T19%3A23%3A34.119Z&endDate=2025-06-30T19%3A23%3A34.119Z 200 in 301ms
+Charts API received params: {
+  startDate: '2025-06-30T19:23:34.119Z',
+  endDate: '2025-06-30T19:23:34.119Z',
+  orgId: null
+}
+ GET /api/charts-optimized?startDate=2025-07-05T19%3A23%3A32.942Z&endDate=2025-07-05T19%3A23%3A32.942Z 200 in 2183ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API received params: {
+  startDate: '2025-06-29T19:23:34.390Z',
+  endDate: '2025-06-29T19:23:34.390Z',
+  orgId: null
+}
+ GET /api/charts-optimized?startDate=2025-07-04T19%3A23%3A33.108Z&endDate=2025-07-04T19%3A23%3A33.108Z 200 in 2160ms
+Charts API received params: {
+  startDate: '2025-06-29T19:23:34.390Z',
+  endDate: '2025-06-29T19:23:34.390Z',
+  orgId: null
+}
+ GET /api/charts-optimized?startDate=2025-07-03T19%3A23%3A33.275Z&endDate=2025-07-03T19%3A23%3A33.275Z 200 in 2002ms
+API received params: {
+  startDate: '2025-06-28T19:23:34.793Z',
+  endDate: '2025-06-28T19:23:34.793Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-29T19%3A23%3A34.390Z&endDate=2025-06-29T19%3A23%3A34.390Z 200 in 315ms
+Charts API received params: {
+  startDate: '2025-06-28T19:23:34.793Z',
+  endDate: '2025-06-28T19:23:34.793Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-28T19%3A23%3A34.793Z&endDate=2025-06-28T19%3A23%3A34.793Z 200 in 279ms
+API received params: {
+  startDate: '2025-06-27T19:23:35.170Z',
+  endDate: '2025-06-27T19:23:35.170Z',
+  orgId: null
+}
+ GET /api/charts-optimized?startDate=2025-07-02T19%3A23%3A33.399Z&endDate=2025-07-02T19%3A23%3A33.399Z 200 in 2217ms
+Charts API received params: {
+  startDate: '2025-06-27T19:23:35.170Z',
+  endDate: '2025-06-27T19:23:35.170Z',
+  orgId: null
+}
+ GET /api/metrics?startDate=2025-06-27T19%3A23%3A35.170Z&endDate=2025-06-27T19%3A23%3A35.170Z 200 in 341ms
+API received params: {
+  startDate: '2025-06-26T19:23:35.429Z',
+  endDate: '2025-06-26T19:23:35.429Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-26T19%3A23%3A35.429Z&endDate=2025-06-26T19%3A23%3A35.429Z 200 in 306ms
+ GET /api/charts-optimized?startDate=2025-07-01T19%3A23%3A33.795Z&endDate=2025-07-01T19%3A23%3A33.795Z 200 in 2010ms
+Charts API received params: {
+  startDate: '2025-06-26T19:23:35.429Z',
+  endDate: '2025-06-26T19:23:35.429Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API received params: {
+  startDate: '2025-06-27T19:23:36.527Z',
+  endDate: '2025-06-27T19:23:36.527Z',
+  orgId: null
+}
+ GET /api/charts-optimized?startDate=2025-06-30T19%3A23%3A34.119Z&endDate=2025-06-30T19%3A23%3A34.119Z 200 in 1883ms
+ GET /api/metrics?startDate=2025-06-27T19%3A23%3A36.527Z&endDate=2025-06-27T19%3A23%3A36.527Z 200 in 347ms
+Charts API received params: {
+  startDate: '2025-06-27T19:23:36.527Z',
+  endDate: '2025-06-27T19:23:36.527Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API received params: {
+  startDate: '2025-06-28T19:23:37.126Z',
+  endDate: '2025-06-28T19:23:37.126Z',
+  orgId: null
+}
+ GET /api/charts-optimized?startDate=2025-06-29T19%3A23%3A34.390Z&endDate=2025-06-29T19%3A23%3A34.390Z 200 in 1960ms
+Charts API received params: {
+  startDate: '2025-06-28T19:23:37.126Z',
+  endDate: '2025-06-28T19:23:37.126Z',
+  orgId: null
+}
+ GET /api/charts-optimized?startDate=2025-06-28T19%3A23%3A34.793Z&endDate=2025-06-28T19%3A23%3A34.793Z 200 in 1903ms
+ GET /api/metrics?startDate=2025-06-28T19%3A23%3A37.126Z&endDate=2025-06-28T19%3A23%3A37.126Z 200 in 452ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?startDate=2025-06-27T19%3A23%3A35.170Z&endDate=2025-06-27T19%3A23%3A35.170Z 200 in 1808ms
+ GET /api/charts-optimized?startDate=2025-06-26T19%3A23%3A35.429Z&endDate=2025-06-26T19%3A23%3A35.429Z 200 in 1811ms
+Charts API received params: {
+  startDate: '2025-06-29T19:23:38.114Z',
+  endDate: '2025-06-29T19:23:38.114Z',
+  orgId: null
+}
+API received params: {
+  startDate: '2025-06-29T19:23:38.114Z',
+  endDate: '2025-06-29T19:23:38.114Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-29T19%3A23%3A38.114Z&endDate=2025-06-29T19%3A23%3A38.114Z 200 in 355ms
+API received params: {
+  startDate: '2025-06-30T19:23:38.572Z',
+  endDate: '2025-06-30T19:23:38.572Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-06-30T19:23:38.572Z',
+  endDate: '2025-06-30T19:23:38.572Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?startDate=2025-06-27T19%3A23%3A36.527Z&endDate=2025-06-27T19%3A23%3A36.527Z 200 in 2036ms
+ GET /api/metrics?startDate=2025-06-30T19%3A23%3A38.572Z&endDate=2025-06-30T19%3A23%3A38.572Z 200 in 389ms
+API received params: {
+  startDate: '2025-06-29T19:23:39.455Z',
+  endDate: '2025-06-29T19:23:39.455Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-06-29T19:23:39.455Z',
+  endDate: '2025-06-29T19:23:39.455Z',
+  orgId: null
+}
+ GET /api/charts-optimized?startDate=2025-06-28T19%3A23%3A37.126Z&endDate=2025-06-28T19%3A23%3A37.126Z 200 in 2292ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API received params: {
+  startDate: '2025-06-28T19:23:39.625Z',
+  endDate: '2025-06-28T19:23:39.625Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-06-28T19:23:39.625Z',
+  endDate: '2025-06-28T19:23:39.625Z',
+  orgId: null
+}
+ GET /api/metrics?startDate=2025-06-29T19%3A23%3A39.455Z&endDate=2025-06-29T19%3A23%3A39.455Z 200 in 303ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API received params: {
+  startDate: '2025-06-27T19:23:39.787Z',
+  endDate: '2025-06-27T19:23:39.787Z',
+  orgId: null
+}
+ GET /api/metrics?startDate=2025-06-28T19%3A23%3A39.625Z&endDate=2025-06-28T19%3A23%3A39.625Z 200 in 282ms
+Charts API received params: {
+  startDate: '2025-06-27T19:23:39.787Z',
+  endDate: '2025-06-27T19:23:39.787Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-27T19%3A23%3A39.787Z&endDate=2025-06-27T19%3A23%3A39.787Z 200 in 317ms
+ GET /api/charts-optimized?startDate=2025-06-29T19%3A23%3A38.114Z&endDate=2025-06-29T19%3A23%3A38.114Z 200 in 1998ms
+API received params: {
+  startDate: '2025-06-26T19:23:39.936Z',
+  endDate: '2025-06-26T19:23:39.936Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-06-26T19:23:39.936Z',
+  endDate: '2025-06-26T19:23:39.936Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?startDate=2025-06-30T19%3A23%3A38.572Z&endDate=2025-06-30T19%3A23%3A38.572Z 200 in 1832ms
+ GET /api/metrics?startDate=2025-06-26T19%3A23%3A39.936Z&endDate=2025-06-26T19%3A23%3A39.936Z 200 in 334ms
+Charts API received params: {
+  startDate: '2025-07-04T19:23:41.085Z',
+  endDate: '2025-07-10T19:23:41.085Z',
+  orgId: null
+}
+API received params: {
+  startDate: '2025-07-04T19:23:41.085Z',
+  endDate: '2025-07-10T19:23:41.085Z',
+  orgId: null
+}
+ GET /api/metrics?startDate=2025-07-04T19%3A23%3A41.085Z&endDate=2025-07-10T19%3A23%3A41.085Z 200 in 381ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?startDate=2025-06-28T19%3A23%3A39.625Z&endDate=2025-06-28T19%3A23%3A39.625Z 200 in 1911ms
+ GET /api/charts-optimized?startDate=2025-06-29T19%3A23%3A39.455Z&endDate=2025-06-29T19%3A23%3A39.455Z 200 in 2092ms
+ GET /api/charts-optimized?startDate=2025-06-27T19%3A23%3A39.787Z&endDate=2025-06-27T19%3A23%3A39.787Z 200 in 1855ms
+ GET /api/charts-optimized?startDate=2025-06-26T19%3A23%3A39.936Z&endDate=2025-06-26T19%3A23%3A39.936Z 200 in 1982ms
+Charts API received params: {
+  startDate: '2025-06-27T19:23:42.522Z',
+  endDate: '2025-07-03T19:23:42.522Z',
+  orgId: null
+}
+API received params: {
+  startDate: '2025-06-27T19:23:42.522Z',
+  endDate: '2025-07-03T19:23:42.522Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-27T19%3A23%3A42.522Z&endDate=2025-07-03T19%3A23%3A42.522Z 200 in 316ms
+ GET /api/charts-optimized?startDate=2025-07-04T19%3A23%3A41.085Z&endDate=2025-07-10T19%3A23%3A41.085Z 200 in 2015ms
+API received params: {
+  startDate: '2025-06-20T19:23:43.192Z',
+  endDate: '2025-06-26T19:23:43.192Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-06-20T19:23:43.192Z',
+  endDate: '2025-06-26T19:23:43.192Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-20T19%3A23%3A43.192Z&endDate=2025-06-26T19%3A23%3A43.192Z 200 in 378ms
+ GET /api/charts-optimized?startDate=2025-06-27T19%3A23%3A42.522Z&endDate=2025-07-03T19%3A23%3A42.522Z 200 in 1988ms
+ GET /api/charts-optimized?startDate=2025-06-20T19%3A23%3A43.192Z&endDate=2025-06-26T19%3A23%3A43.192Z 200 in 2019ms
+API received params: {
+  startDate: '2025-06-27T19:23:47.440Z',
+  endDate: '2025-07-03T19:23:47.440Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-06-27T19:23:47.440Z',
+  endDate: '2025-07-03T19:23:47.440Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-27T19%3A23%3A47.440Z&endDate=2025-07-03T19%3A23%3A47.440Z 200 in 489ms
+ GET /api/charts-optimized?startDate=2025-06-27T19%3A23%3A47.440Z&endDate=2025-07-03T19%3A23%3A47.440Z 200 in 1830ms
+Charts API received params: {
+  startDate: '2025-07-04T19:23:49.336Z',
+  endDate: '2025-07-10T19:23:49.336Z',
+  orgId: null
+}
+API received params: {
+  startDate: '2025-07-04T19:23:49.336Z',
+  endDate: '2025-07-10T19:23:49.336Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-07-04T19%3A23%3A49.336Z&endDate=2025-07-10T19%3A23%3A49.336Z 200 in 302ms
+ GET /api/charts-optimized?startDate=2025-07-04T19%3A23%3A49.336Z&endDate=2025-07-10T19%3A23%3A49.336Z 200 in 1806ms
+API received params: {
+  startDate: '2025-06-27T19:23:54.598Z',
+  endDate: '2025-07-03T19:23:54.598Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-06-27T19:23:54.598Z',
+  endDate: '2025-07-03T19:23:54.598Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-27T19%3A23%3A54.598Z&endDate=2025-07-03T19%3A23%3A54.598Z 200 in 332ms
+ GET /api/charts-optimized?startDate=2025-06-27T19%3A23%3A54.598Z&endDate=2025-07-03T19%3A23%3A54.598Z 200 in 1855ms
+API received params: {
+  startDate: '2025-06-20T19:24:03.909Z',
+  endDate: '2025-06-26T19:24:03.909Z',
+  orgId: null
+}
+Charts API received params: {
+  startDate: '2025-06-20T19:24:03.909Z',
+  endDate: '2025-06-26T19:24:03.909Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-20T19%3A24%3A03.909Z&endDate=2025-06-26T19%3A24%3A03.909Z 200 in 372ms
+ GET /api/charts-optimized?startDate=2025-06-20T19%3A24%3A03.909Z&endDate=2025-06-26T19%3A24%3A03.909Z 200 in 1975ms
+Charts API received params: {
+  startDate: '2025-06-27T19:25:49.569Z',
+  endDate: '2025-07-03T19:25:49.569Z',
+  orgId: null
+}
+API received params: {
+  startDate: '2025-06-27T19:25:49.569Z',
+  endDate: '2025-07-03T19:25:49.569Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/metrics?startDate=2025-06-27T19%3A25%3A49.569Z&endDate=2025-07-03T19%3A25%3A49.569Z 200 in 552ms
+ GET /api/charts-optimized?startDate=2025-06-27T19%3A25%3A49.569Z&endDate=2025-07-03T19%3A25%3A49.569Z 200 in 2179ms
+ ✓ Compiled in 58ms
+ GET / 200 in 411ms
+ GET /api/placeholder/32/32 404 in 155ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 250ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API key mapping error: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.playbook_api_keys" does not exist'
+}
+ GET /api/metrics?startDate=2025-07-10T19%3A28%3A52.935Z&endDate=2025-07-10T19%3A28%3A52.935Z 200 in 845ms
+ GET /api/charts-optimized?startDate=2025-07-10T19%3A28%3A52.935Z&endDate=2025-07-10T19%3A28%3A52.935Z 200 in 2394ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API key mapping error: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.playbook_api_keys" does not exist'
+}
+ GET /api/metrics?startDate=2025-07-09T19%3A28%3A58.508Z&endDate=2025-07-09T19%3A28%3A58.508Z 200 in 477ms
+ GET /api/charts-optimized?startDate=2025-07-09T19%3A28%3A58.508Z&endDate=2025-07-09T19%3A28%3A58.508Z 200 in 2040ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API key mapping error: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.playbook_api_keys" does not exist'
+}
+ GET /api/metrics?startDate=2025-07-04T19%3A29%3A01.227Z&endDate=2025-07-10T19%3A29%3A01.227Z 200 in 476ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API key mapping error: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.playbook_api_keys" does not exist'
+}
+ GET /api/metrics?startDate=2025-06-27T19%3A29%3A02.383Z&endDate=2025-07-03T19%3A29%3A02.383Z 200 in 503ms
+ GET /api/charts-optimized?startDate=2025-07-04T19%3A29%3A01.227Z&endDate=2025-07-10T19%3A29%3A01.227Z 200 in 1790ms
+ GET /api/charts-optimized?startDate=2025-06-27T19%3A29%3A02.383Z&endDate=2025-07-03T19%3A29%3A02.383Z 200 in 1947ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API key mapping error: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.playbook_api_keys" does not exist'
+}
+ GET /api/metrics?startDate=2025-07-04T19%3A29%3A06.845Z&endDate=2025-07-10T19%3A29%3A06.845Z 200 in 438ms
+ GET /api/charts-optimized?startDate=2025-07-04T19%3A29%3A06.845Z&endDate=2025-07-10T19%3A29%3A06.845Z 200 in 1963ms
+ GET / 200 in 164ms
+ GET / 200 in 89ms
+ ✓ Compiled /api/test-mapping in 432ms
+Testing playbook_api_keys table...
+Mapping query result: {
+  mappingData: null,
+  mappingError: {
+    code: '42P01',
+    details: null,
+    hint: null,
+    message: 'relation "public.playbook_api_keys" does not exist'
+  }
+}
+Usage query result: {
+  usageData: [
+    { api_key: '42342922-b737-43bf-8e67-68be5108be7b' },
+    { api_key: '42342922-b737-43bf-8e67-68be5108be7b' },
+    { api_key: '42342922-b737-43bf-8e67-68be5108be7b' },
+    { api_key: '42342922-b737-43bf-8e67-68be5108be7b' },
+    { api_key: '42342922-b737-43bf-8e67-68be5108be7b' }
+  ],
+  usageError: null
+}
+ GET /api/test-mapping 200 in 881ms
+API received params: {
+  startDate: '2025-06-11T19:31:03.234Z',
+  endDate: '2025-07-10T19:31:03.234Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API key mapping error: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.playbook_api_keys" does not exist'
+}
+Falling back to API key prefixes - mapping table query failed
+ GET /api/metrics?startDate=2025-06-11T19%3A31%3A03.234Z&endDate=2025-07-10T19%3A31%3A03.234Z 200 in 905ms
+API received params: {
+  startDate: '2025-07-10T19:31:04.401Z',
+  endDate: '2025-07-10T19:31:04.401Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API key mapping error: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.playbook_api_keys" does not exist'
+}
+Falling back to API key prefixes - mapping table query failed
+ GET /api/metrics?startDate=2025-07-10T19%3A31%3A04.401Z&endDate=2025-07-10T19%3A31%3A04.401Z 200 in 439ms
+ GET /api/charts-optimized?startDate=2025-06-11T19%3A31%3A03.234Z&endDate=2025-07-10T19%3A31%3A03.234Z 200 in 2355ms
+API received params: {
+  startDate: '2025-07-04T19:31:05.934Z',
+  endDate: '2025-07-10T19:31:05.934Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API key mapping error: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.playbook_api_keys" does not exist'
+}
+Falling back to API key prefixes - mapping table query failed
+ GET /api/metrics?startDate=2025-07-04T19%3A31%3A05.934Z&endDate=2025-07-10T19%3A31%3A05.934Z 200 in 442ms
+ GET /api/charts-optimized?startDate=2025-07-10T19%3A31%3A04.401Z&endDate=2025-07-10T19%3A31%3A04.401Z 200 in 2049ms
+ GET /api/charts-optimized?startDate=2025-07-04T19%3A31%3A05.934Z&endDate=2025-07-10T19%3A31%3A05.934Z 200 in 2149ms
+API received params: {
+  startDate: '2025-06-27T19:31:11.630Z',
+  endDate: '2025-07-03T19:31:11.630Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+API key mapping error: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.playbook_api_keys" does not exist'
+}
+Falling back to API key prefixes - mapping table query failed
+ GET /api/metrics?startDate=2025-06-27T19%3A31%3A11.630Z&endDate=2025-07-03T19%3A31%3A11.630Z 200 in 519ms
+ GET /api/charts-optimized?startDate=2025-06-27T19%3A31%3A11.630Z&endDate=2025-07-03T19%3A31%3A11.630Z 200 in 1875ms
+Testing playbook_api_keys table...
+Testing table: playbook_api_keys
+Table playbook_api_keys not found: relation "public.playbook_api_keys" does not exist
+Testing table: api_keys
+Table api_keys not found: relation "public.api_keys" does not exist
+Testing table: user_api_keys
+Table user_api_keys not found: relation "public.user_api_keys" does not exist
+Testing table: organization_keys
+Table organization_keys not found: relation "public.organization_keys" does not exist
+Testing table: keys
+Table keys not found: relation "public.keys" does not exist
+Mapping query result: { mappingData: null, mappingError: null }
+Usage query result: {
+  usageData: [
+    { api_key: '42342922-b737-43bf-8e67-68be5108be7b' },
+    { api_key: '42342922-b737-43bf-8e67-68be5108be7b' },
+    { api_key: '42342922-b737-43bf-8e67-68be5108be7b' },
+    { api_key: '42342922-b737-43bf-8e67-68be5108be7b' },
+    { api_key: '42342922-b737-43bf-8e67-68be5108be7b' }
+  ],
+  usageError: null
+}
+ GET /api/test-mapping 200 in 812ms
+API received params: { startDate: null, endDate: null, orgId: null }
+Usage data with org_id: {
+  usageWithOrgId: null,
+  usageOrgError: {
+    code: '42703',
+    details: null,
+    hint: null,
+    message: 'column api_usage.org_id does not exist'
+  }
+}
+No mapping table found or empty mapping table
+Falling back to API key prefixes - no mapping available
+ GET /api/metrics 200 in 1664ms
+API received params: {
+  startDate: '2025-06-20T19:33:17.483Z',
+  endDate: '2025-06-26T19:33:17.483Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+Usage data with org_id: {
+  usageWithOrgId: null,
+  usageOrgError: {
+    code: '42703',
+    details: null,
+    hint: null,
+    message: 'column api_usage.org_id does not exist'
+  }
+}
+No mapping table found or empty mapping table
+Falling back to API key prefixes - no mapping available
+ GET /api/metrics?startDate=2025-06-20T19%3A33%3A17.483Z&endDate=2025-06-26T19%3A33%3A17.483Z 200 in 1187ms
+ GET /api/charts-optimized?startDate=2025-06-20T19%3A33%3A17.483Z&endDate=2025-06-26T19%3A33%3A17.483Z 200 in 1831ms
+API received params: {
+  startDate: '2025-06-13T19:33:22.835Z',
+  endDate: '2025-06-19T19:33:22.835Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+Usage data with org_id: {
+  usageWithOrgId: null,
+  usageOrgError: {
+    code: '42703',
+    details: null,
+    hint: null,
+    message: 'column api_usage.org_id does not exist'
+  }
+}
+No mapping table found or empty mapping table
+Falling back to API key prefixes - no mapping available
+ GET /api/metrics?startDate=2025-06-13T19%3A33%3A22.835Z&endDate=2025-06-19T19%3A33%3A22.835Z 200 in 1203ms
+ GET /api/charts-optimized?startDate=2025-06-13T19%3A33%3A22.835Z&endDate=2025-06-19T19%3A33%3A22.835Z 200 in 1997ms
+API received params: {
+  startDate: '2025-06-11T19:33:27.410Z',
+  endDate: '2025-07-10T19:33:27.410Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET / 200 in 167ms
+ GET / 200 in 28ms
+Usage data with org_id: {
+  usageWithOrgId: null,
+  usageOrgError: {
+    code: '42703',
+    details: null,
+    hint: null,
+    message: 'column api_usage.org_id does not exist'
+  }
+}
+No mapping table found or empty mapping table
+Falling back to API key prefixes - no mapping available
+ GET /api/metrics?startDate=2025-06-11T19%3A33%3A27.410Z&endDate=2025-07-10T19%3A33%3A27.410Z 200 in 1206ms
+ GET /api/charts-optimized?startDate=2025-06-11T19%3A33%3A27.410Z&endDate=2025-07-10T19%3A33%3A27.410Z 200 in 1950ms
+API received params: {
+  startDate: '2025-05-12T19:33:29.645Z',
+  endDate: '2025-06-10T19:33:29.645Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+Usage data with org_id: {
+  usageWithOrgId: null,
+  usageOrgError: {
+    code: '42703',
+    details: null,
+    hint: null,
+    message: 'column api_usage.org_id does not exist'
+  }
+}
+ GET /api/charts-optimized?startDate=2025-05-12T19%3A33%3A29.645Z&endDate=2025-06-10T19%3A33%3A29.645Z 200 in 2144ms
+No mapping table found or empty mapping table
+Falling back to API key prefixes - no mapping available
+ GET /api/metrics?startDate=2025-05-12T19%3A33%3A29.645Z&endDate=2025-06-10T19%3A33%3A29.645Z 200 in 2203ms
+ GET / 200 in 227ms
+API received params: {
+  startDate: '2025-07-10T21:46:59.297Z',
+  endDate: '2025-07-10T21:46:59.297Z',
+  orgId: null
+}
+ GET /api/placeholder/32/32 404 in 95ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 246ms
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+Usage data with org_id: {
+  usageWithOrgId: null,
+  usageOrgError: {
+    code: '42703',
+    details: null,
+    hint: null,
+    message: 'column api_usage.org_id does not exist'
+  }
+}
+No mapping table found or empty mapping table
+Falling back to API key prefixes - no mapping available
+ GET /api/metrics?startDate=2025-07-10T21%3A46%3A59.297Z&endDate=2025-07-10T21%3A46%3A59.297Z 200 in 2792ms
+ GET /api/charts-optimized?startDate=2025-07-10T21%3A46%3A59.297Z&endDate=2025-07-10T21%3A46%3A59.297Z 200 in 4654ms
+API received params: {
+  startDate: '2025-07-04T21:47:08.851Z',
+  endDate: '2025-07-10T21:47:08.851Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+Usage data with org_id: {
+  usageWithOrgId: null,
+  usageOrgError: {
+    code: '42703',
+    details: null,
+    hint: null,
+    message: 'column api_usage.org_id does not exist'
+  }
+}
+No mapping table found or empty mapping table
+Falling back to API key prefixes - no mapping available
+ GET /api/metrics?startDate=2025-07-04T21%3A47%3A08.851Z&endDate=2025-07-10T21%3A47%3A08.851Z 200 in 2310ms
+API received params: {
+  startDate: '2025-06-11T21:47:12.173Z',
+  endDate: '2025-07-10T21:47:12.173Z',
+  orgId: null
+}
+SQL aggregation error: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.execute_sql with parameter sql_query or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.execute_sql(sql_query) in the schema cache'
+}
+ GET /api/charts-optimized?startDate=2025-07-04T21%3A47%3A08.851Z&endDate=2025-07-10T21%3A47%3A08.851Z 200 in 3719ms
+Usage data with org_id: {
+  usageWithOrgId: null,
+  usageOrgError: {
+    code: '42703',
+    details: null,
+    hint: null,
+    message: 'column api_usage.org_id does not exist'
+  }
+}
+No mapping table found or empty mapping table
+Falling back to API key prefixes - no mapping available
+ GET /api/metrics?startDate=2025-06-11T21%3A47%3A12.173Z&endDate=2025-07-10T21%3A47%3A12.173Z 200 in 2536ms
+ GET /api/charts-optimized?startDate=2025-06-11T21%3A47%3A12.173Z&endDate=2025-07-10T21%3A47%3A12.173Z 200 in 3537ms
+ ○ Compiling /api/table-config ...
+ ✓ Compiled /api/table-config in 622ms
+Testing specific table: sixtyfour_api_keys
+Table query result: {
+  tableData: [
+    {
+      id: 'f212826e-1245-46a6-b2c6-d47fd5bac852',
+      key: '6049a01a-1669-4f1b-86f6-d3e3ee3f3562',
+      name: 'sim studio',
+      description: null,
+      is_active: true,
+      created_at: '2025-04-10T22:14:52.721102+00:00',
+      expires_at: null,
+      max_requests_per_hour: 100,
+      metadata: {},
+      org_id: null
+    },
+    {
+      id: 'c9685814-1754-4854-bcf1-1d1a5e3fff6e',
+      key: '2cd8853b-e2eb-4c3f-816b-b718777aaa53',
+      name: 'Mesmer',
+      description: null,
+      is_active: true,
+      created_at: '2025-07-04T16:20:30.588044+00:00',
+      expires_at: null,
+      max_requests_per_hour: 10000,
+      metadata: {},
+      org_id: 'Mesmer'
+    },
+    {
+      id: 'f69f03e3-21d0-48b3-b4ae-331c83e0eb58',
+      key: '4c4428f9-979c-482b-a390-47f5cbeab7c3',
+      name: 'aqil',
+      description: null,
+      is_active: true,
+      created_at: '2025-04-18T00:53:31.419171+00:00',
+      expires_at: null,
+      max_requests_per_hour: 1000,
+      metadata: {},
+      org_id: 'CenterDoc'
+    },
+    {
+      id: '3b8c2257-7d23-4fe1-a072-e4782d66c09d',
+      key: '8e933e9b-2371-421c-a3f6-76232a7ae690',
+      name: 'throxy',
+      description: null,
+      is_active: true,
+      created_at: '2025-04-11T18:40:09.160872+00:00',
+      expires_at: null,
+      max_requests_per_hour: 1000000,
+      metadata: {},
+      org_id: null
+    },
+    {
+      id: '49ad9628-dc8f-4351-bf6e-609a71c66c37',
+      key: '9cbb3d56-4df2-4973-b97d-4ef53a2d1888',
+      name: 'prism',
+      description: null,
+      is_active: true,
+      created_at: '2025-04-18T04:11:53.925824+00:00',
+      expires_at: null,
+      max_requests_per_hour: 1000,
+      metadata: {},
+      org_id: 'prism-ai'
+    }
+  ],
+  tableError: null
+}
+ GET /api/table-config?table=sixtyfour_api_keys 200 in 1470ms
+Testing specific table: api_usage
+Table query result: {
+  tableData: [
+    {
+      id: 'b61c2142-2939-46ac-a47b-aa79bc5e6e98',
+      api_key: '42342922-b737-43bf-8e67-68be5108be7b',
+      endpoint: '/enrich-lead',
+      timestamp: '2025-06-20T22:36:19.903411+00:00',
+      metadata: {}
+    },
+    {
+      id: '80b2698c-1c5b-4753-a410-068936f36320',
+      api_key: '42342922-b737-43bf-8e67-68be5108be7b',
+      endpoint: '/enrich-lead',
+      timestamp: '2025-06-20T22:36:21.2942+00:00',
+      metadata: {}
+    },
+    {
+      id: '5c5d807c-b6e5-4a08-bdc5-8c1d16552e8b',
+      api_key: '42342922-b737-43bf-8e67-68be5108be7b',
+      endpoint: '/enrich-lead',
+      timestamp: '2025-06-20T22:36:22.718646+00:00',
+      metadata: {}
+    },
+    {
+      id: 'e5fe72c4-34e5-4867-a907-083e8e77740e',
+      api_key: '42342922-b737-43bf-8e67-68be5108be7b',
+      endpoint: '/enrich-lead',
+      timestamp: '2025-06-20T22:36:23.471283+00:00',
+      metadata: {}
+    },
+    {
+      id: 'aab1727b-29ec-4642-9139-2754673d8b08',
+      api_key: '42342922-b737-43bf-8e67-68be5108be7b',
+      endpoint: '/enrich-lead',
+      timestamp: '2025-06-20T22:36:25.765787+00:00',
+      metadata: {}
+    }
+  ],
+  tableError: null
+}
+ GET /api/table-config?table=api_usage 200 in 295ms
+API received params: { startDate: null, endDate: null, orgId: null }
+API metrics error: {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column api_usage.org_id does not exist'
+}
+ GET /api/metrics 500 in 1423ms
