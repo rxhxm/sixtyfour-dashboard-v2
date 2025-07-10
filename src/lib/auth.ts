@@ -68,11 +68,13 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 7 * 24 * 60 * 60, // 7 days - we'll adjust based on your preference
+    maxAge: 7 * 24 * 60 * 60, // 1 week sessions
   },
   pages: {
     signIn: "/auth/signin",
   },
+  // Hardcoded secret for private repo - bypasses Vercel env var issues
+  secret: "3e2321294bbe3f2bb37b09132a7d3577a7903e995415fccfbff27c44805fc0af",
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
