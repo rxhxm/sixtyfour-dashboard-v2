@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Activity, DollarSign, TrendingUp, Users, ChevronLeft, ChevronRight, Calendar, X, Database, BarChart3 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { DateRange } from 'react-day-picker'
+import { format } from 'date-fns'
 import { UsageChart } from '@/components/charts/usage-chart'
 import { UsageMetrics } from '@/types/database'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 
 type TimePeriod = 'days' | 'weeks' | 'months'
 type DataSource = 'database' | 'langfuse'
@@ -61,9 +64,17 @@ function getPeriodLabel(period: TimePeriod, offset: number) {
   if (offset === 0) {
     return `Current ${timeRange.label}`
   } else if (offset === -1) {
-    return `Previous ${timeRange.label}`
+    if (period === 'days') {
+      return `Yesterday (7 days)`
+    } else {
+      return `Previous ${timeRange.label}`
+    }
   } else {
-    return `${Math.abs(offset)} ${period} ago`
+    if (period === 'days') {
+      return `${Math.abs(offset)} days ago (7 days)`
+    } else {
+      return `${Math.abs(offset)} ${period} ago`
+    }
   }
 }
 
@@ -75,10 +86,20 @@ export default function DashboardPage() {
   const [timeOffset, setTimeOffset] = useState(0) // 0 = current period, -1 = previous, etc.
   const [selectedOrg, setSelectedOrg] = useState<string>('')
   const [dataSource, setDataSource] = useState<DataSource>('database')
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined)
+  const [useCustomRange, setUseCustomRange] = useState(false)
+
+  // Helper function to get the current period label
+  const getCurrentPeriodLabel = () => {
+    if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+      return `${format(customDateRange.from, 'MMM dd')} - ${format(customDateRange.to, 'MMM dd, yyyy')}`
+    }
+    return getPeriodLabel(timePeriod, timeOffset)
+  }
 
   useEffect(() => {
     fetchData()
-  }, [timePeriod, timeOffset, selectedOrg, dataSource])
+  }, [timePeriod, timeOffset, selectedOrg, dataSource, customDateRange, useCustomRange])
 
   const fetchData = async () => {
     try {
@@ -128,13 +149,25 @@ export default function DashboardPage() {
         }
       } else {
         // Fetch from database (original logic)
-        const timeRange = getTimeRange(timePeriod, timeOffset)
+        let startDate: string | undefined
+        let endDate: string | undefined
+        
+        if (useCustomRange && customDateRange?.from && customDateRange?.to) {
+          // Use custom date range
+          startDate = customDateRange.from.toISOString()
+          endDate = customDateRange.to.toISOString()
+        } else {
+          // Use calculated time range
+          const timeRange = getTimeRange(timePeriod, timeOffset)
+          startDate = timeRange.startDate
+          endDate = timeRange.endDate
+        }
         
         // Build query parameters
         const params = new URLSearchParams()
-        if (timeRange.startDate && timeRange.endDate) {
-          params.set('startDate', timeRange.startDate)
-          params.set('endDate', timeRange.endDate)
+        if (startDate && endDate) {
+          params.set('startDate', startDate)
+          params.set('endDate', endDate)
         }
         if (selectedOrg) {
           params.set('orgId', selectedOrg)
@@ -232,6 +265,8 @@ export default function DashboardPage() {
                 <Select value={timePeriod} onValueChange={(value: TimePeriod) => {
                   setTimePeriod(value)
                   setTimeOffset(0) // Reset to current period when changing time period
+                  setUseCustomRange(false) // Reset custom range when changing time period
+                  setCustomDateRange(undefined)
                 }}>
                   <SelectTrigger className="w-32">
                     <SelectValue />
@@ -243,28 +278,57 @@ export default function DashboardPage() {
                   </SelectContent>
                 </Select>
                 
-                <div className="flex items-center space-x-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTimeOffset(timeOffset - 1)}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  
-                  <div className="px-3 py-1 bg-muted rounded-md min-w-[120px] text-center">
-                    <span className="text-sm font-medium">{getPeriodLabel(timePeriod, timeOffset)}</span>
+                {/* Show date range picker only for Days */}
+                {timePeriod === 'days' && (
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant={useCustomRange ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setUseCustomRange(!useCustomRange)
+                        if (useCustomRange) {
+                          setCustomDateRange(undefined)
+                        }
+                      }}
+                    >
+                      {useCustomRange ? 'Using Custom Range' : 'Custom Range'}
+                    </Button>
+                    
+                    {useCustomRange && (
+                      <DateRangePicker
+                        date={customDateRange}
+                        onDateChange={(date) => setCustomDateRange(date)}
+                        placeholder="Select date range"
+                      />
+                    )}
                   </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTimeOffset(timeOffset + 1)}
-                    disabled={timeOffset >= 0}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+                )}
+                
+                {/* Show navigation controls only when not using custom range */}
+                {!useCustomRange && (
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTimeOffset(timeOffset - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    
+                    <div className="px-3 py-1 bg-muted rounded-md min-w-[120px] text-center">
+                      <span className="text-sm font-medium">{getCurrentPeriodLabel()}</span>
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTimeOffset(timeOffset + 1)}
+                      disabled={timeOffset >= 0}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Selected Organization Filter */}
@@ -300,7 +364,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">{metrics?.totalRequests.toLocaleString() || '0'}</div>
               <p className="text-xs text-muted-foreground">
-                {getPeriodLabel(timePeriod, timeOffset)}
+                {getCurrentPeriodLabel()}
                 {dataSource === 'langfuse' && (
                   <span className="ml-2 text-blue-600">• Langfuse</span>
                 )}
@@ -316,7 +380,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">${metrics?.totalCost.toFixed(2) || '0.00'}</div>
               <p className="text-xs text-muted-foreground">
-                {getPeriodLabel(timePeriod, timeOffset)}
+                {getCurrentPeriodLabel()}
                 {dataSource === 'langfuse' && (
                   <span className="ml-2 text-blue-600">• Langfuse</span>
                 )}
