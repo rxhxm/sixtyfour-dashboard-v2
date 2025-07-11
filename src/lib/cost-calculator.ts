@@ -1,5 +1,3 @@
-import { langfuse } from './langfuse'
-
 // Model pricing per 1K tokens (example rates)
 const MODEL_PRICING = {
   'gpt-4': { input: 0.03, output: 0.06 },
