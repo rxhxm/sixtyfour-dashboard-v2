@@ -146,6 +146,8 @@ export default function DashboardPage() {
         
         if (metricsResponse.ok) {
           const metricsData = await metricsResponse.json()
+          console.log('Database metrics received:', metricsData)
+          console.log('Organization breakdown:', metricsData.organizationBreakdown)
           setMetrics(metricsData)
         }
         
@@ -387,9 +389,13 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {metrics?.organizationBreakdown
-                  .sort((a, b) => b.requests - a.requests)
-                  .map((org, index) => (
+                {(() => {
+                  const sorted = (metrics?.organizationBreakdown || [])
+                    .slice()
+                    .sort((a, b) => b.requests - a.requests);
+                  console.log('Sorted organizations for render:', sorted);
+                  return sorted;
+                })().map((org, index) => (
                   <div 
                     key={org.org_id} 
                     className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all hover:bg-muted/50 ${
