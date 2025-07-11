@@ -1,0 +1,16 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "env": {
+    "NEXTAUTH_SECRET": "@nextauth_secret",
+    "NEXTAUTH_URL": "@nextauth_url",
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "LANGFUSE_PUBLIC_KEY": "@langfuse_public_key", 
+    "LANGFUSE_SECRET_KEY": "@langfuse_secret_key",
+    "LANGFUSE_HOST": "@langfuse_host"
+  }
+} 
