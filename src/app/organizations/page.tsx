@@ -28,26 +28,31 @@ function getTimeRange(period: TimePeriod, offset: number) {
   
   let days: number
   let label: string
+  let stepSize: number
   
   switch (period) {
     case 'days':
-      days = 1
-      label = '24 Hours'
+      days = 7  // Show 7 days of data
+      stepSize = 1  // Navigate by 1 day
+      label = '7 Days'
       break
     case 'weeks':
       days = 7
+      stepSize = 7  // Navigate by 1 week
       label = '7 Days'
       break
     case 'months':
       days = 30
+      stepSize = 30  // Navigate by 1 month
       label = '30 Days'
       break
     default:
       return { days: undefined, label: 'All Time' }
   }
   
+  // Calculate the actual date range based on offset
   const endDate = new Date(now)
-  endDate.setDate(endDate.getDate() + (offset * days))
+  endDate.setDate(endDate.getDate() + (offset * stepSize))
   
   const startDate = new Date(endDate)
   startDate.setDate(startDate.getDate() - days + 1)

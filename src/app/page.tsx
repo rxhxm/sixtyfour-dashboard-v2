@@ -61,17 +61,9 @@ function getPeriodLabel(period: TimePeriod, offset: number) {
   if (offset === 0) {
     return `Current ${timeRange.label}`
   } else if (offset === -1) {
-    if (period === 'days') {
-      return `Yesterday (7 days)`
-    } else {
-      return `Previous ${timeRange.label}`
-    }
+    return `Previous ${timeRange.label}`
   } else {
-    if (period === 'days') {
-      return `${Math.abs(offset)} days ago (7 days)`
-    } else {
-      return `${Math.abs(offset)} ${period} ago`
-    }
+    return `${Math.abs(offset)} ${period} ago`
   }
 }
 
@@ -149,7 +141,6 @@ export default function DashboardPage() {
         }
         
         console.log('Fetching database data with params:', params.toString())
-        console.log('Time range calculated:', timeRange)
         
         // Fetch metrics and chart data in parallel
         const [metricsResponse, chartResponse] = await Promise.all([
@@ -159,22 +150,7 @@ export default function DashboardPage() {
         
         if (metricsResponse.ok) {
           const metricsData = await metricsResponse.json()
-          console.log('Metrics data received:', metricsData)
-          
-          // If no data found with date filters, try without filters
-          if (metricsData.totalRequests === 0 && (timeRange.startDate || timeRange.endDate)) {
-            console.log('No data found with date filters, trying without filters...')
-            const fallbackResponse = await fetch(`/api/metrics`)
-            if (fallbackResponse.ok) {
-              const fallbackData = await fallbackResponse.json()
-              console.log('Fallback data received:', fallbackData)
-              setMetrics(fallbackData)
-            } else {
-              setMetrics(metricsData)
-            }
-          } else {
-            setMetrics(metricsData)
-          }
+          setMetrics(metricsData)
         }
         
         if (chartResponse.ok) {
