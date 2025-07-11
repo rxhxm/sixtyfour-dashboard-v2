@@ -397,7 +397,7 @@ export default function DashboardPage() {
                   return sorted;
                 })().map((org, index) => (
                   <div 
-                    key={org.org_id} 
+                    key={`${org.org_id}-${org.requests}-${index}`} 
                     className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all hover:bg-muted/50 ${
                       selectedOrg === org.org_id ? 'bg-primary/10 border border-primary/20' : ''
                     }`}
