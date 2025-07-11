@@ -21,7 +21,6 @@ import { useState, useEffect } from 'react'
 import { UsageMetrics } from '@/types/database'
 
 type TimePeriod = 'days' | 'weeks' | 'months'
-type DataSource = 'database' | 'langfuse'
 
 function getTimeRange(period: TimePeriod, offset: number) {
   const now = new Date()
@@ -73,75 +72,80 @@ function getPeriodLabel(period: TimePeriod, offset: number) {
 }
 
 export default function OrganizationsPage() {
-  const [metrics, setMetrics] = useState<UsageMetrics | null>(null)
+  // Database data state
+  const [databaseMetrics, setDatabaseMetrics] = useState<UsageMetrics | null>(null)
+  
+  // Langfuse data state
+  const [langfuseMetrics, setLangfuseMetrics] = useState<UsageMetrics | null>(null)
+  
+  // Shared state
   const [loading, setLoading] = useState(true)
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('days')
   const [timeOffset, setTimeOffset] = useState(0)
-  const [dataSource, setDataSource] = useState<DataSource>('database')
   const [sortBy, setSortBy] = useState<'requests' | 'cost' | 'name'>('requests')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     fetchData()
-  }, [timePeriod, timeOffset, dataSource])
+  }, [timePeriod, timeOffset])
 
   const fetchData = async () => {
     try {
       setLoading(true)
       
-      if (dataSource === 'langfuse') {
-        // Fetch from Langfuse API
-        const timeRange = getTimeRange(timePeriod, timeOffset)
-        const params = new URLSearchParams()
+      const timeRange = getTimeRange(timePeriod, timeOffset)
+      
+      // Build query parameters for database
+      const databaseParams = new URLSearchParams()
+      if (timeRange.startDate && timeRange.endDate) {
+        databaseParams.set('startDate', timeRange.startDate)
+        databaseParams.set('endDate', timeRange.endDate)
+      }
+      
+      // Build query parameters for Langfuse
+      const langfuseParams = new URLSearchParams()
+      if (timeRange.startDate && timeRange.endDate) {
+        langfuseParams.set('startDate', timeRange.startDate)
+        langfuseParams.set('endDate', timeRange.endDate)
+      }
+      if (timeRange.days) {
+        langfuseParams.set('days', timeRange.days.toString())
+      }
+      
+      console.log('Fetching both database and Langfuse organizations data...')
+      
+      // Fetch both database and Langfuse data in parallel
+      const [databaseResponse, langfuseResponse] = await Promise.all([
+        fetch(`/api/metrics?${databaseParams}`),
+        fetch(`/api/langfuse-metrics?${langfuseParams}`)
+      ])
+      
+      // Process database data
+      if (databaseResponse.ok) {
+        const databaseData = await databaseResponse.json()
+        setDatabaseMetrics(databaseData)
+      }
+      
+      // Process Langfuse data
+      if (langfuseResponse.ok) {
+        const langfuseData = await langfuseResponse.json()
         
-        if (timeRange.startDate && timeRange.endDate) {
-          params.set('startDate', timeRange.startDate)
-          params.set('endDate', timeRange.endDate)
+        const transformedLangfuseMetrics: UsageMetrics = {
+          totalRequests: langfuseData.summary.totalTraces,
+          totalCost: langfuseData.summary.totalCost,
+          totalTokens: langfuseData.summary.totalTokens || 0,
+          averageResponseTime: 0,
+          successRate: 100,
+          organizationBreakdown: langfuseData.organizations.map((org: any) => ({
+            org_id: org.name,
+            org_name: org.name,
+            requests: org.requests,
+            cost: org.cost || 0,
+            tokens: org.tokens || 0
+          }))
         }
-        if (timeRange.days) {
-          params.set('days', timeRange.days.toString())
-        }
         
-        console.log('Fetching Langfuse organizations data with params:', params.toString())
-        
-        const response = await fetch(`/api/langfuse-metrics?${params}`)
-        if (response.ok) {
-          const langfuseData = await response.json()
-          
-          const transformedMetrics: UsageMetrics = {
-            totalRequests: langfuseData.summary.totalTraces,
-            totalCost: langfuseData.summary.totalCost,
-            totalTokens: langfuseData.summary.totalTokens || 0,
-            averageResponseTime: 0,
-            successRate: 100,
-            organizationBreakdown: langfuseData.organizations.map((org: any) => ({
-              org_id: org.name,
-              org_name: org.name,
-              requests: org.requests,
-              cost: org.cost || 0,
-              tokens: org.tokens || 0
-            }))
-          }
-          
-          setMetrics(transformedMetrics)
-        }
-      } else {
-        // Fetch from database
-        const timeRange = getTimeRange(timePeriod, timeOffset)
-        const params = new URLSearchParams()
-        
-        if (timeRange.startDate && timeRange.endDate) {
-          params.set('startDate', timeRange.startDate)
-          params.set('endDate', timeRange.endDate)
-        }
-        
-        console.log('Fetching database organizations data with params:', params.toString())
-        
-        const response = await fetch(`/api/metrics?${params}`)
-        if (response.ok) {
-          const metricsData = await response.json()
-          setMetrics(metricsData)
-        }
+        setLangfuseMetrics(transformedLangfuseMetrics)
       }
     } catch (error) {
       console.error('Failed to fetch organizations data:', error)
@@ -150,34 +154,39 @@ export default function OrganizationsPage() {
     }
   }
 
-  const sortedOrganizations = metrics?.organizationBreakdown.sort((a, b) => {
-    let aValue: number | string
-    let bValue: number | string
-    
-    switch (sortBy) {
-      case 'requests':
-        aValue = a.requests
-        bValue = b.requests
-        break
-      case 'cost':
-        aValue = a.cost
-        bValue = b.cost
-        break
-      case 'name':
-        aValue = a.org_name
-        bValue = b.org_name
-        break
-      default:
-        aValue = a.requests
-        bValue = b.requests
-    }
-    
-    if (sortOrder === 'asc') {
-      return aValue > bValue ? 1 : -1
-    } else {
-      return aValue < bValue ? 1 : -1
-    }
-  }) || []
+  const getSortedOrganizations = (metrics: UsageMetrics | null) => {
+    return metrics?.organizationBreakdown.sort((a, b) => {
+      let aValue: number | string
+      let bValue: number | string
+      
+      switch (sortBy) {
+        case 'requests':
+          aValue = a.requests
+          bValue = b.requests
+          break
+        case 'cost':
+          aValue = a.cost
+          bValue = b.cost
+          break
+        case 'name':
+          aValue = a.org_name
+          bValue = b.org_name
+          break
+        default:
+          aValue = a.requests
+          bValue = b.requests
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1
+      } else {
+        return aValue < bValue ? 1 : -1
+      }
+    }) || []
+  }
+
+  const databaseOrganizations = getSortedOrganizations(databaseMetrics)
+  const langfuseOrganizations = getSortedOrganizations(langfuseMetrics)
 
   if (loading) {
     return (
@@ -194,36 +203,14 @@ export default function OrganizationsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Organizations</h1>
             <p className="text-muted-foreground">
-              View and analyze API usage by organization
+              Detailed view of API usage and costs by organization from both database and Langfuse
             </p>
-          </div>
-          
-          {/* Data Source Toggle */}
-          <div className="flex items-center space-x-2 bg-muted p-1 rounded-lg">
-            <Button
-              variant={dataSource === 'database' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setDataSource('database')}
-              className="flex items-center space-x-1"
-            >
-              <Database className="h-4 w-4" />
-              <span>Database</span>
-            </Button>
-            <Button
-              variant={dataSource === 'langfuse' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setDataSource('langfuse')}
-              className="flex items-center space-x-1"
-            >
-              <BarChart3 className="h-4 w-4" />
-              <span>Langfuse</span>
-            </Button>
           </div>
         </div>
 
@@ -293,142 +280,198 @@ export default function OrganizationsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="flex items-center space-x-1"
                 >
-                  <TrendingUp className={`h-4 w-4 ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
-                  <span>{sortOrder === 'asc' ? 'Asc' : 'Desc'}</span>
+                  {sortOrder === 'asc' ? '↑' : '↓'}
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Organizations</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{sortedOrganizations.length}</div>
-              <p className="text-xs text-muted-foreground">
-                {dataSource === 'langfuse' ? 'Different trace types' : 'Active organizations'}
-                {dataSource === 'langfuse' && (
-                  <span className="ml-2 text-blue-600">• Langfuse</span>
-                )}
-              </p>
-            </CardContent>
-          </Card>
+        {/* DATABASE SECTION */}
+        <div className="space-y-6">
+          <div className="flex items-center space-x-2">
+            <Database className="h-5 w-5 text-primary" />
+            <h2 className="text-2xl font-bold">Database Organizations</h2>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total {dataSource === 'langfuse' ? 'Traces' : 'Requests'}
-              </CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics?.totalRequests.toLocaleString() || '0'}</div>
-              <p className="text-xs text-muted-foreground">
-                Across all organizations
-                {dataSource === 'langfuse' && (
-                  <span className="ml-2 text-blue-600">• Langfuse</span>
-                )}
-              </p>
-            </CardContent>
-          </Card>
+          {/* Database Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Organizations</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{databaseMetrics?.organizationBreakdown.length || '0'}</div>
+                <p className="text-xs text-muted-foreground">Active organizations</p>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{databaseMetrics?.totalRequests.toLocaleString() || '0'}</div>
+                <p className="text-xs text-muted-foreground">{getPeriodLabel(timePeriod, timeOffset)}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${databaseMetrics?.totalCost.toFixed(2) || '0.00'}</div>
+                <p className="text-xs text-muted-foreground">{getPeriodLabel(timePeriod, timeOffset)}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Database Organizations Table */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardHeader>
+              <CardTitle>Database Organizations Breakdown</CardTitle>
+              <CardDescription>
+                Detailed API usage and cost breakdown by organization from database
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${metrics?.totalCost.toFixed(2) || '0.00'}</div>
-              <p className="text-xs text-muted-foreground">
-                Across all organizations
-                {dataSource === 'langfuse' && (
-                  <span className="ml-2 text-blue-600">• Langfuse</span>
-                )}
-              </p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Organization</TableHead>
+                    <TableHead className="text-right">Requests</TableHead>
+                    <TableHead className="text-right">Cost</TableHead>
+                    <TableHead className="text-right">Avg Cost/Request</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {databaseOrganizations.map((org, index) => (
+                    <TableRow key={`db-${org.org_id}-${index}`}>
+                      <TableCell className="font-medium">{org.org_name}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="secondary">{org.requests.toLocaleString()}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">${org.cost.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        ${org.requests > 0 ? (org.cost / org.requests).toFixed(4) : '0.0000'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {databaseOrganizations.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                        No organizations found for the selected time period
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </div>
 
-        {/* Organizations Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {dataSource === 'langfuse' ? 'Trace Types Detail' : 'Organizations Detail'}
-            </CardTitle>
-            <CardDescription>
-              Detailed breakdown of API usage by {dataSource === 'langfuse' ? 'trace type' : 'organization'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {sortedOrganizations.length > 0 ? (
+        {/* LANGFUSE SECTION */}
+        <div className="space-y-6">
+          <div className="flex items-center space-x-2">
+            <BarChart3 className="h-5 w-5 text-blue-600" />
+            <h2 className="text-2xl font-bold">Langfuse Trace Types</h2>
+          </div>
+
+          {/* Langfuse Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Trace Types</CardTitle>
+                <Users className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{langfuseMetrics?.organizationBreakdown.length || '0'}</div>
+                <p className="text-xs text-muted-foreground">
+                  Different trace types
+                  <span className="ml-2 text-blue-600">• Langfuse</span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Traces</CardTitle>
+                <Activity className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{langfuseMetrics?.totalRequests.toLocaleString() || '0'}</div>
+                <p className="text-xs text-muted-foreground">
+                  {getPeriodLabel(timePeriod, timeOffset)}
+                  <span className="ml-2 text-blue-600">• Langfuse</span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
+                <DollarSign className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${langfuseMetrics?.totalCost.toFixed(2) || '0.00'}</div>
+                <p className="text-xs text-muted-foreground">
+                  {getPeriodLabel(timePeriod, timeOffset)}
+                  <span className="ml-2 text-blue-600">• Langfuse</span>
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Langfuse Organizations Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Langfuse Trace Types Breakdown</CardTitle>
+              <CardDescription>
+                Detailed trace usage and cost breakdown by type from Langfuse
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>
-                      {dataSource === 'langfuse' ? 'Trace Type' : 'Organization Name'}
-                    </TableHead>
-                    <TableHead>{dataSource === 'langfuse' ? 'Trace Type ID' : 'Organization ID'}</TableHead>
-                    <TableHead className="text-right">
-                      {dataSource === 'langfuse' ? 'Traces' : 'Requests'}
-                    </TableHead>
+                    <TableHead>Trace Type</TableHead>
+                    <TableHead className="text-right">Traces</TableHead>
                     <TableHead className="text-right">Cost</TableHead>
-                    {dataSource === 'langfuse' && (
-                      <TableHead className="text-right">Tokens</TableHead>
-                    )}
-                    <TableHead className="text-right">% of Total</TableHead>
+                    <TableHead className="text-right">Tokens</TableHead>
+                    <TableHead className="text-right">Avg Cost/Trace</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedOrganizations.map((org) => {
-                    const percentage = metrics?.totalRequests 
-                      ? ((org.requests / metrics.totalRequests) * 100).toFixed(1)
-                      : '0.0'
-                    
-                    return (
-                      <TableRow key={org.org_id}>
-                        <TableCell className="font-medium">{org.org_name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="font-mono text-xs">
-                            {org.org_id}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {org.requests.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="font-semibold">${org.cost.toFixed(2)}</span>
-                        </TableCell>
-                        {dataSource === 'langfuse' && (
-                          <TableCell className="text-right">
-                            {org.tokens?.toLocaleString() || '0'}
-                          </TableCell>
-                        )}
-                        <TableCell className="text-right">
-                          <Badge variant={parseFloat(percentage) > 10 ? 'default' : 'secondary'}>
-                            {percentage}%
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
+                  {langfuseOrganizations.map((org, index) => (
+                    <TableRow key={`langfuse-${org.org_id}-${index}`}>
+                      <TableCell className="font-medium">{org.org_name}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="secondary" className="bg-blue-50 text-blue-700">{org.requests.toLocaleString()}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">${org.cost.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">{org.tokens?.toLocaleString() || '0'}</TableCell>
+                      <TableCell className="text-right">
+                        ${org.requests > 0 ? (org.cost / org.requests).toFixed(4) : '0.0000'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {langfuseOrganizations.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No trace types found for the selected time period
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">No organizations found</h3>
-                <p>No data available for the selected time period.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </DashboardLayout>
   )
