@@ -1,17 +1,13 @@
 'use client'
 
-import { Home, BarChart3, Key, Settings, Users, DollarSign } from 'lucide-react'
+import { Home, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navigation = [
   { name: 'Overview', href: '/', icon: Home },
-  { name: 'API Usage', href: '/usage', icon: BarChart3 },
-  { name: 'API Keys', href: '/keys', icon: Key },
   { name: 'Organizations', href: '/organizations', icon: Users },
-  { name: 'Cost Analysis', href: '/costs', icon: DollarSign },
-  { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 export function Sidebar() {
