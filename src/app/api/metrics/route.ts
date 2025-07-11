@@ -125,6 +125,7 @@ export async function GET(request: NextRequest) {
       })
       
       const organizationBreakdown = Array.from(orgCounts.values())
+        .sort((a, b) => b.requests - a.requests)
       
       return NextResponse.json({
         totalRequests: totalRequests || 0,
@@ -172,6 +173,7 @@ export async function GET(request: NextRequest) {
       })
       
       const organizationBreakdown = Array.from(orgMap.values())
+        .sort((a, b) => b.requests - a.requests)
       
       return NextResponse.json({
         totalRequests: totalRequests || 0,
@@ -229,6 +231,7 @@ export async function GET(request: NextRequest) {
     })
     
     const organizationBreakdown = Array.from(orgCounts.values())
+      .sort((a, b) => b.requests - a.requests)
     
     return NextResponse.json({
       totalRequests: totalRequests || 0,

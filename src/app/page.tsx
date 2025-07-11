@@ -387,7 +387,9 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {metrics?.organizationBreakdown.map((org, index) => (
+                {metrics?.organizationBreakdown
+                  .sort((a, b) => b.requests - a.requests)
+                  .map((org, index) => (
                   <div 
                     key={org.org_id} 
                     className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all hover:bg-muted/50 ${
