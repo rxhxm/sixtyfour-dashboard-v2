@@ -159,22 +159,22 @@ export function UsageChart({ data, langfuseData, title, showCombined = false }: 
           ) : (
             <>
               {/* Original single-source chart */}
-              <Line 
-                yAxisId="left"
-                type="monotone" 
-                dataKey="requests" 
-                stroke="#8884d8" 
-                strokeWidth={2}
-                name="Requests"
-              />
-              <Line 
-                yAxisId="right"
-                type="monotone" 
-                dataKey="cost" 
-                stroke="#82ca9d" 
-                strokeWidth={2}
-                name="Cost ($)"
-              />
+          <Line 
+            yAxisId="left"
+            type="monotone" 
+            dataKey="requests" 
+            stroke="#8884d8" 
+            strokeWidth={2}
+            name="Requests"
+          />
+          <Line 
+            yAxisId="right"
+            type="monotone" 
+            dataKey="cost" 
+            stroke="#82ca9d" 
+            strokeWidth={2}
+            name="Cost ($)"
+          />
             </>
           )}
         </LineChart>
