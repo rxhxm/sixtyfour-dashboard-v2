@@ -46,6 +46,7 @@ export interface UsageMetrics {
   organizationBreakdown: {
     org_id: string
     org_name: string
+    key_name?: string
     requests: number
     cost: number
     tokens: number

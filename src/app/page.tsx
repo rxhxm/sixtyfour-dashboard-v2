@@ -8,13 +8,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Activity, DollarSign, TrendingUp, Users, ChevronLeft, ChevronRight, Calendar, X, Database, BarChart3, CalendarDays } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { UsageChart } from '@/components/charts/usage-chart'
+import { UsageAreaChart } from '@/components/charts/usage-area-chart'
 import { UsageMetrics } from '@/types/database'
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 
-type TimePeriod = 'days' | 'weeks' | 'months' | 'custom'
+type TimePeriod = 'days' | 'weeks' | 'months' | 'custom' | 'all'
+
+// UTC-safe date functions to avoid timezone issues
+function startOfDayUTC(date: Date): Date {
+  const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+  utcDate.setUTCHours(0, 0, 0, 0)
+  return utcDate
+}
+
+function endOfDayUTC(date: Date): Date {
+  const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+  utcDate.setUTCHours(23, 59, 59, 999)
+  return utcDate
+}
 
 function getTimeRange(period: TimePeriod, offset: number, selectedDate?: Date, customRange?: DateRange) {
   const now = new Date()
@@ -27,8 +41,8 @@ function getTimeRange(period: TimePeriod, offset: number, selectedDate?: Date, c
       dayDate.setDate(dayDate.getDate() + offset)
       
       return {
-        startDate: startOfDay(dayDate).toISOString(),
-        endDate: endOfDay(dayDate).toISOString(),
+        startDate: startOfDayUTC(dayDate).toISOString(),
+        endDate: endOfDayUTC(dayDate).toISOString(),
         label: format(dayDate, 'MMM dd, yyyy')
       }
     }
@@ -43,8 +57,8 @@ function getTimeRange(period: TimePeriod, offset: number, selectedDate?: Date, c
       const weekEnd = endOfWeek(weekDate, { weekStartsOn: 1 })
       
       return {
-        startDate: weekStart.toISOString(),
-        endDate: weekEnd.toISOString(),
+        startDate: startOfDayUTC(weekStart).toISOString(),
+        endDate: endOfDayUTC(weekEnd).toISOString(),
         label: `${format(weekStart, 'MMM dd')} - ${format(weekEnd, 'MMM dd, yyyy')}`
       }
     }
@@ -59,8 +73,8 @@ function getTimeRange(period: TimePeriod, offset: number, selectedDate?: Date, c
       const monthEnd = endOfMonth(monthDate)
       
       return {
-        startDate: monthStart.toISOString(),
-        endDate: monthEnd.toISOString(),
+        startDate: startOfDayUTC(monthStart).toISOString(),
+        endDate: endOfDayUTC(monthEnd).toISOString(),
         label: format(monthDate, 'MMMM yyyy')
       }
     }
@@ -69,18 +83,27 @@ function getTimeRange(period: TimePeriod, offset: number, selectedDate?: Date, c
       // Custom range selection
       if (customRange?.from && customRange?.to) {
         return {
-          startDate: startOfDay(customRange.from).toISOString(),
-          endDate: endOfDay(customRange.to).toISOString(),
+          startDate: startOfDayUTC(customRange.from).toISOString(),
+          endDate: endOfDayUTC(customRange.to).toISOString(),
           label: `${format(customRange.from, 'MMM dd')} - ${format(customRange.to, 'MMM dd, yyyy')}`
         }
       }
       // Default to last 7 days if no custom range selected
-      const endDate = endOfDay(now)
-      const startDate = startOfDay(new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000))
+      const endDate = endOfDayUTC(now)
+      const startDate = startOfDayUTC(new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000))
       return {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         label: 'Last 7 days'
+      }
+    }
+    
+    case 'all': {
+      // All time - no date filtering
+      return {
+        startDate: undefined,
+        endDate: undefined,
+        label: 'All Time'
       }
     }
     
@@ -109,10 +132,10 @@ export default function DashboardPage() {
   
   // Shared state
   const [loading, setLoading] = useState(true)
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>('days')
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('months')
   const [timeOffset, setTimeOffset] = useState(0) // 0 = current period, -1 = previous, etc.
   const [selectedOrg, setSelectedOrg] = useState<string>('')
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date('2025-07-15')) // July 2025
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined)
   const [showDatePicker, setShowDatePicker] = useState(false)
 
@@ -146,8 +169,6 @@ export default function DashboardPage() {
         langfuseParams.set('selectedOrg', selectedOrg)
       }
       
-      console.log('Fetching both database and Langfuse data...')
-      
       // Fetch both database and Langfuse data in parallel
       const [
         databaseMetricsResponse,
@@ -173,7 +194,6 @@ export default function DashboardPage() {
       // Process Langfuse data
       if (langfuseResponse.ok) {
         const langfuseData = await langfuseResponse.json()
-        console.log('Langfuse data received:', langfuseData)
         
         // Transform Langfuse data to match existing metrics format
         const transformedLangfuseMetrics: UsageMetrics = {
@@ -250,11 +270,12 @@ export default function DashboardPage() {
                     <SelectItem value="weeks">Weeks</SelectItem>
                     <SelectItem value="months">Months</SelectItem>
                     <SelectItem value="custom">Custom Range</SelectItem>
+                    <SelectItem value="all">All Time</SelectItem>
                   </SelectContent>
                 </Select>
                 
                 {/* Date Picker for Days, Weeks, Months */}
-                {timePeriod !== 'custom' && (
+                {timePeriod !== 'custom' && timePeriod !== 'all' && (
                   <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
                     <PopoverTrigger asChild>
                       <Button
@@ -313,7 +334,7 @@ export default function DashboardPage() {
                 )}
                 
                 {/* Navigation arrows (only for non-custom periods) */}
-                {timePeriod !== 'custom' && (
+                {timePeriod !== 'custom' && timePeriod !== 'all' && (
                   <div className="flex items-center space-x-1">
                     <Button
                       variant="outline"
@@ -344,6 +365,13 @@ export default function DashboardPage() {
                     <span className="text-sm font-medium">{getPeriodLabel(timePeriod, timeOffset, selectedDate, customRange)}</span>
                   </div>
                 )}
+                
+                {/* All time display */}
+                {timePeriod === 'all' && (
+                  <div className="px-3 py-1 bg-muted rounded-md">
+                    <span className="text-sm font-medium">{getPeriodLabel(timePeriod, timeOffset, selectedDate, customRange)}</span>
+                  </div>
+                )}
               </div>
 
               {/* Selected Organization Filter */}
@@ -367,146 +395,15 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* DATABASE SECTION */}
-        <div className="space-y-6">
-          <div className="flex items-center space-x-2">
-            <Database className="h-5 w-5 text-primary" />
-            <h2 className="text-2xl font-bold">Database Metrics</h2>
-          </div>
-
-          {/* Database Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{databaseMetrics?.totalRequests.toLocaleString() || '0'}</div>
-                <p className="text-xs text-muted-foreground">
-                  {getPeriodLabel(timePeriod, timeOffset, selectedDate, customRange)}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">${databaseMetrics?.totalCost.toFixed(2) || '0.00'}</div>
-                <p className="text-xs text-muted-foreground">
-                  {getPeriodLabel(timePeriod, timeOffset, selectedDate, customRange)}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{databaseMetrics?.successRate.toFixed(1) || '0.0'}%</div>
-                <p className="text-xs text-muted-foreground">HTTP 2xx responses</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Organizations</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{databaseMetrics?.organizationBreakdown.length || '0'}</div>
-                <p className="text-xs text-muted-foreground">Active organizations</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Database Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Database API Usage Trends</CardTitle>
-                <CardDescription>
-                  Daily API requests and costs over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <UsageChart data={databaseChartData} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Organizations (Database)</CardTitle>
-                <CardDescription>
-                  API usage by organization from database
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {(databaseMetrics?.organizationBreakdown || [])
-                    .slice()
-                    .sort((a, b) => b.requests - a.requests)
-                    .map((org, index) => (
-                    <div 
-                      key={`db-${org.org_id}-${org.requests}-${index}`} 
-                      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all hover:bg-muted/50 ${
-                        selectedOrg === org.org_id ? 'bg-primary/10 border border-primary/20' : ''
-                      }`}
-                      onClick={() => {
-                        if (selectedOrg === org.org_id) {
-                          setSelectedOrg('') // Deselect if already selected
-                        } else {
-                          setSelectedOrg(org.org_id) // Select this organization
-                        }
-                      }}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          selectedOrg === org.org_id ? 'bg-primary' : 'bg-muted-foreground'
-                        }`}></div>
-                        <span className={`text-sm font-medium ${
-                          selectedOrg === org.org_id ? 'text-primary' : ''
-                        }`}>
-                          {org.org_name}
-                        </span>
-                        {selectedOrg === org.org_id && (
-                          <Badge variant="default" className="text-xs">
-                            Selected
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary">{org.requests.toLocaleString()} requests</Badge>
-                        <span className="text-sm text-muted-foreground">${org.cost.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {databaseMetrics?.organizationBreakdown.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No organizations found for the selected time period
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* LANGFUSE SECTION */}
+        {/* LANGFUSE METRICS */}
         <div className="space-y-6">
           <div className="flex items-center space-x-2">
             <BarChart3 className="h-5 w-5 text-blue-600" />
             <h2 className="text-2xl font-bold">Langfuse Metrics</h2>
           </div>
 
-          {/* Langfuse Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Langfuse Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Traces</CardTitle>
@@ -548,53 +445,105 @@ export default function DashboardPage() {
                 </p>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Trace Types</CardTitle>
-                <Users className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{langfuseMetrics?.organizationBreakdown.length || '0'}</div>
-                <p className="text-xs text-muted-foreground">
-                  Different trace types
-                  <span className="ml-2 text-blue-600">• Langfuse</span>
-                </p>
-              </CardContent>
-            </Card>
           </div>
+        </div>
 
-          {/* Langfuse Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Langfuse Usage Trends</CardTitle>
-                <CardDescription>
-                  Daily traces and costs over time from Langfuse
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <UsageChart data={langfuseChartData} />
-              </CardContent>
-            </Card>
+        {/* COMBINED USAGE TRENDS CHART */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <BarChart3 className="h-5 w-5 text-purple-600" />
+              <span>Combined Usage Trends</span>
+            </CardTitle>
+            <CardDescription>
+              Database requests, Langfuse traces, total cost, and tokens over time
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <UsageChart 
+              data={databaseChartData} 
+              langfuseData={langfuseChartData}
+              showCombined={true}
+            />
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Trace Types (Langfuse)</CardTitle>
-                <CardDescription>
-                  Usage by trace type from Langfuse
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {(langfuseMetrics?.organizationBreakdown || [])
-                    .slice()
-                    .sort((a, b) => b.requests - a.requests)
-                    .map((org, index) => (
-                    <div 
-                      key={`langfuse-${org.org_id}-${org.requests}-${index}`} 
-                      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all hover:bg-muted/50 ${
-                        selectedOrg === org.org_id ? 'bg-blue-50 border border-blue-200' : ''
+        {/* ORGANIZATION LEADERBOARD */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Users className="h-5 w-5" />
+              <span>Organization Leaderboard ({(() => {
+                // Calculate total unique organizations
+                const orgSet = new Set()
+                ;(databaseMetrics?.organizationBreakdown || []).forEach(org => orgSet.add(org.org_id))
+                ;(langfuseMetrics?.organizationBreakdown || []).forEach(org => orgSet.add(org.org_id))
+                return orgSet.size
+              })()})</span>
+            </CardTitle>
+            <CardDescription>
+              Combined view of all organizations with database requests, Langfuse traces, and costs • Click to filter
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-medium">Organization</th>
+                    <th className="text-left py-3 px-4 font-medium">API Key</th>
+                    <th className="text-right py-3 px-4 font-medium">Requests</th>
+                    <th className="text-right py-3 px-4 font-medium">Traces</th>
+                    <th className="text-right py-3 px-4 font-medium">Total Cost</th>
+                    <th className="text-right py-3 px-4 font-medium">Tokens</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    // Create a combined list of all organizations
+                    const orgMap = new Map()
+                    
+                    // Add database organizations
+                    ;(databaseMetrics?.organizationBreakdown || []).forEach(org => {
+                      orgMap.set(org.org_id, {
+                        org_id: org.org_id,
+                        org_name: org.org_name,
+                        key_name: org.key_name || org.org_name, // Use key_name if available, fallback to org_name
+                        requests: org.requests,
+                        traces: 0,
+                        cost: org.cost,
+                        tokens: org.tokens || 0
+                      })
+                    })
+                    
+                    // Add Langfuse organizations (merge with existing or create new)
+                    ;(langfuseMetrics?.organizationBreakdown || []).forEach(org => {
+                      const existing = orgMap.get(org.org_id)
+                      if (existing) {
+                        existing.traces = org.requests
+                        existing.cost += org.cost
+                        existing.tokens += org.tokens || 0
+                      } else {
+                        orgMap.set(org.org_id, {
+                          org_id: org.org_id,
+                          org_name: org.org_name,
+                          key_name: org.key_name || org.org_name, // Use key_name if available, fallback to org_name
+                          requests: 0,
+                          traces: org.requests,
+                          cost: org.cost,
+                          tokens: org.tokens || 0
+                        })
+                      }
+                    })
+                    
+                    // Convert to array and sort by total activity (requests + traces)
+                    return Array.from(orgMap.values())
+                      .sort((a, b) => (b.requests + b.traces) - (a.requests + a.traces))
+                  })().map((org, index) => (
+                    <tr 
+                      key={`combined-${org.org_id}-${index}`}
+                      className={`border-b cursor-pointer transition-all hover:bg-muted/50 ${
+                        selectedOrg === org.org_id ? 'bg-primary/10 border-primary/20' : ''
                       }`}
                       onClick={() => {
                         if (selectedOrg === org.org_id) {
@@ -604,39 +553,63 @@ export default function DashboardPage() {
                         }
                       }}
                     >
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          selectedOrg === org.org_id ? 'bg-blue-600' : 'bg-muted-foreground'
-                        }`}></div>
-                        <span className={`text-sm font-medium ${
-                          selectedOrg === org.org_id ? 'text-blue-600' : ''
-                        }`}>
-                          {org.org_name}
-                        </span>
-                        {selectedOrg === org.org_id && (
-                          <Badge variant="default" className="text-xs bg-blue-600">
-                            Selected
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary">{org.requests.toLocaleString()} traces</Badge>
-                        <span className="text-sm text-muted-foreground">${org.cost.toFixed(2)}</span>
-                      </div>
-                    </div>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            selectedOrg === org.org_id ? 'bg-primary' : 'bg-muted-foreground'
+                          }`}></div>
+                          <div>
+                            <div className={`font-medium ${
+                              selectedOrg === org.org_id ? 'text-primary' : ''
+                            }`}>
+                              {org.org_name}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              ${org.cost.toFixed(2)}
+                            </div>
+                          </div>
+                          {selectedOrg === org.org_id && (
+                            <Badge variant="default" className="text-xs">
+                              Selected
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-medium">
+                          {org.key_name || 'Unknown Key'}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="font-medium">{org.requests.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">requests</div>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="font-medium">{org.traces.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">traces</div>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="font-medium">${org.cost.toFixed(2)}</div>
+                        <div className="text-xs text-muted-foreground">total</div>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="font-medium">{org.tokens.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">tokens</div>
+                      </td>
+                    </tr>
                   ))}
+                </tbody>
+              </table>
+              
+              {(!databaseMetrics?.organizationBreakdown?.length && !langfuseMetrics?.organizationBreakdown?.length) && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No organizations found for the selected time period
                 </div>
-                
-                {langfuseMetrics?.organizationBreakdown.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No trace types found for the selected time period
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-    </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </DashboardLayout>
   )
-}
+} 

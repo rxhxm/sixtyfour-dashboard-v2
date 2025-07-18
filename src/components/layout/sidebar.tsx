@@ -1,13 +1,12 @@
 'use client'
 
-import { Home, Users } from 'lucide-react'
+import { Home } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navigation = [
   { name: 'Overview', href: '/', icon: Home },
-  { name: 'Organizations', href: '/organizations', icon: Users },
 ]
 
 export function Sidebar() {

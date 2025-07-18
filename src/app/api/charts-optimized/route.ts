@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
          const { data: orgApiKeys } = await supabaseAdmin
            .from('sixtyfour_api_keys')
            .select('key')
-           .eq('name', orgId)
+           .eq('org_id', orgId)
          
          if (orgApiKeys && orgApiKeys.length > 0) {
            const apiKeysList = orgApiKeys.map(k => `'${k.key}'`).join(',')
@@ -121,7 +121,7 @@ async function getFallbackChartData(startDate: string | null, endDate: string | 
            const { data: orgApiKeys } = await supabaseAdmin
              .from('sixtyfour_api_keys')
              .select('key')
-             .eq('name', orgId)
+             .eq('org_id', orgId)
            
            if (orgApiKeys && orgApiKeys.length > 0) {
              const apiKeysList = orgApiKeys.map(k => k.key)

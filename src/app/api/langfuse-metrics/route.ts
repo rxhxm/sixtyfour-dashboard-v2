@@ -3,7 +3,10 @@ import {
   fetchLangfuseDailyMetrics, 
   fetchLangfuseTraces,
   fetchLangfuseMetrics,
-  getDateRange 
+  getDateRange,
+  processTracesForDashboard,
+  extractOrgIdFromTrace,
+  extractFunctionFromTrace
 } from '@/lib/langfuse'
 
 export async function GET(request: NextRequest) {
@@ -14,24 +17,38 @@ export async function GET(request: NextRequest) {
     const selectedOrg = searchParams.get('selectedOrg')
     const days = parseInt(searchParams.get('days') || '30')
 
-    console.log('Langfuse metrics API called with:', { startDate, endDate, selectedOrg, days })
+    console.log('Langfuse metrics API called with:', { 
+      startDate, 
+      endDate, 
+      selectedOrg, 
+      days
+    })
 
-    // Use provided dates or calculate from days
-    let fromTimestamp: string
-    let toTimestamp: string
+    // Handle "All Time" case - when both dates are undefined/null
+    let fromTimestamp: string | undefined
+    let toTimestamp: string | undefined
     
-    if (startDate && endDate) {
+    if (startDate && endDate && startDate !== 'null' && endDate !== 'null') {
+      try {
       fromTimestamp = new Date(startDate).toISOString()
       toTimestamp = new Date(endDate).toISOString()
+        console.log('Using provided date range:', { fromTimestamp, toTimestamp })
+      } catch (error) {
+        console.error('Error parsing dates:', error)
+        fromTimestamp = undefined
+        toTimestamp = undefined
+      }
     } else {
-      const dateRange = getDateRange(days)
-      fromTimestamp = dateRange.fromTimestamp
-      toTimestamp = dateRange.toTimestamp
+      // For "All Time" - don't set date filters
+      fromTimestamp = undefined
+      toTimestamp = undefined
+      console.log('Using "All Time" - no date filters')
     }
 
-    console.log('Using date range:', { fromTimestamp, toTimestamp })
-
-    // Fetch daily metrics for cost and usage overview
+    // For date-filtered requests, use ONLY daily metrics for better performance
+    if (fromTimestamp && toTimestamp) {
+      console.log('Using optimized daily metrics approach for date-filtered request')
+      
     const dailyMetricsOptions: any = {
       fromTimestamp,
       toTimestamp,
@@ -43,22 +60,16 @@ export async function GET(request: NextRequest) {
       dailyMetricsOptions.traceName = selectedOrg
     }
 
-    const [dailyMetrics, traces] = await Promise.all([
-      fetchLangfuseDailyMetrics(dailyMetricsOptions),
-      fetchLangfuseTraces({
-        fromTimestamp,
-        toTimestamp,
-        limit: 100,
-        ...(selectedOrg && selectedOrg !== 'all' ? { name: selectedOrg } : {})
-      })
-    ])
+      try {
+        const dailyMetrics = await fetchLangfuseDailyMetrics(dailyMetricsOptions)
 
-    // Calculate summary metrics
+        // Calculate summary metrics from daily data
     let totalCost = 0
     let totalTraces = 0
     let totalTokens = 0
     const modelCosts: Record<string, number> = {}
     const modelUsage: Record<string, { tokens: number, cost: number, traces: number }> = {}
+        const orgBreakdown = new Map<string, { requests: number, cost: number, tokens: number }>()
 
     // Process daily metrics
     if (dailyMetrics?.data) {
@@ -80,38 +91,41 @@ export async function GET(request: NextRequest) {
             modelCosts[usage.model] = (modelCosts[usage.model] || 0) + (usage.totalCost || 0)
           }
         }
-      }
-    }
 
-    // Process traces for organization breakdown
-    const orgBreakdown: Record<string, { traces: number, cost: number, tokens: number }> = {}
-    const traceNames = new Set<string>()
-
-    if (traces?.data) {
-      for (const trace of traces.data) {
-        const traceName = trace.name || 'Unknown'
-        traceNames.add(traceName)
-        
-        if (!orgBreakdown[traceName]) {
-          orgBreakdown[traceName] = { traces: 0, cost: 0, tokens: 0 }
+            // Extract organization data from traceName if available
+            if (day.traceName && day.traceName !== 'undefined') {
+              const orgName = day.traceName
+              const existing = orgBreakdown.get(orgName) || { requests: 0, cost: 0, tokens: 0 }
+              existing.requests += day.countTraces || 0
+              existing.cost += day.totalCost || 0
+              existing.tokens += day.usage?.reduce((sum: number, u: any) => sum + (u.totalUsage || 0), 0) || 0
+              orgBreakdown.set(orgName, existing)
+            }
+          }
         }
-        
-        orgBreakdown[traceName].traces += 1
-        orgBreakdown[traceName].cost += trace.calculatedTotalCost || 0
-        orgBreakdown[traceName].tokens += trace.calculatedTotalTokens || 0
-      }
-    }
 
-    // Convert to organization format expected by frontend
-    const organizations = Object.entries(orgBreakdown)
-      .map(([name, data]) => ({
-        name,
-        requests: data.traces,
+        // Convert organization breakdown to array
+        const organizations = Array.from(orgBreakdown.entries())
+          .filter(([orgName, data]) => {
+            // Filter out system traces and unknown organizations
+            if (orgName === 'Unknown' || orgName === 'unknown' || orgName === 'undefined') return false
+            
+            const systemNames = ['OpenAI-generation', 'openai-generation', 'system', 'internal']
+            if (systemNames.includes(orgName)) return false
+            
+            // Only include organizations with meaningful trace counts
+            if (data.requests < 2) return false
+            
+            return true
+          })
+          .map(([orgName, data]) => ({
+            name: orgName,
+            requests: data.requests,
         cost: data.cost,
         tokens: data.tokens
       }))
       .sort((a, b) => b.requests - a.requests)
-      .slice(0, 10) // Top 10 organizations
+          .slice(0, 10)
 
     // Prepare chart data
     const chartData = dailyMetrics?.data?.map((day: any) => ({
@@ -138,16 +152,121 @@ export async function GET(request: NextRequest) {
       },
       raw: {
         dailyMetricsCount: dailyMetrics?.data?.length || 0,
+            tracesCount: 0, // Not fetched for performance
+            isAllTime: false,
+            optimizedMode: true
+          }
+        }
+
+        console.log('Optimized Langfuse response:', {
+          totalCost: response.summary.totalCost,
+          totalTraces: response.summary.totalTraces,
+          totalTokens: response.summary.totalTokens,
+          organizationsCount: response.organizations.length,
+          chartDataPoints: response.chartData.length
+        })
+
+        return NextResponse.json(response)
+
+              } catch (error) {
+          console.error('Error fetching Langfuse daily metrics:', error)
+          // Fall back to empty data
+          return NextResponse.json({
+            summary: { totalCost: 0, totalTraces: 0, totalTokens: 0, avgCostPerTrace: 0 },
+            organizations: [],
+            modelCosts: {},
+            modelUsage: {},
+            chartData: [],
+            dateRange: { fromTimestamp, toTimestamp },
+            raw: { dailyMetricsCount: 0, tracesCount: 0, isAllTime: false, optimizedMode: true, error: error instanceof Error ? error.message : 'Unknown error' }
+          })
+        }
+    }
+
+    // For "All Time" requests, use the existing trace-based approach
+    console.log('Using trace-based approach for All Time request')
+    
+    const baseTraceOptions: any = {}
+    
+    // Add organization filtering via tags if selected
+    if (selectedOrg && selectedOrg !== 'all') {
+      baseTraceOptions.tags = [`org_id:${selectedOrg}`]
+    }
+
+    let traces
+    try {
+      traces = await fetchLangfuseTraces({
+        ...baseTraceOptions,
+        limit: 1000 // Use a reasonable limit instead of pagination
+      })
+      console.log(`All Time traces fetched: ${traces?.data?.length || 0} traces`)
+    } catch (error) {
+      console.error('Error fetching Langfuse traces:', error)
+      traces = { data: [] }
+    }
+
+    // Process traces using the new tagging system
+    let processedData: any = { organizations: [], functions: [], totalTraces: 0, totalCost: 0, totalTokens: 0 }
+    if (traces?.data && traces.data.length > 0) {
+      processedData = processTracesForDashboard(traces.data)
+    }
+
+    // For "All Time" without daily metrics, use processed data
+    const totalTraces = processedData.totalTraces
+    const totalCost = processedData.totalCost
+    const totalTokens = processedData.totalTokens
+
+    // Convert organizations to the format expected by frontend
+    const organizations = processedData.organizations
+      .filter((org: any) => {
+        if (org.org_id === 'Unknown' || org.org_id === 'unknown') return false
+        
+        const systemNames = ['OpenAI-generation', 'openai-generation', 'system', 'internal']
+        if (systemNames.includes(org.org_id)) return false
+        
+        if (org.total_traces < 2) return false
+        
+        return true
+      })
+      .map((org: any) => ({
+        name: org.org_id,
+        requests: org.total_traces,
+        cost: org.total_cost,
+        tokens: org.total_tokens
+      }))
+      .sort((a: any, b: any) => b.requests - a.requests)
+      .slice(0, 10)
+
+    const response = {
+      summary: {
+        totalCost: Math.round(totalCost * 100) / 100,
+        totalTraces,
+        totalTokens,
+        avgCostPerTrace: totalTraces > 0 ? Math.round((totalCost / totalTraces) * 10000) / 10000 : 0
+      },
+      organizations,
+      modelCosts: {},
+      modelUsage: {},
+      chartData: [],
+      dateRange: {
+        fromTimestamp,
+        toTimestamp
+      },
+      raw: {
+        dailyMetricsCount: 0,
         tracesCount: traces?.data?.length || 0,
-        traceNames: Array.from(traceNames)
+        isAllTime: true,
+        optimizedMode: false,
+        processedOrganizations: processedData.organizations,
+        processedFunctions: processedData.functions
       }
     }
 
-    console.log('Langfuse response summary:', {
+    console.log('All Time Langfuse response:', {
       totalCost: response.summary.totalCost,
       totalTraces: response.summary.totalTraces,
-      organizationsCount: response.organizations.length,
-      chartDataPoints: response.chartData.length
+      totalTokens: response.summary.totalTokens,
+      organizationsCount: response.organizations.length
     })
 
     return NextResponse.json(response)

@@ -20,11 +20,12 @@ export async function GET() {
       const apiKey = item.api_key
       const orgId = `API-${apiKey.substring(0, 8)}`
       const orgName = `API Key ${apiKey.substring(0, 8)}`
+      const displayName = `${orgId} - ${orgName}`
       
       if (!orgsMap.has(orgId)) {
         orgsMap.set(orgId, {
           id: orgId,
-          name: orgName,
+          name: displayName,
           slug: orgId.toLowerCase().replace(/\s+/g, '-'),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
