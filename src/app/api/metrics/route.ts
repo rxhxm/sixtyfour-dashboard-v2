@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
           .eq('org_id', orgId)
         
         if (orgApiKeys && orgApiKeys.length > 0) {
-          const apiKeysList = orgApiKeys.map(k => k.key)
+          const apiKeysList = orgApiKeys.map((k: any) => k.key)
           countQuery = countQuery.in('api_key', apiKeysList)
         } else {
           // No API keys found for this org, return 0 results
@@ -86,9 +86,9 @@ export async function GET(request: NextRequest) {
            .select('key')
            .eq('org_id', orgId)
          
-         if (orgApiKeys && orgApiKeys.length > 0) {
-           const apiKeysList = orgApiKeys.map(k => k.key)
-            dataQuery = dataQuery.in('api_key', apiKeysList)
+        if (orgApiKeys && orgApiKeys.length > 0) {
+          const apiKeysList = orgApiKeys.map((k: any) => k.key)
+           dataQuery = dataQuery.in('api_key', apiKeysList)
          } else {
            // No API keys found for this org, return 0 results
             dataQuery = dataQuery.eq('api_key', 'no-match')
