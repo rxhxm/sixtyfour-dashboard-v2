@@ -30,6 +30,7 @@ const ALLOWED_USERS = [
 ]
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production',
   providers: [
     CredentialsProvider({
       name: "credentials",

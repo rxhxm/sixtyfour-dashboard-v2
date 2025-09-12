@@ -28,10 +28,13 @@ NEXT_PUBLIC_SUPABASE_URL = your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY = your_supabase_anon_key
 ```
 
-### Authentication (for login page):
+### Authentication (required for NextAuth):
 ```
-AUTH_PASSWORD = thepursuitofllh
+NEXTAUTH_SECRET = (generate with: openssl rand -base64 32)
+NEXTAUTH_URL = https://sixtyfour-dashboard-qthh.vercel.app
 ```
+
+Note: Replace NEXTAUTH_URL with your actual Vercel URL
 
 ## Step 3: Deploy
 
