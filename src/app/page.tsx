@@ -376,9 +376,9 @@ export default function DashboardPage() {
   }, [timePeriod, timeOffset, selectedDate, customRange, expandedOrg]) // Added expandedOrg to refetch filtered data
 
   const fetchData = async () => {
+    const fetchStartTime = Date.now()
     try {
       setLoading(true)
-      const fetchStartTime = Date.now()
       
       const timeRange = getTimeRange(timePeriod, timeOffset, selectedDate, customRange)
       console.log('Time range generated:', {
