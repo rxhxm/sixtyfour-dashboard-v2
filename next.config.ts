@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  telemetry: {
+    disabled: true
+  }
 };
 
 export default nextConfig;
