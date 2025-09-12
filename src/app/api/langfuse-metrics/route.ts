@@ -15,7 +15,14 @@ export const maxDuration = 120 // Set 2 minute timeout for heavy data processing
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
   
-  // Log API call start
+  // Log API call start with performance tracking
+  console.log(`\n🔵 === LANGFUSE METRICS API STARTED ===`)
+  console.log(`Time: ${new Date().toISOString()}`)
+  console.log(`URL: ${request.url}`)
+  console.log(`Vercel Region: ${process.env.VERCEL_REGION || 'local'}`)
+  console.log(`Parallel Fetching: ENABLED (Batch Size: 10)`)
+  console.log(`=====================================\n`)
+  
   logger.log({
     type: 'API_START',
     route: '/api/langfuse-metrics',
