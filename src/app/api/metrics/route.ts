@@ -9,9 +9,19 @@ export async function GET(request: NextRequest) {
   const endDate = searchParams.get('endDate')
   const orgId = searchParams.get('orgId')
   
-  console.log('API received params:', { startDate, endDate, orgId }) // Debug logging
-  
   try {
+    // Return empty data if Supabase is not configured
+    if (!supabaseAdmin) {
+      return NextResponse.json({
+        totalRequests: 0,
+        totalCost: 0,
+        totalTokens: 0,
+        avgResponseTime: 0,
+        successRate: 100,
+        organizationBreakdown: []
+      })
+    }
+    
     // Build the base query with proper chaining
     let countQuery = supabaseAdmin
       .from('api_usage')
@@ -48,8 +58,6 @@ export async function GET(request: NextRequest) {
     const { count: totalRequests, error: countError } = await countQuery
     
     if (countError) throw countError
-    
-    console.log('Total requests found:', totalRequests)
     
     // For organization breakdown, we need to be smarter about sampling
     // to ensure the breakdown is representative of the total
@@ -108,34 +116,104 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    console.log('Organization breakdown data size:', orgBreakdownData.length)
-    
     // Calculate metrics from real data (no enrichment)
     const totalCost = 0 // No cost data available in real metadata
     const totalTokens = 0 // No token data available in real metadata
     const averageResponseTime = 0 // No response time data available in real metadata
     const successRate = 0 // No status code data available in real metadata
     
-    // Get organization mapping from sixtyfour_api_keys table
-    const { data: apiKeyMapping, error: mappingError } = await supabaseAdmin
+    // Get organization mapping from both API key tables
+    // First get the NEW api_keys table (current keys)
+    const { data: currentApiKeys, error: currentError } = await supabaseAdmin
+      .from('api_keys')
+      .select('id, key, name, org_id')
+      .limit(1000)
+    
+    // Also get the sixtyfour_api_keys table (legacy keys)
+    const { data: sixtyfourApiKeys, error: sixtyfourError } = await supabaseAdmin
       .from('sixtyfour_api_keys')
       .select('key, name, description, org_id')
       .limit(1000)
     
-    console.log('sixtyfour_api_keys query result:', { 
-      mappingCount: apiKeyMapping?.length || 0, 
-      mappingError 
+    // Create a mapping from API key to user/org info
+    const keyToOrgMap = new Map()
+    
+    // IMPORTANT: Add NEW api_keys table entries FIRST (these are the current keys)
+    currentApiKeys?.forEach((mapping: any) => {
+      // For the new api_keys table, use the actual key
+      const apiKey = mapping.key
+      const userName = mapping.name || 'Unknown User'
+      const orgId = mapping.org_id || ''
+      
+      // Create a display key with first 10 chars
+      const keyDisplay = apiKey && apiKey.length > 10 ? `${apiKey.substring(0, 10)}...` : apiKey
+      
+      // Store with the actual name from the table
+      keyToOrgMap.set(apiKey, {
+        org_id: userName, // Use name as the grouping ID
+        org_name: userName,
+        key_name: keyDisplay || 'Current API Key'
+      })
+      
+      // Also try to map by the first part of the key in case it's stored differently
+      if (apiKey && apiKey.length > 8) {
+        const prefix = apiKey.substring(0, 8)
+        if (!keyToOrgMap.has(prefix)) {
+          keyToOrgMap.set(prefix, {
+            org_id: userName,
+            org_name: userName,
+            key_name: keyDisplay || 'Current API Key'
+          })
+        }
+      }
     })
     
-    // Create a mapping from API key to org_id
-    const keyToOrgMap = new Map()
-    apiKeyMapping?.forEach((mapping: any) => {
+    // Then add sixtyfour_api_keys entries (legacy keys)
+    sixtyfourApiKeys?.forEach((mapping: any) => {
       const key = mapping.key
-      const keyName = mapping.name || 'Unknown Key'
-      const orgId = mapping.org_id || key.substring(0, 8) // Use actual org_id field, or fallback to key prefix
+      const userName = mapping.name || 'Unknown User'
+      const description = mapping.description || ''
+      const orgId = mapping.org_id || ''
+      const keyPrefix = key.substring(0, 10)
       
-      // Store the full API key mapping with separate org_id and key_name
-      keyToOrgMap.set(key, { org_id: orgId, org_name: orgId, key_name: keyName })
+      // Only add if not already mapped (current keys take priority)
+      if (!keyToOrgMap.has(key)) {
+        // For legacy keys, use a better format for display
+        let displayName = userName
+        if (orgId && orgId !== userName) {
+          displayName = `${userName} • ${orgId}` // Use a bullet to show both
+        }
+        
+        keyToOrgMap.set(key, { 
+          org_id: orgId || userName, // Prefer the real org_id if present
+          org_name: displayName,
+          key_name: `${keyPrefix}...${description ? ` (${description})` : ''} •` // Add a bullet to indicate legacy
+        })
+      }
+      
+      // Also add variations of the key for matching (full UUID, with/without dashes)
+      const keyVariations = [
+        key,
+        key.substring(0, 32), // First 32 chars
+                  key.substring(0, 10), // First 10 chars
+        key.substring(0, 12), // First 12 chars
+        key.substring(0, 8),  // First 8 chars
+      ]
+      
+      keyVariations.forEach(variant => {
+        if (variant && !keyToOrgMap.has(variant)) {
+          let displayName = userName
+          if (orgId && orgId !== userName) {
+            displayName = `${userName} • ${orgId}`
+          }
+          
+          keyToOrgMap.set(variant, {
+            org_id: orgId || userName,
+            org_name: displayName,
+            key_name: `${keyPrefix}...${description ? ` (${description})` : ''} •`
+          })
+        }
+      })
     })
     
     // Count usage by organization with scaling factor for sampling
@@ -144,22 +222,45 @@ export async function GET(request: NextRequest) {
       ? totalRequests / orgBreakdownData.length 
       : 1
     
-    console.log('Scaling factor for organization breakdown:', scalingFactor)
-    
     orgBreakdownData.forEach((item: any) => {
       const apiKey = item.api_key
       
-      // Try to find exact match first
+      // Try to find organization info for this API key
       let orgInfo = keyToOrgMap.get(apiKey)
       
-      // If no exact match, use API key prefix as fallback
+      // If not found, try partial matches
+      if (!orgInfo && apiKey) {
+        // Try different lengths of the key for matching
+        const keyLengths = [32, 20, 12, 8]
+        for (const len of keyLengths) {
+          const keyPrefix = apiKey.substring(0, len)
+          orgInfo = keyToOrgMap.get(keyPrefix)
+          if (orgInfo) break
+        }
+        
+        // If still not found, try to find any key that starts with our prefix
+        if (!orgInfo) {
+          for (const [mappedKey, mappedInfo] of keyToOrgMap.entries()) {
+            if (mappedKey === apiKey || 
+                mappedKey.startsWith(apiKey) || 
+                apiKey.startsWith(mappedKey) ||
+                (mappedKey.length >= 8 && apiKey.length >= 8 && 
+                 mappedKey.substring(0, 8) === apiKey.substring(0, 8))) {
+              orgInfo = mappedInfo
+              break
+            }
+          }
+        }
+      }
+      
+      // If still no match, create a fallback but don't call it "Legacy"
       if (!orgInfo) {
-        const fallbackOrgId = `API-${apiKey.substring(0, 8)}`
-        const fallbackName = `API Key ${apiKey.substring(0, 8)}`
+        const keyPrefix = apiKey.substring(0, 12)
+        const groupId = `unregistered-${keyPrefix.substring(0, 8)}`
         orgInfo = {
-          org_id: fallbackOrgId,
-          org_name: fallbackOrgId,
-          key_name: fallbackName
+          org_id: groupId,
+          org_name: 'Unregistered Key',
+          key_name: `${keyPrefix}...`
         }
       }
       
@@ -182,14 +283,12 @@ export async function GET(request: NextRequest) {
     
     // Verify the breakdown sums approximately to the total
     const breakdownTotal = organizationBreakdown.reduce((sum, org) => sum + org.requests, 0)
-    console.log('Breakdown total vs actual total:', { breakdownTotal, totalRequests })
     
     // If there's a significant discrepancy and we have organizations, 
     // proportionally adjust to match the actual total
     if (organizationBreakdown.length > 0 && totalRequests && breakdownTotal > 0) {
       const adjustmentFactor = totalRequests / breakdownTotal
       if (Math.abs(adjustmentFactor - 1) > 0.1) { // Only adjust if difference > 10%
-        console.log('Applying adjustment factor:', adjustmentFactor)
         organizationBreakdown.forEach(org => {
           org.requests = Math.round(org.requests * adjustmentFactor)
         })

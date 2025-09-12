@@ -24,30 +24,63 @@ export function extractFunctionFromTags(tags: string[]): string | null {
 }
 
 export function extractOrgIdFromTrace(trace: any): string {
-  // Try multiple sources for org_id
-  if (trace.metadata?.org_id) return trace.metadata.org_id
-  if (trace.tags) {
-    const orgId = extractOrgIdFromTags(trace.tags)
-    if (orgId) return orgId
+  // Try multiple sources for org_id in order of preference
+  
+  // 1. Check metadata for org_id
+  if (trace.metadata?.org_id) {
+    return trace.metadata.org_id
   }
   
-  // Filter out system/internal trace names that aren't real organizations
-  const systemTraceNames = [
-    'OpenAI-generation',
-    'openai-generation', 
-    'system',
-    'internal',
-    'health-check',
-    'test-trace'
+  // 2. Check tags for org_id pattern
+  if (trace.tags && Array.isArray(trace.tags)) {
+    const orgIdTag = trace.tags.find((tag: string) => 
+      tag.startsWith('org_id:') || tag.startsWith('organization:') || tag.startsWith('org:')
+    )
+    if (orgIdTag) {
+      const orgId = orgIdTag.split(':')[1]
+      if (orgId && orgId.trim()) return orgId.trim()
+    }
+  }
+  
+  // 3. Check user ID as potential org identifier (but not if it looks like a trace ID)
+  if (trace.userId && trace.userId !== 'undefined' && trace.userId !== 'null' && !trace.userId.startsWith('trace-')) {
+    return trace.userId
+  }
+  
+  // 4. Check session ID as potential org identifier (but not if it looks like a trace ID)
+  if (trace.sessionId && trace.sessionId !== 'undefined' && trace.sessionId !== 'null' && !trace.sessionId.startsWith('trace-')) {
+    return trace.sessionId
+  }
+  
+  // 5. DON'T use trace name as org identifier if it's a function name
+  const functionNames = [
+    'enrich_lead',
+    'enrich_company', 
+    'find_email',
+    'find_phone',
+    'qa_agent',
+    'unknown'
   ]
   
-  const traceName = trace.name || 'Unknown'
-  if (systemTraceNames.includes(traceName)) {
-    return 'Unknown' // Group system traces under "Unknown"
+  const traceName = trace.name || ''
+  // Skip if it's a function name or looks like a trace ID
+  if (traceName && !functionNames.includes(traceName) && !traceName.startsWith('trace-') && traceName !== 'undefined') {
+    // But also skip if it's clearly a function pattern
+    if (!traceName.includes('_') && !traceName.includes('-')) {
+    return traceName
+    }
   }
   
-  // Only use trace name as fallback if it looks like a real organization
-  // (has proper org_id tag or metadata)
+  // 6. Check any other metadata fields that might contain org info
+  if (trace.metadata) {
+    for (const [key, value] of Object.entries(trace.metadata)) {
+      if (key.toLowerCase().includes('org') && typeof value === 'string' && value.trim() && !value.startsWith('trace-')) {
+        return value.trim()
+      }
+    }
+  }
+  
+  // 7. If we can't find a real org, return "Unknown" - DON'T create fake org from trace ID
   return 'Unknown'
 }
 

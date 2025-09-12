@@ -1,6 +1,5 @@
 import { Sidebar } from './sidebar'
 import { Header } from './header'
-import { Breadcrumb } from './breadcrumb'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -13,7 +12,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="pl-64">
         <Header />
         <main className="p-6">
-          <Breadcrumb />
           {children}
         </main>
       </div>
