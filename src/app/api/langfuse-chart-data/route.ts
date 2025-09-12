@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchLangfuseDailyMetrics, fetchLangfuseTraces } from '@/lib/langfuse'
 
-export const maxDuration = 120; // Set 2 minute timeout for heavy data processing
+export const runtime = 'nodejs'
+export const maxDuration = 120 // Set 2 minute timeout for heavy data processing
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()

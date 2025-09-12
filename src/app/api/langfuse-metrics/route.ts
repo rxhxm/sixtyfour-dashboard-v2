@@ -7,7 +7,8 @@ import {
 } from '@/lib/langfuse'
 import { supabaseAdmin } from '@/lib/supabase'
 
-export const maxDuration = 120; // Set 2 minute timeout for heavy data processing
+export const runtime = 'nodejs'
+export const maxDuration = 120 // Set 2 minute timeout for heavy data processing
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
