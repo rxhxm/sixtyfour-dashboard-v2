@@ -376,7 +376,8 @@ export default function DashboardPage() {
   }, [timePeriod, timeOffset, selectedDate, customRange, expandedOrg]) // Added expandedOrg to refetch filtered data
 
   const fetchData = async () => {
-    const fetchStartTime = Date.now() // Moved outside try block
+    let fetchStartTime: number
+    fetchStartTime = Date.now() // Explicitly declare and assign
     try {
       setLoading(true)
       
