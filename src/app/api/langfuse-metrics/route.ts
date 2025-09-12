@@ -384,8 +384,8 @@ export async function GET(request: NextRequest) {
         }
         
         // Process traces
-        let totalCost = 0
-        let totalTraces = allTraces.length // Use actual fetched count to match Langfuse UI
+        let totalCost = totalCostFromDaily || 0 // Use cost from daily metrics to match Langfuse UI
+        let totalTraces = actualTotalTraces // Use the actual total from Langfuse metadata to match Langfuse UI
         let totalTokens = totalTokensFromDaily // Use tokens from daily metrics
         const modelCosts: Record<string, number> = {}
         const modelUsage: Record<string, { tokens: number, cost: number, traces: number }> = {}
@@ -414,7 +414,7 @@ export async function GET(request: NextRequest) {
           const traceType = trace.name || 'unknown'
           traceTypes[traceType] = (traceTypes[traceType] || 0) + 1
           
-          totalCost += cost
+          // Don't add to totalCost since we're using daily metrics total
           
           if (!modelUsage[model]) {
             modelUsage[model] = { tokens: 0, cost: 0, traces: 0 }
@@ -436,6 +436,10 @@ export async function GET(request: NextRequest) {
             orgBreakdown.set(orgId, existing)
           }
         }
+        
+        console.log(`Debug: Fetched ${allTraces.length} traces, actual total: ${actualTotalTraces}`)
+        console.log(`Debug: Daily metrics - Cost: $${totalCostFromDaily}, Tokens: ${totalTokensFromDaily}`)
+        console.log(`Debug: Using total cost: $${totalCost}, total traces: ${totalTraces}`)
         
         // If we didn't get tokens from daily metrics, use the total from our calculations
         if (totalTokensFromDaily === 0) {
