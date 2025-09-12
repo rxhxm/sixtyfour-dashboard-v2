@@ -421,7 +421,7 @@ export default function DashboardPage() {
       console.log('About to fetch chart data from:', `/api/langfuse-chart-data?${langfuseParams}`)
       
       // Fetch both database and Langfuse data in parallel with timeout
-      const fetchWithTimeout = (url: string, timeout = 25000) => {
+      const fetchWithTimeout = (url: string, timeout = 110000) => { // 1 minute 50 seconds timeout
         return Promise.race([
           fetch(url),
           new Promise<Response>((_, reject) => 

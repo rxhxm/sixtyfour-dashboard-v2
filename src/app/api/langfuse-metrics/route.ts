@@ -7,7 +7,7 @@ import {
 } from '@/lib/langfuse'
 import { supabaseAdmin } from '@/lib/supabase'
 
-export const maxDuration = 30; // Set 30 second timeout
+export const maxDuration = 120; // Set 2 minute timeout for heavy data processing
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
@@ -343,7 +343,7 @@ export async function GET(request: NextRequest) {
         // Dynamic max pages based on window size
         const dayMs = 24 * 60 * 60 * 1000
         const windowDays = Math.ceil(windowMs / dayMs)
-        const maxPages = Math.min(100, Math.max(25, windowDays * 10)) // Scale with window size, cap at 100 pages (10k traces) for performance
+        const maxPages = Math.min(300, Math.max(50, windowDays * 20)) // Scale with window size, cap at 300 pages (30k traces) with longer timeout
         
         try {
           const firstPage = await fetchLangfuseTraces({ ...tracesOptions, page })
@@ -358,7 +358,7 @@ export async function GET(request: NextRequest) {
             // Fetch remaining pages
           for (page = 2; page <= totalPages; page++) {
             // Check if we're running out of time
-            if (Date.now() - startTime > 25000) {
+            if (Date.now() - startTime > 100000) { // 100 seconds before timeout
               console.warn(`Timeout approaching, stopping at page ${page}`)
               break
             }
@@ -619,7 +619,7 @@ export async function GET(request: NextRequest) {
       console.log('Fetching all traces for organization breakdown...')
       let allTraces: any[] = []
       let page = 1
-      const maxPages = 200 // Reduced limit to handle up to 20k traces for better performance
+      const maxPages = 400 // Increased limit to handle up to 40k traces with longer timeout
       
       // Fetch first page to get total count
       const firstPage = await fetchLangfuseTraces({

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchLangfuseDailyMetrics, fetchLangfuseTraces } from '@/lib/langfuse'
 
-export const maxDuration = 30; // Set 30 second timeout
+export const maxDuration = 120; // Set 2 minute timeout for heavy data processing
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       // Fetch traces with pagination
       let allTraces: any[] = []
       let page = 1
-      const maxPages = 50 // Increased limit for better hourly coverage
+      const maxPages = 150 // Increased limit for comprehensive hourly coverage with longer timeout
       
       try {
         const firstPage = await fetchLangfuseTraces({ ...tracesOptions, page })
