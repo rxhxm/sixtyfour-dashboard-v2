@@ -7,7 +7,10 @@ import {
 } from '@/lib/langfuse'
 import { supabaseAdmin } from '@/lib/supabase'
 
+export const maxDuration = 30; // Set 30 second timeout
+
 export async function GET(request: NextRequest) {
+  const startTime = Date.now()
   try {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
@@ -340,7 +343,7 @@ export async function GET(request: NextRequest) {
         // Dynamic max pages based on window size
         const dayMs = 24 * 60 * 60 * 1000
         const windowDays = Math.ceil(windowMs / dayMs)
-        const maxPages = Math.min(200, Math.max(50, windowDays * 15)) // Scale with window size, cap at 200 pages (20k traces)
+        const maxPages = Math.min(100, Math.max(25, windowDays * 10)) // Scale with window size, cap at 100 pages (10k traces) for performance
         
         try {
           const firstPage = await fetchLangfuseTraces({ ...tracesOptions, page })
@@ -353,8 +356,13 @@ export async function GET(request: NextRequest) {
             console.log(`Fetching ${Math.min(totalItems, totalPages * 100)} of ${totalItems} traces across ${totalPages} pages`)
             
             // Fetch remaining pages
-            for (page = 2; page <= totalPages; page++) {
-              try {
+          for (page = 2; page <= totalPages; page++) {
+            // Check if we're running out of time
+            if (Date.now() - startTime > 25000) {
+              console.warn(`Timeout approaching, stopping at page ${page}`)
+              break
+            }
+            try {
                 const pageData = await fetchLangfuseTraces({ ...tracesOptions, page })
                 if (pageData?.data) {
                   allTraces = [...allTraces, ...pageData.data]
@@ -611,7 +619,7 @@ export async function GET(request: NextRequest) {
       console.log('Fetching all traces for organization breakdown...')
       let allTraces: any[] = []
       let page = 1
-      const maxPages = 500 // Increase limit to handle up to 50k traces
+      const maxPages = 200 // Reduced limit to handle up to 20k traces for better performance
       
       // Fetch first page to get total count
       const firstPage = await fetchLangfuseTraces({

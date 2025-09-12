@@ -378,6 +378,7 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true)
+      const fetchStartTime = Date.now()
       
       const timeRange = getTimeRange(timePeriod, timeOffset, selectedDate, customRange)
       console.log('Time range generated:', {
@@ -419,17 +420,26 @@ export default function DashboardPage() {
       console.log('Langfuse params:', langfuseParams.toString())
       console.log('About to fetch chart data from:', `/api/langfuse-chart-data?${langfuseParams}`)
       
-      // Fetch both database and Langfuse data in parallel
+      // Fetch both database and Langfuse data in parallel with timeout
+      const fetchWithTimeout = (url: string, timeout = 25000) => {
+        return Promise.race([
+          fetch(url),
+          new Promise<Response>((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), timeout)
+          )
+        ])
+      }
+
       const [
         databaseMetricsResponse,
         langfuseResponse,
         langfuseChartResponse
       ] = await Promise.all([
-        fetch(`/api/metrics?${databaseParams}&_t=${Date.now()}`),
+        fetchWithTimeout(`/api/metrics?${databaseParams}&_t=${Date.now()}`),
         // Always fetch unfiltered org metrics for cards and table
-        fetch(`/api/langfuse-metrics?${new URLSearchParams({ startDate: timeRange.startDate || '', endDate: timeRange.endDate || '' }).toString()}&_t=${Date.now()}`),
+        fetchWithTimeout(`/api/langfuse-metrics?${new URLSearchParams({ startDate: timeRange.startDate || '', endDate: timeRange.endDate || '' }).toString()}&_t=${Date.now()}`),
         // Fetch chart data (filtered when expandedOrg is set)
-        fetch(`/api/langfuse-chart-data?${langfuseParams}&_t=${Date.now()}`)
+        fetchWithTimeout(`/api/langfuse-chart-data?${langfuseParams}&_t=${Date.now()}`)
       ])
       
       // Process database data
@@ -488,7 +498,16 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Failed to fetch data:', error)
+      const fetchEndTime = Date.now()
+      console.log(`Data fetch failed after ${fetchEndTime - fetchStartTime}ms`)
+      
+      // Set empty data to prevent infinite loading
+      setDatabaseMetrics(null)
+      setLangfuseMetrics(null)
+      setLangfuseChartData([])
     } finally {
+      const fetchEndTime = Date.now()
+      console.log(`Data fetch completed in ${fetchEndTime - fetchStartTime}ms`)
       setLoading(false)
     }
   }

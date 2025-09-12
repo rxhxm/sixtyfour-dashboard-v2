@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchLangfuseDailyMetrics, fetchLangfuseTraces } from '@/lib/langfuse'
 
+export const maxDuration = 30; // Set 30 second timeout
+
 export async function GET(request: NextRequest) {
+  const startTime = Date.now()
   try {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
