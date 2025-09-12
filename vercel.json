@@ -5,14 +5,5 @@
   "installCommand": "npm install",
   "env": {
     "NODE_ENV": "production"
-  },
-  "build": {
-    "env": {
-      "LANGFUSE_PUBLIC_KEY": "@langfuse_public_key",
-      "LANGFUSE_SECRET_KEY": "@langfuse_secret_key",
-      "LANGFUSE_HOST": "@langfuse_host",
-      "NEXT_PUBLIC_SUPABASE_URL": "@supabase_url",
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase_anon_key"
-    }
   }
 } 
