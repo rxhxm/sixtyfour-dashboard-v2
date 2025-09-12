@@ -313,18 +313,22 @@ export async function GET(request: NextRequest) {
           tracesOptions.tags = [`org_id:${selectedOrg}`]
         }
         
-        // First, get daily metrics for accurate token data
+        // First, get daily metrics for accurate cost and token data
         let dailyTokenData: Record<string, number> = {}
         let totalTokensFromDaily = 0
+        let totalCostFromDaily = 0
         try {
           const dailyMetrics = await fetchLangfuseDailyMetrics({
             fromTimestamp,
             toTimestamp,
-            limit: 10
+            limit: 50 // Get more days for accurate totals
           })
           
           if (dailyMetrics?.data) {
             for (const day of dailyMetrics.data) {
+              // Sum up the total cost from daily metrics
+              totalCostFromDaily += day.totalCost || 0
+              
               if (day.usage) {
                 for (const usage of day.usage) {
                   totalTokensFromDaily += usage.totalUsage || 0
@@ -332,8 +336,9 @@ export async function GET(request: NextRequest) {
               }
             }
           }
+          console.log(`Daily metrics totals - Cost: $${totalCostFromDaily.toFixed(2)}, Tokens: ${totalTokensFromDaily}`)
         } catch (error) {
-          console.warn('Failed to fetch daily metrics for tokens:', error)
+          console.warn('Failed to fetch daily metrics for cost/tokens:', error)
         }
         
         // Fetch traces with pagination
@@ -425,7 +430,8 @@ export async function GET(request: NextRequest) {
           modelCosts[model] = (modelCosts[model] || 0) + cost
           
           const orgId = extractOrgIdFromTrace(trace)
-          if (orgId) {
+          // Skip Unknown/undefined orgs from breakdown but still count in totals
+          if (orgId && orgId !== 'Unknown' && orgId !== 'unknown' && orgId !== 'undefined') {
             const existing = orgBreakdown.get(orgId) || { requests: 0, cost: 0, tokens: 0, traceTypes: {} }
             existing.requests += 1
             existing.cost += cost
