@@ -16,7 +16,7 @@ export async function GET() {
     // Extract unique organizations from API keys
     const orgsMap = new Map()
     
-    data?.forEach(item => {
+    data?.forEach((item: any) => {
       const apiKey = item.api_key
       const orgId = `API-${apiKey.substring(0, 8)}`
       const orgName = `API Key ${apiKey.substring(0, 8)}`
