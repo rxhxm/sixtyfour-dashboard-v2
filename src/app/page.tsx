@@ -451,12 +451,17 @@ export default function DashboardPage() {
       // Process Langfuse data
       if (langfuseResponse.ok) {
         const langfuseData = await langfuseResponse.json()
-        console.log('Langfuse metrics data received:', {
-          summary: langfuseData.summary,
-          totalTraces: langfuseData.summary?.totalTraces,
-          totalCost: langfuseData.summary?.totalCost,
-          totalTokens: langfuseData.summary?.totalTokens
-        })
+        console.log('=== CLIENT SIDE: LANGFUSE DATA RECEIVED ===')
+        console.log('Total Traces:', langfuseData.summary?.totalTraces)
+        console.log('Total Cost:', langfuseData.summary?.totalCost)
+        console.log('Total Tokens:', langfuseData.summary?.totalTokens)
+        console.log('Organizations:', langfuseData.organizations?.length)
+        
+        // Check if we hit the 5000 limit
+        if (langfuseData.summary?.totalTraces === 5000) {
+          console.warn('⚠️ WARNING: Exactly 5000 traces - likely hit pagination limit!')
+        }
+        console.log('===========================================')
         
         // Transform Langfuse data to match existing metrics format
         const transformedLangfuseMetrics: UsageMetrics & { traceTypes?: Record<string, number> } = {

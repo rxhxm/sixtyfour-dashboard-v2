@@ -345,10 +345,12 @@ export async function GET(request: NextRequest) {
         let allTraces: any[] = []
         let actualTotalTraces = 0 // Track the real total from API metadata
         let page = 1
-        // Dynamic max pages based on window size
+        // For 24 hours, we need at least 66 pages to get 6600 traces
+        // Let's use a more generous calculation
         const dayMs = 24 * 60 * 60 * 1000
         const windowDays = Math.ceil(windowMs / dayMs)
-        const maxPages = Math.min(300, Math.max(50, windowDays * 20)) // Scale with window size, cap at 300 pages (30k traces) with longer timeout
+        // For 1 day: at least 100 pages (10k traces), scale up from there
+        const maxPages = Math.min(500, Math.max(100, windowDays * 50)) // More generous limits
         
         try {
           const firstPage = await fetchLangfuseTraces({ ...tracesOptions, page })
@@ -358,15 +360,27 @@ export async function GET(request: NextRequest) {
             const totalItems = firstPage.meta?.totalItems || 0
             const totalPages = Math.min(Math.ceil(totalItems / 100), maxPages)
             
-            console.log(`Fetching ${Math.min(totalItems, totalPages * 100)} of ${totalItems} traces across ${totalPages} pages`)
+            console.log(`=== PAGINATION DEBUG ===`)
+            console.log(`Total items from API: ${totalItems}`)
+            console.log(`Max pages allowed: ${maxPages}`)
+            console.log(`Total pages to fetch: ${totalPages}`)
+            console.log(`Will fetch: ${Math.min(totalItems, totalPages * 100)} traces`)
+            console.log(`========================`)
             
             // Fetch remaining pages
           for (page = 2; page <= totalPages; page++) {
             // Check if we're running out of time
-            if (Date.now() - startTime > 100000) { // 100 seconds before timeout
-              console.warn(`Timeout approaching, stopping at page ${page}`)
+            const elapsedTime = Date.now() - startTime
+            if (elapsedTime > 100000) { // 100 seconds before timeout
+              console.warn(`⏱️ TIMEOUT: Stopping at page ${page} after ${elapsedTime}ms`)
+              console.warn(`Fetched ${allTraces.length} of ${totalItems} traces`)
               break
             }
+            
+            if (page % 10 === 0) {
+              console.log(`Progress: Page ${page}/${totalPages}, ${allTraces.length} traces fetched, ${elapsedTime}ms elapsed`)
+            }
+            
             try {
                 const pageData = await fetchLangfuseTraces({ ...tracesOptions, page })
                 if (pageData?.data) {
@@ -443,9 +457,13 @@ export async function GET(request: NextRequest) {
           }
         }
         
-        console.log(`Debug: Fetched ${allTraces.length} traces, actual total: ${actualTotalTraces}`)
-        console.log(`Debug: Daily metrics - Cost: $${totalCostFromDaily}, Tokens: ${totalTokensFromDaily}`)
-        console.log(`Debug: Using total cost: $${totalCost}, total traces: ${totalTraces}`)
+        console.log(`=== FINAL RESULTS ===`)
+        console.log(`Fetched traces: ${allTraces.length}`)
+        console.log(`Actual total from API: ${actualTotalTraces}`)
+        console.log(`Daily metrics - Cost: $${totalCostFromDaily.toFixed(2)}, Tokens: ${totalTokensFromDaily}`)
+        console.log(`Using for dashboard - Traces: ${totalTraces}, Cost: $${totalCost.toFixed(2)}`)
+        console.log(`Time taken: ${Date.now() - startTime}ms`)
+        console.log(`====================`)
         
         // If we didn't get tokens from daily metrics, use the total from our calculations
         if (totalTokensFromDaily === 0) {
