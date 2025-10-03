@@ -184,32 +184,6 @@ export default function WorkflowsPage() {
           </p>
         </div>
         
-        {/* Top Blocks Card */}
-        {summary?.topBlocks && summary.topBlocks.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Most Used Blocks</CardTitle>
-              <CardDescription>Top workflow blocks by usage</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {summary.topBlocks.slice(0, 5).map((block: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono bg-primary/10 px-2 py-1 rounded">#{idx + 1}</span>
-                      <span className="font-medium text-sm">{block.name}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs">
-                      <span className="text-muted-foreground">{block.count} uses</span>
-                      <span className="font-mono">{block.successRate.toFixed(0)}% success</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
@@ -267,34 +241,62 @@ export default function WorkflowsPage() {
           </Card>
         </div>
         
-        {/* Organization Activity */}
-        {summary?.organizationStats && summary.organizationStats.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Organization Activity</CardTitle>
-              <CardDescription>Workflows and last activity by organization</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {summary.organizationStats
-                  .sort((a: any, b: any) => new Date(b.lastActivity || 0).getTime() - new Date(a.lastActivity || 0).getTime())
-                  .slice(0, 10)
-                  .map((org: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline">{org.org_id}</Badge>
-                        <span className="text-sm text-muted-foreground">{org.workflows} workflows</span>
-                        <span className="text-sm text-muted-foreground">{org.runs} runs</span>
+        {/* Most Used Blocks & Organization Activity - Side by Side */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Top Blocks Card */}
+          {summary?.topBlocks && summary.topBlocks.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Most Used Blocks</CardTitle>
+                <CardDescription>Top 5 workflow blocks by usage</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {summary.topBlocks.slice(0, 5).map((block: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono bg-primary/10 px-2 py-1 rounded">#{idx + 1}</span>
+                        <span className="font-medium text-sm">{block.name}</span>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Last activity: {org.lastActivity ? formatDate(org.lastActivity) : 'Never'}
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="text-muted-foreground">{block.count} uses</span>
+                        <span className="font-mono">{block.successRate.toFixed(0)}%</span>
                       </div>
                     </div>
                   ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Organization Activity */}
+          {summary?.organizationStats && summary.organizationStats.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Organization Activity</CardTitle>
+                <CardDescription>Top 5 orgs by last activity</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {summary.organizationStats
+                    .sort((a: any, b: any) => new Date(b.lastActivity || 0).getTime() - new Date(a.lastActivity || 0).getTime())
+                    .slice(0, 5)
+                    .map((org: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">{org.org_id}</Badge>
+                          <span className="text-xs text-muted-foreground">{org.workflows} workflows • {org.runs} runs</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {org.lastActivity ? formatDate(org.lastActivity) : 'Never'}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
         
         {/* Workflows Table */}
         <Card>
