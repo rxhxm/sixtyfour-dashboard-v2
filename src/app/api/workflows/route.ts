@@ -54,6 +54,21 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching jobs:', jobsError)
     }
     
+    // Fetch user-org mappings
+    const { data: userOrgs, error: userOrgsError } = await supabaseAdmin
+      .from('users-org')
+      .select('*')
+    
+    if (userOrgsError) {
+      console.error('Error fetching user-orgs:', userOrgsError)
+    }
+    
+    // Create a user-to-org map
+    const userToOrgMap = new Map()
+    userOrgs?.forEach((mapping: any) => {
+      userToOrgMap.set(mapping.id, mapping.org_id)
+    })
+    
     // Enrich workflows with run statistics
     const enrichedWorkflows = workflows?.map((workflow: any) => {
       // Find all runs for this workflow
@@ -78,8 +93,23 @@ export async function GET(request: NextRequest) {
         }
       } catch (e) {}
       
+      // Get user org
+      const userOrg = userToOrgMap.get(workflow.user_uuid) || 'Unknown'
+      
+      // Get runs for this specific workflow
+      const workflowSpecificRuns = workflowRuns.map((run: any) => ({
+        job_id: run.job_id,
+        status: run.status,
+        created_at: run.created_at,
+        completed_at: run.completed_at,
+        duration_ms: run.duration_ms,
+        trigger_type: run.trigger_type
+      }))
+      
       return {
         ...workflow,
+        user_org: userOrg,
+        runs: workflowSpecificRuns, // Include actual runs for expansion
         stats: {
           totalRuns: workflowRuns.length,
           completedRuns: completedRuns.length,
@@ -98,6 +128,53 @@ export async function GET(request: NextRequest) {
       }
     })
     
+    // Calculate block usage statistics
+    const blockUsage = new Map()
+    jobs?.forEach((job: any) => {
+      const blockName = job.block_name
+      if (blockName) {
+        const current = blockUsage.get(blockName) || { count: 0, successes: 0, totalDuration: 0 }
+        current.count += 1
+        if (job.status === 'succeeded') current.successes += 1
+        if (job.started_at && job.completed_at) {
+          current.totalDuration += new Date(job.completed_at).getTime() - new Date(job.started_at).getTime()
+        }
+        blockUsage.set(blockName, current)
+      }
+    })
+    
+    const topBlocks = Array.from(blockUsage.entries())
+      .map(([name, stats]) => ({
+        name,
+        count: stats.count,
+        successRate: (stats.successes / stats.count) * 100,
+        avgDuration: stats.totalDuration / stats.count
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+    
+    // Group by organization
+    const orgStats = new Map()
+    enrichedWorkflows?.forEach((workflow: any) => {
+      const org = workflow.user_org
+      if (!orgStats.has(org)) {
+        orgStats.set(org, {
+          org_id: org,
+          workflows: 0,
+          runs: 0,
+          lastActivity: null
+        })
+      }
+      const stats = orgStats.get(org)
+      stats.workflows += 1
+      stats.runs += workflow.stats.totalRuns
+      if (workflow.stats.lastRun?.completed_at) {
+        if (!stats.lastActivity || workflow.stats.lastRun.completed_at > stats.lastActivity) {
+          stats.lastActivity = workflow.stats.lastRun.completed_at
+        }
+      }
+    })
+    
     // Calculate summary statistics
     const summary = {
       totalWorkflows: workflows?.length || 0,
@@ -111,7 +188,9 @@ export async function GET(request: NextRequest) {
         : 0,
       successRate: runs && runs.length > 0
         ? (runs.filter((r: any) => r.status === 'completed').length / runs.length) * 100
-        : 0
+        : 0,
+      topBlocks,
+      organizationStats: Array.from(orgStats.values())
     }
     
     return NextResponse.json({

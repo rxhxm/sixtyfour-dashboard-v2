@@ -28,9 +28,11 @@ interface WorkflowData {
   description: string
   status: string
   user_uuid: string
+  user_org?: string
   created_at: string
   updated_at: string
   blocks: any[]
+  runs?: any[]
   stats: {
     totalRuns: number
     completedRuns: number
@@ -182,6 +184,32 @@ export default function WorkflowsPage() {
           </p>
         </div>
         
+        {/* Top Blocks Card */}
+        {summary?.topBlocks && summary.topBlocks.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Most Used Blocks</CardTitle>
+              <CardDescription>Top workflow blocks by usage</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {summary.topBlocks.slice(0, 5).map((block: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono bg-primary/10 px-2 py-1 rounded">#{idx + 1}</span>
+                      <span className="font-medium text-sm">{block.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="text-muted-foreground">{block.count} uses</span>
+                      <span className="font-mono">{block.successRate.toFixed(0)}% success</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
@@ -239,6 +267,35 @@ export default function WorkflowsPage() {
           </Card>
         </div>
         
+        {/* Organization Activity */}
+        {summary?.organizationStats && summary.organizationStats.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Organization Activity</CardTitle>
+              <CardDescription>Workflows and last activity by organization</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {summary.organizationStats
+                  .sort((a: any, b: any) => new Date(b.lastActivity || 0).getTime() - new Date(a.lastActivity || 0).getTime())
+                  .slice(0, 10)
+                  .map((org: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline">{org.org_id}</Badge>
+                        <span className="text-sm text-muted-foreground">{org.workflows} workflows</span>
+                        <span className="text-sm text-muted-foreground">{org.runs} runs</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Last activity: {org.lastActivity ? formatDate(org.lastActivity) : 'Never'}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         {/* Workflows Table */}
         <Card>
           <CardHeader>
@@ -256,6 +313,7 @@ export default function WorkflowsPage() {
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="p-3 text-left">Workflow Name</th>
+                    <th className="p-3 text-left">Organization</th>
                     <th className="p-3 text-left">Description</th>
                     <th className="p-3 text-center">Status</th>
                     <th className="p-3 text-center">Runs</th>
@@ -280,6 +338,11 @@ export default function WorkflowsPage() {
                           }`} />
                           <span className="font-medium">{workflow.name}</span>
                         </div>
+                      </td>
+                      <td className="p-3">
+                        <Badge variant="secondary" className="text-xs">
+                          {workflow.user_org || 'Unknown'}
+                        </Badge>
                       </td>
                       <td className="p-3 text-sm text-muted-foreground max-w-xs truncate">
                         {workflow.description}
@@ -312,23 +375,65 @@ export default function WorkflowsPage() {
               </table>
             </div>
             
-            {/* Workflow Details (Expanded) */}
+            {/* Workflow Runs (Expanded) */}
             {selectedWorkflow && workflows.find(w => w.id === selectedWorkflow) && (
               <div className="mt-4 p-4 bg-muted/30 rounded-lg animate-in slide-in-from-top-2">
                 <div className="space-y-4">
-                  <h3 className="font-semibold">Workflow Configuration</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    {workflows.find(w => w.id === selectedWorkflow)?.blocks?.map((block: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 bg-background rounded border">
-                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                          {idx + 1}
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Workflow Runs for: {workflows.find(w => w.id === selectedWorkflow)?.name}</h3>
+                    <Badge variant="outline">
+                      Organization: {workflows.find(w => w.id === selectedWorkflow)?.user_org || 'Unknown'}
+                    </Badge>
+                  </div>
+                  
+                  {workflows.find(w => w.id === selectedWorkflow)?.runs && workflows.find(w => w.id === selectedWorkflow)?.runs.length > 0 ? (
+                    <div className="space-y-2">
+                      {workflows.find(w => w.id === selectedWorkflow)?.runs.map((run: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-background rounded border hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-4">
+                            <div className="text-sm text-muted-foreground">#{idx + 1}</div>
+                            <Badge className={getStatusColor(run.status)}>
+                              <div className="flex items-center gap-1">
+                                {getStatusIcon(run.status)}
+                                {run.status}
+                              </div>
+                            </Badge>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Duration:</span>
+                              <span className="ml-2 font-mono">{formatDuration(run.duration_ms)}</span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Trigger:</span>
+                              <span className="ml-2 font-medium">{run.trigger_type}</span>
+                            </div>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatDate(run.created_at)}
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-xs">{block.block_name}</p>
-                          <p className="text-xs text-muted-foreground">{block.block_type}</p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No runs found for this workflow
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 pt-4 border-t">
+                    <h4 className="text-sm font-semibold mb-2">Workflow Configuration</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {workflows.find(w => w.id === selectedWorkflow)?.blocks?.map((block: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2 p-2 bg-background rounded border text-xs">
+                          <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium">{block.block_name}</p>
+                            <p className="text-muted-foreground">{block.block_type}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
