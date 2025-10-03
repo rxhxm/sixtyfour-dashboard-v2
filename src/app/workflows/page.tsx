@@ -66,10 +66,11 @@ export default function WorkflowsPage() {
   const [workflows, setWorkflows] = useState<WorkflowData[]>([])
   const [recentRuns, setRecentRuns] = useState<WorkflowRun[]>([])
   const [summary, setSummary] = useState<any>(null)
+  const [selectedOrg, setSelectedOrg] = useState<string>('')
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>('')
-  const [expandedRun, setExpandedRun] = useState<string>('')
   const [showRunDetails, setShowRunDetails] = useState(false)
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null)
+  const [filterView, setFilterView] = useState<'all' | 'org' | 'workflow'>('all')
   
   // Check authentication
   useEffect(() => {
@@ -298,87 +299,125 @@ export default function WorkflowsPage() {
           )}
         </div>
         
-        {/* Workflows Table */}
+        {/* Workflow Runs - Unified View */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Workflow className="h-5 w-5" />
-              All Workflows ({workflows.length})
-            </CardTitle>
-            <CardDescription>
-              Click a workflow to view execution details
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Workflow Executions
+                </CardTitle>
+                <CardDescription>
+                  {selectedOrg 
+                    ? `Filtered by organization: ${selectedOrg}` 
+                    : selectedWorkflow
+                    ? `Filtered by workflow`
+                    : 'All recent workflow runs - Click org or workflow to filter'}
+                </CardDescription>
+              </div>
+              {(selectedOrg || selectedWorkflow) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedOrg('')
+                    setSelectedWorkflow('')
+                    setFilterView('all')
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="p-3 text-left">Workflow Name</th>
-                    <th className="p-3 text-left">Organization</th>
-                    <th className="p-3 text-left">Description</th>
-                    <th className="p-3 text-center">Status</th>
-                    <th className="p-3 text-center">Runs</th>
-                    <th className="p-3 text-center">Success Rate</th>
-                    <th className="p-3 text-right">Avg Duration</th>
-                    <th className="p-3 text-left">Last Run</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {workflows.map((workflow) => (
-                    <tr
-                      key={workflow.id}
-                      className={`border-b hover:bg-muted/50 cursor-pointer transition-colors ${
-                        selectedWorkflow === workflow.id ? 'bg-muted' : ''
-                      }`}
-                      onClick={() => setSelectedWorkflow(workflow.id === selectedWorkflow ? '' : workflow.id)}
-                    >
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <ChevronRight className={`h-4 w-4 transition-transform ${
-                            selectedWorkflow === workflow.id ? 'rotate-90' : ''
-                          }`} />
-                          <span className="font-medium">{workflow.name}</span>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <Badge variant="secondary" className="text-xs">
-                          {workflow.user_org || 'Unknown'}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-sm text-muted-foreground max-w-xs truncate">
-                        {workflow.description}
-                      </td>
-                      <td className="p-3 text-center">
-                        <Badge variant={workflow.status === 'completed' ? 'default' : 'secondary'}>
-                          {workflow.status}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-center font-mono">
-                        {workflow.stats.totalRuns}
-                      </td>
-                      <td className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <span className="font-mono">{workflow.stats.successRate.toFixed(0)}%</span>
-                          {workflow.stats.successRate === 100 && (
-                            <CheckCircle className="h-3 w-3 text-green-600" />
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3 text-right font-mono">
-                        {formatDuration(workflow.stats.avgDuration)}
-                      </td>
-                      <td className="p-3 text-sm text-muted-foreground">
-                        {workflow.stats.lastRun ? formatDate(workflow.stats.lastRun.completed_at) : 'Never'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Filter Pills */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {summary?.organizationStats?.slice(0, 10).map((org: any) => (
+                <Button
+                  key={org.org_id}
+                  variant={selectedOrg === org.org_id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedOrg(selectedOrg === org.org_id ? '' : org.org_id)
+                    setSelectedWorkflow('')
+                  }}
+                >
+                  {org.org_id}
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {org.runs}
+                  </Badge>
+                </Button>
+              ))}
             </div>
             
-            {/* Workflow Runs (Expanded) */}
-            {selectedWorkflow && workflows.find(w => w.id === selectedWorkflow) && (
+            {/* Runs List */}
+            <div className="space-y-2">
+              {/* Filter and show runs here */}
+              {recentRuns
+                .filter(run => {
+                  // Filter by selected org
+                  if (selectedOrg) {
+                    const workflow = workflows.find(w => w.id === run.workflow_id)
+                    return workflow?.user_org === selectedOrg
+                  }
+                  // Filter by selected workflow
+                  if (selectedWorkflow) {
+                    return run.workflow_id === selectedWorkflow
+                  }
+                  return true
+                })
+                .map((run) => (
+                  <Card
+                    key={run.job_id}
+                    className="cursor-pointer hover:shadow-md transition-all"
+                    onClick={() => {
+                      setSelectedRun(run)
+                      setShowRunDetails(true)
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className="font-semibold">{run.workflow_name}</h4>
+                            <Badge className={getStatusColor(run.status)}>
+                              <div className="flex items-center gap-1">
+                                {getStatusIcon(run.status)}
+                                {run.status}
+                              </div>
+                            </Badge>
+                            <Badge variant="outline">{run.trigger_type}</Badge>
+                          </div>
+                          
+                          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatDuration(run.duration_ms)}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Activity className="h-3 w-3" />
+                              {run.block_count} blocks
+                            </div>
+                            {run.parsed_metrics?.row_count && (
+                              <div className="flex items-center gap-1">
+                                <FileText className="h-3 w-3" />
+                                {run.parsed_metrics.row_count} rows
+                              </div>
+                            )}
+                            <span>{formatDate(run.created_at)}</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+            
+            {/* REMOVED OLD TABLE AND DUPLICATE RECENT RUNS - Now unified above */}
+            {selectedWorkflow && workflows.find(w => w.id === selectedWorkflow) && false && (
               <div className="mt-4 p-4 bg-muted/30 rounded-lg animate-in slide-in-from-top-2">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -388,9 +427,9 @@ export default function WorkflowsPage() {
                     </Badge>
                   </div>
                   
-                  {workflows.find(w => w.id === selectedWorkflow)?.runs && workflows.find(w => w.id === selectedWorkflow)?.runs.length > 0 ? (
+                  {workflows.find(w => w.id === selectedWorkflow)?.runs && (workflows.find(w => w.id === selectedWorkflow)?.runs?.length || 0) > 0 ? (
                     <div className="space-y-2">
-                      {workflows.find(w => w.id === selectedWorkflow)?.runs.map((run: any, idx: number) => (
+                      {workflows.find(w => w.id === selectedWorkflow)?.runs?.map((run: any, idx: number) => (
                         <div key={idx} className="flex items-center justify-between p-3 bg-background rounded border hover:shadow-md transition-shadow">
                           <div className="flex items-center gap-4">
                             <div className="text-sm text-muted-foreground">#{idx + 1}</div>
