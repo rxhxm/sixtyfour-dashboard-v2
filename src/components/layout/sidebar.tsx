@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navigation = [
-  { name: 'Overview', href: '/', icon: Home },
+  { name: 'API Usage', href: '/', icon: Home },
 ]
 
 export function Sidebar() {

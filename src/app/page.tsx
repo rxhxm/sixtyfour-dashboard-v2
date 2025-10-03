@@ -543,7 +543,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard Overview</h1>
+            <h1 className="text-3xl font-bold">API Usage Dashboard</h1>
           </div>
         </div>
 
