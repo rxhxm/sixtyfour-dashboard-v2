@@ -7,7 +7,7 @@ export const maxDuration = 60
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const jobId = searchParams.get('jobId')
+    const jobId = searchParams.get('job_id') || searchParams.get('jobId')
     
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
@@ -60,12 +60,10 @@ export async function GET(request: NextRequest) {
           
           return {
             ...result,
-            csvData: {
-              headers,
-              rows: rows.slice(0, 100), // First 100 rows
-              totalRows: rows.length,
-              preview: rows.slice(0, 10) // First 10 for preview
-            }
+            headers,
+            preview: rows.slice(0, 100), // First 100 rows for preview
+            totalRows: rows.length,
+            raw: text // Include raw CSV for download
           }
         } catch (e) {
           console.error('Error processing result:', e)
@@ -74,8 +72,13 @@ export async function GET(request: NextRequest) {
       })
     )
     
+    // Separate input and output results
+    const inputResult = enrichedResults.find((r: any) => r.result_type === 'input')
+    const outputResult = enrichedResults.find((r: any) => r.result_type === 'output')
+    
     return NextResponse.json({
-      results: enrichedResults,
+      input: inputResult || null,
+      output: outputResult || null,
       total: enrichedResults.length
     })
     
