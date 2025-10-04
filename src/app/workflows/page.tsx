@@ -22,6 +22,7 @@ import {
 import { getBlockColor } from '@/lib/workflow-colors'
 import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ResizableDialog } from '@/components/ui/resizable-dialog'
 
 interface WorkflowData {
   id: string
@@ -569,17 +570,13 @@ export default function WorkflowsPage() {
           </CardContent>
         </Card>
         
-        {/* Run Details Modal */}
-        <Dialog open={showRunDetails} onOpenChange={setShowRunDetails}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <PlayCircle className="h-5 w-5" />
-                Workflow Run Details
-              </DialogTitle>
-            </DialogHeader>
-            
-            {selectedRun && (
+        {/* Run Details Modal - Resizable */}
+        <ResizableDialog
+          open={showRunDetails}
+          onOpenChange={setShowRunDetails}
+          title="Workflow Run Details"
+        >
+          {selectedRun && (
               <div className="space-y-6 mt-4">
                 <div className="space-y-2">
                   <h3 className="font-semibold">Workflow: {selectedRun.workflow_name}</h3>
@@ -730,8 +727,7 @@ export default function WorkflowsPage() {
                 </div>
               </div>
             )}
-          </DialogContent>
-        </Dialog>
+        </ResizableDialog>
       </div>
     </DashboardLayout>
   )

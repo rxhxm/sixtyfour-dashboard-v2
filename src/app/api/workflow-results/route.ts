@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Fetch workflow results for this job
+    console.log('Fetching results for job_id:', jobId)
     const { data: results, error } = await supabaseAdmin
       .from('workflow_results')
       .select('*')
@@ -28,6 +29,8 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching workflow results:', error)
       return NextResponse.json({ error: 'Failed to fetch results' }, { status: 500 })
     }
+    
+    console.log(`Found ${results?.length || 0} results for job ${jobId}`)
     
     // Fetch CSV content from Supabase Storage
     const enrichedResults = await Promise.all(
