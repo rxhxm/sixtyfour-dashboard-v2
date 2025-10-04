@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
     
     console.log(`Found ${results?.length || 0} results for job ${jobId}`)
     
+    // Log the first result to see its structure
+    if (results && results.length > 0) {
+      console.log('Sample result structure:', JSON.stringify(results[0], null, 2))
+    }
+    
     // Fetch CSV content from Supabase Storage
     const enrichedResults = await Promise.all(
       (results || []).map(async (result: any) => {
@@ -76,13 +81,22 @@ export async function GET(request: NextRequest) {
     )
     
     // Separate input and output results
-    const inputResult = enrichedResults.find((r: any) => r.result_type === 'input')
-    const outputResult = enrichedResults.find((r: any) => r.result_type === 'output')
+    console.log('Enriched results:', enrichedResults.map((r: any) => ({ 
+      id: r.id, 
+      block_number: r.block_number,
+      storage_url: r.storage_url,
+      has_headers: !!r.headers 
+    })))
+    
+    // Find first and last results (typically input is first, output is last)
+    const inputResult = enrichedResults[0] || null
+    const outputResult = enrichedResults[enrichedResults.length - 1] || null
     
     return NextResponse.json({
-      input: inputResult || null,
-      output: outputResult || null,
-      total: enrichedResults.length
+      input: inputResult,
+      output: outputResult,
+      total: enrichedResults.length,
+      allResults: enrichedResults
     })
     
   } catch (error) {
