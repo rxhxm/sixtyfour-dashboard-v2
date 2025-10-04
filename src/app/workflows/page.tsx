@@ -72,6 +72,27 @@ export default function WorkflowsPage() {
   const [showRunDetails, setShowRunDetails] = useState(false)
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null)
   const [filterView, setFilterView] = useState<'all' | 'org' | 'workflow'>('all')
+  const [csvResults, setCsvResults] = useState<any>(null)
+  const [loadingCsv, setLoadingCsv] = useState(false)
+  
+  // Fetch CSV results
+  const fetchCsvResults = async (jobId: string) => {
+    setLoadingCsv(true)
+    setCsvResults(null)
+    try {
+      const res = await fetch(`/api/workflow-results?job_id=${jobId}`)
+      const data = await res.json()
+      if (data.error) {
+        console.error('CSV fetch error:', data.error)
+      } else {
+        setCsvResults(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch CSV:', error)
+    } finally {
+      setLoadingCsv(false)
+    }
+  }
   
   // Check authentication
   useEffect(() => {
@@ -376,6 +397,7 @@ export default function WorkflowsPage() {
                     onClick={() => {
                       setSelectedRun(run)
                       setShowRunDetails(true)
+                      fetchCsvResults(run.job_id)
                     }}
                   >
                     <CardContent className="p-4">
@@ -503,6 +525,7 @@ export default function WorkflowsPage() {
                   onClick={() => {
                     setSelectedRun(run)
                     setShowRunDetails(true)
+                    fetchCsvResults(run.job_id)
                   }}
                 >
                   <CardContent className="p-4">
@@ -602,6 +625,108 @@ export default function WorkflowsPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+                
+                {/* CSV Results Section */}
+                <div>
+                  <h4 className="font-semibold mb-4">Workflow Data</h4>
+                  {loadingCsv ? (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-muted-foreground">Loading CSV data...</p>
+                    </div>
+                  ) : csvResults ? (
+                    <div className="space-y-4">
+                      {csvResults.input && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="text-sm font-medium">Input Data</h5>
+                            <button
+                              onClick={() => {
+                                const blob = new Blob([csvResults.input.raw], { type: 'text/csv' })
+                                const url = window.URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = `input-${selectedRun.job_id}.csv`
+                                a.click()
+                              }}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              Download CSV
+                            </button>
+                          </div>
+                          <div className="border rounded-lg overflow-auto max-h-[200px]">
+                            <table className="w-full text-xs">
+                              <thead className="bg-muted sticky top-0">
+                                <tr>
+                                  {csvResults.input.headers?.map((header: string, i: number) => (
+                                    <th key={i} className="px-2 py-1 text-left font-medium">{header}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {csvResults.input.preview?.map((row: any, i: number) => (
+                                  <tr key={i} className="border-t">
+                                    {csvResults.input.headers?.map((header: string, j: number) => (
+                                      <td key={j} className="px-2 py-1">{row[header]}</td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Showing {csvResults.input.preview?.length || 0} of {csvResults.input.totalRows || 0} rows
+                          </p>
+                        </div>
+                      )}
+                      
+                      {csvResults.output && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="text-sm font-medium">Output Data</h5>
+                            <button
+                              onClick={() => {
+                                const blob = new Blob([csvResults.output.raw], { type: 'text/csv' })
+                                const url = window.URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = `output-${selectedRun.job_id}.csv`
+                                a.click()
+                              }}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              Download CSV
+                            </button>
+                          </div>
+                          <div className="border rounded-lg overflow-auto max-h-[200px]">
+                            <table className="w-full text-xs">
+                              <thead className="bg-muted sticky top-0">
+                                <tr>
+                                  {csvResults.output.headers?.map((header: string, i: number) => (
+                                    <th key={i} className="px-2 py-1 text-left font-medium">{header}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {csvResults.output.preview?.map((row: any, i: number) => (
+                                  <tr key={i} className="border-t">
+                                    {csvResults.output.headers?.map((header: string, j: number) => (
+                                      <td key={j} className="px-2 py-1">{row[header]}</td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Showing {csvResults.output.preview?.length || 0} of {csvResults.output.totalRows || 0} rows
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No CSV data available</p>
+                  )}
                 </div>
               </div>
             )}
