@@ -19,6 +19,7 @@ import {
   FileText,
   Download
 } from 'lucide-react'
+import { getBlockColor } from '@/lib/workflow-colors'
 import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
@@ -576,24 +577,28 @@ export default function WorkflowsPage() {
                 </div>
                 
                 <div>
-                  <h4 className="font-semibold mb-2">Block Execution Timeline</h4>
-                  <div className="space-y-2">
+                  <h4 className="font-semibold mb-4">Block Execution Timeline</h4>
+                  <div className="flex items-center gap-1 overflow-x-auto pb-4">
                     {selectedRun.jobs?.map((job: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 bg-background rounded border">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                          {job.sequence_number}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{job.block_name}</p>
-                          <p className="text-xs text-muted-foreground">
+                      <div key={idx} className="flex items-center">
+                        <div className={`${getBlockColor(job.block_name)} text-white rounded-md p-2 min-w-[120px] shadow-sm`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-medium opacity-75">
+                              {job.sequence_number}
+                            </span>
+                            <CheckCircle className="h-3 w-3 opacity-75" />
+                          </div>
+                          <p className="font-semibold text-xs mb-1">{job.block_name}</p>
+                          <div className="flex items-center gap-1 text-[10px] opacity-75">
+                            <Clock className="h-2.5 w-2.5" />
                             {job.started_at && job.completed_at ? 
                               formatDuration(new Date(job.completed_at).getTime() - new Date(job.started_at).getTime())
                               : 'N/A'}
-                          </p>
+                          </div>
                         </div>
-                        <Badge variant={job.status === 'succeeded' ? 'default' : 'destructive'}>
-                          {job.status}
-                        </Badge>
+                        {idx < (selectedRun.jobs?.length || 0) - 1 && (
+                          <div className="w-3 h-0.5 bg-gray-300" />
+                        )}
                       </div>
                     ))}
                   </div>
