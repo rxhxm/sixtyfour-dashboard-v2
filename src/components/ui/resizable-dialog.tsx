@@ -55,7 +55,7 @@ export function ResizableDialog({
         minHeight={300}
         bounds="window"
         dragHandleClassName="drag-handle"
-        className="z-50"
+        className="z-50 border-2 border-gray-300"
         style={{
           display: 'flex',
           flexDirection: 'column',
