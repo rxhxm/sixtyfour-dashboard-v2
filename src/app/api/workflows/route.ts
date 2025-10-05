@@ -32,12 +32,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch workflows' }, { status: 500 })
     }
     
-    // Fetch workflow runs to get execution stats
+    // Fetch workflow runs to get execution stats (get ALL runs for accurate count)
     const { data: runs, error: runsError } = await supabaseAdmin
       .from('workflow_runs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(500)
     
     if (runsError) {
       console.error('Error fetching runs:', runsError)
