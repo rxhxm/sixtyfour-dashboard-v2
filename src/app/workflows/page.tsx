@@ -423,7 +423,6 @@ export default function WorkflowsPage() {
                                 {run.status}
                               </div>
                             </Badge>
-                            <Badge variant="outline">{run.trigger_type}</Badge>
                           </div>
                           
                           <div className="flex items-center gap-6 text-sm text-muted-foreground">
@@ -517,20 +516,8 @@ export default function WorkflowsPage() {
           </CardContent>
         </Card>
         
-        {/* Recent Runs */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PlayCircle className="h-5 w-5" />
-              Recent Workflow Runs ({recentRuns.length})
-            </CardTitle>
-            <CardDescription>
-              Latest workflow executions with performance metrics
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {recentRuns.map((run) => (
+        {/* Recent Runs section removed - unified into Workflow Executions above */}
+        {false && recentRuns.map((run) => (
                 <Card
                   key={run.job_id}
                   className="cursor-pointer hover:shadow-md transition-all"
@@ -556,7 +543,6 @@ export default function WorkflowsPage() {
                               {run.status}
                             </div>
                           </Badge>
-                          <Badge variant="outline">{run.trigger_type}</Badge>
                         </div>
                         
                         <div className="flex items-center gap-6 text-sm text-muted-foreground">
