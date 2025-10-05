@@ -176,33 +176,35 @@ export async function GET(request: NextRequest) {
     })
     
     // Calculate summary statistics
-    const completedCount = runs?.filter((r: any) => r.status === 'completed').length || 0
-    const failedCount = runs?.filter((r: any) => r.status === 'failed').length || 0
-    const cancelledCount = runs?.filter((r: any) => r.status === 'cancelled').length || 0
-    const queuedCount = runs?.filter((r: any) => r.status === 'queued').length || 0
-    const runningCount = runs?.filter((r: any) => r.status === 'running').length || 0
-    
-    // Only count finished runs (completed + failed + cancelled) for success rate
-    const finishedRuns = completedCount + failedCount + cancelledCount
-    
-    const summary = {
-      totalWorkflows: workflows?.length || 0,
-      totalRuns: runs?.length || 0,
-      totalJobs: jobs?.length || 0,
-      completedRuns: completedCount,
-      failedRuns: failedCount,
-      cancelledRuns: cancelledCount,
-      queuedRuns: queuedCount,
-      runningRuns: runningCount,
-      avgRunDuration: runs && runs.length > 0
-        ? runs.filter((r: any) => r.duration_ms > 0).reduce((sum: number, run: any) => sum + (run.duration_ms || 0), 0) / runs.filter((r: any) => r.duration_ms > 0).length
-        : 0,
-      successRate: finishedRuns > 0
-        ? (completedCount / finishedRuns) * 100
-        : 0,
-      topBlocks,
-      organizationStats: Array.from(orgStats.values())
-    }
+      // Calculate accurate statistics
+      const completedCount = runs?.filter((r: any) => r.status === 'completed').length || 0
+      const failedCount = runs?.filter((r: any) => r.status === 'failed').length || 0
+      const cancelledCount = runs?.filter((r: any) => r.status === 'cancelled').length || 0
+      const runningCount = runs?.filter((r: any) => r.status === 'running').length || 0
+      const queuedCount = runs?.filter((r: any) => r.status === 'queued').length || 0
+      
+      // Only count FINISHED runs (completed + failed + cancelled) for success rate
+      const finishedRuns = completedCount + failedCount + cancelledCount
+      
+      const summary = {
+        totalWorkflows: workflows?.length || 0,
+        totalRuns: runs?.length || 0,
+        totalJobs: jobs?.length || 0,
+        completedRuns: completedCount,
+        failedRuns: failedCount,
+        cancelledRuns: cancelledCount,
+        runningRuns: runningCount,
+        queuedRuns: queuedCount,
+        avgRunDuration: runs && runs.length > 0
+          ? runs.filter((r: any) => r.duration_ms > 0).reduce((sum: number, run: any) => sum + (run.duration_ms || 0), 0) / runs.filter((r: any) => r.duration_ms > 0).length
+          : 0,
+        // Success rate = completed / (completed + failed + cancelled) - excludes running/queued
+        successRate: finishedRuns > 0
+          ? (completedCount / finishedRuns) * 100
+          : 0,
+        topBlocks,
+        organizationStats: Array.from(orgStats.values())
+      }
     
     return NextResponse.json({
       workflows: enrichedWorkflows,
