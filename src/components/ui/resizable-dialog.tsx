@@ -20,11 +20,17 @@ export function ResizableDialog({
   const [size, setSize] = useState({ width: 900, height: 600 })
   const [position, setPosition] = useState({ x: 0, y: 0 })
 
-  // Recenter modal whenever it opens
+  // Recenter modal whenever it opens - based on CURRENT viewport scroll position
   useEffect(() => {
     if (open && typeof window !== 'undefined') {
-      const x = (window.innerWidth - size.width) / 2
-      const y = (window.innerHeight - size.height) / 2
+      // Get current scroll position
+      const scrollX = window.scrollX || window.pageXOffset
+      const scrollY = window.scrollY || window.pageYOffset
+      
+      // Center on current viewport (not the page)
+      const x = scrollX + (window.innerWidth - size.width) / 2
+      const y = scrollY + (window.innerHeight - size.height) / 2
+      
       setPosition({ x, y })
     }
   }, [open, size.width, size.height])
