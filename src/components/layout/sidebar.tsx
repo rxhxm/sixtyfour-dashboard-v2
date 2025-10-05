@@ -16,7 +16,7 @@ export function Sidebar() {
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-64 bg-background border-r">
       <div className="flex h-16 items-center px-6">
-        <h1 className="text-xl font-bold">API Dashboard</h1>
+        <h1 className="text-xl font-bold">Sixtyfour</h1>
       </div>
       <nav className="mt-8">
         <ul className="space-y-2 px-4">
