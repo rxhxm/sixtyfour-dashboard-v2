@@ -19,12 +19,10 @@ export const metadata: Metadata = {
   description: "API metrics and workflow monitoring dashboard",
   icons: {
     icon: [
-      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon.png', sizes: '64x64', type: 'image/png' },
-      { url: '/favicon.png', sizes: '128x128', type: 'image/png' },
-      { url: '/favicon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' },
     ],
-    shortcut: '/favicon.png',
+    shortcut: '/favicon.svg',
     apple: '/favicon.png',
   },
 };
