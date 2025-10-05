@@ -20,6 +20,15 @@ export function ResizableDialog({
   const [size, setSize] = useState({ width: 900, height: 600 })
   const [position, setPosition] = useState({ x: 0, y: 0 })
 
+  // Prevent background scrolling when modal is open
+  if (typeof document !== 'undefined') {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+  }
+
   if (!open) return null
 
   // Calculate centered position on first open
@@ -31,10 +40,12 @@ export function ResizableDialog({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Prevent scroll */}
       <div
         className="fixed inset-0 z-50 bg-black/50"
         onClick={() => onOpenChange(false)}
+        onWheel={(e) => e.preventDefault()}
+        onTouchMove={(e) => e.preventDefault()}
       />
 
       {/* Resizable Modal */}
