@@ -2,7 +2,7 @@
 
 import { Rnd } from 'react-rnd'
 import { X } from 'lucide-react'
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, useEffect } from 'react'
 
 interface ResizableDialogProps {
   open: boolean
@@ -20,23 +20,28 @@ export function ResizableDialog({
   const [size, setSize] = useState({ width: 900, height: 600 })
   const [position, setPosition] = useState({ x: 0, y: 0 })
 
+  // Recenter modal whenever it opens
+  useEffect(() => {
+    if (open && typeof window !== 'undefined') {
+      const x = (window.innerWidth - size.width) / 2
+      const y = (window.innerHeight - size.height) / 2
+      setPosition({ x, y })
+    }
+  }, [open, size.width, size.height])
+  
   // Prevent background scrolling when modal is open
-  if (typeof document !== 'undefined') {
+  useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = 'unset'
     }
-  }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [open])
 
   if (!open) return null
-
-  // Calculate centered position on first open
-  if (position.x === 0 && position.y === 0 && typeof window !== 'undefined') {
-    const x = (window.innerWidth - size.width) / 2
-    const y = (window.innerHeight - size.height) / 2
-    setPosition({ x, y })
-  }
 
   return (
     <>
