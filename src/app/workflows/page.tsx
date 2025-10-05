@@ -189,8 +189,14 @@ export default function WorkflowsPage() {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-            <p className="text-sm font-medium">Loading workflows...</p>
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
+              <div className="absolute inset-0 animate-ping rounded-full h-12 w-12 border border-primary opacity-20 mx-auto"></div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Loading workflows</p>
+              <p className="text-xs text-muted-foreground">Fetching workflow data...</p>
+            </div>
           </div>
         </div>
       </DashboardLayout>
