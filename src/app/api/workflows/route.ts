@@ -40,11 +40,17 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching runs:', runsError)
     }
     
-    // Fetch workflow jobs for detailed metrics (get ALL for accurate stats)
+    // Get total job count without fetching all data
+    const { count: totalJobsCount } = await supabaseAdmin
+      .from('workflow_jobs')
+      .select('*', { count: 'exact', head: true })
+    
+    // Fetch recent workflow jobs for block usage statistics (limit to recent for performance)
     const { data: jobs, error: jobsError } = await supabaseAdmin
       .from('workflow_jobs')
       .select('*')
       .order('created_at', { ascending: false })
+      .limit(5000) // Fetch recent jobs for block stats, but get accurate total count above
     
     if (jobsError) {
       console.error('Error fetching jobs:', jobsError)
@@ -189,7 +195,7 @@ export async function GET(request: NextRequest) {
       const summary = {
         totalWorkflows: workflows?.length || 0,
         totalRuns: runs?.length || 0,
-        totalJobs: jobs?.length || 0,
+        totalJobs: totalJobsCount || 0, // Use accurate count from database
         completedRuns: completedCount,
         failedRuns: failedCount,
         cancelledRuns: cancelledCount,
