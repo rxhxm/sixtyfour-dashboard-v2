@@ -22,7 +22,6 @@ import {
 import { getBlockColor } from '@/lib/workflow-colors'
 import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ResizableDialog } from '@/components/ui/resizable-dialog'
 
 interface WorkflowData {
   id: string
@@ -73,27 +72,6 @@ export default function WorkflowsPage() {
   const [showRunDetails, setShowRunDetails] = useState(false)
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null)
   const [filterView, setFilterView] = useState<'all' | 'org' | 'workflow'>('all')
-  const [csvResults, setCsvResults] = useState<any>(null)
-  const [loadingCsv, setLoadingCsv] = useState(false)
-  
-  // Fetch CSV results
-  const fetchCsvResults = async (jobId: string) => {
-    setLoadingCsv(true)
-    setCsvResults(null)
-    try {
-      const res = await fetch(`/api/workflow-results?job_id=${jobId}`)
-      const data = await res.json()
-      if (data.error) {
-        console.error('CSV fetch error:', data.error)
-      } else {
-        setCsvResults(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch CSV:', error)
-    } finally {
-      setLoadingCsv(false)
-    }
-  }
   
   // Check authentication
   useEffect(() => {
@@ -189,14 +167,8 @@ export default function WorkflowsPage() {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
-              <div className="absolute inset-0 animate-ping rounded-full h-12 w-12 border border-primary opacity-20 mx-auto"></div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Loading workflows</p>
-              <p className="text-xs text-muted-foreground">Fetching workflow data...</p>
-            </div>
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+            <p className="text-sm font-medium">Loading workflows...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -404,7 +376,6 @@ export default function WorkflowsPage() {
                     onClick={() => {
                       setSelectedRun(run)
                       setShowRunDetails(true)
-                      fetchCsvResults(run.job_id)
                     }}
                   >
                     <CardContent className="p-4">
@@ -412,17 +383,13 @@ export default function WorkflowsPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h4 className="font-semibold">{run.workflow_name}</h4>
-                            {run.user_name && (
-                              <Badge variant="secondary" className="text-xs">
-                                {run.user_name}
-                              </Badge>
-                            )}
                             <Badge className={getStatusColor(run.status)}>
                               <div className="flex items-center gap-1">
                                 {getStatusIcon(run.status)}
                                 {run.status}
                               </div>
                             </Badge>
+                            <Badge variant="outline">{run.trigger_type}</Badge>
                           </div>
                           
                           <div className="flex items-center gap-6 text-sm text-muted-foreground">
@@ -516,15 +483,26 @@ export default function WorkflowsPage() {
           </CardContent>
         </Card>
         
-        {/* Recent Runs section removed - unified into Workflow Executions above */}
-        {false && recentRuns.map((run) => (
+        {/* Recent Runs */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PlayCircle className="h-5 w-5" />
+              Recent Workflow Runs ({recentRuns.length})
+            </CardTitle>
+            <CardDescription>
+              Latest workflow executions with performance metrics
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {recentRuns.map((run) => (
                 <Card
                   key={run.job_id}
                   className="cursor-pointer hover:shadow-md transition-all"
                   onClick={() => {
                     setSelectedRun(run)
                     setShowRunDetails(true)
-                    fetchCsvResults(run.job_id)
                   }}
                 >
                   <CardContent className="p-4">
@@ -532,17 +510,13 @@ export default function WorkflowsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h4 className="font-semibold">{run.workflow_name}</h4>
-                          {run.user_name && (
-                            <Badge variant="secondary" className="text-xs">
-                              {run.user_name}
-                            </Badge>
-                          )}
                           <Badge className={getStatusColor(run.status)}>
                             <div className="flex items-center gap-1">
                               {getStatusIcon(run.status)}
                               {run.status}
                             </div>
                           </Badge>
+                          <Badge variant="outline">{run.trigger_type}</Badge>
                         </div>
                         
                         <div className="flex items-center gap-6 text-sm text-muted-foreground">
@@ -572,13 +546,17 @@ export default function WorkflowsPage() {
           </CardContent>
         </Card>
         
-        {/* Run Details Modal - Resizable */}
-        <ResizableDialog
-          open={showRunDetails}
-          onOpenChange={setShowRunDetails}
-          title="Workflow Run Details"
-        >
-          {selectedRun && (
+        {/* Run Details Modal */}
+        <Dialog open={showRunDetails} onOpenChange={setShowRunDetails}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <PlayCircle className="h-5 w-5" />
+                Workflow Run Details
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedRun && (
               <div className="space-y-6 mt-4">
                 <div className="space-y-2">
                   <h3 className="font-semibold">Workflow: {selectedRun.workflow_name}</h3>
@@ -625,111 +603,10 @@ export default function WorkflowsPage() {
                     ))}
                   </div>
                 </div>
-                
-                {/* CSV Results Section */}
-                <div>
-                  <h4 className="font-semibold mb-4">Workflow Data</h4>
-                  {loadingCsv ? (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">Loading CSV data...</p>
-                    </div>
-                  ) : csvResults ? (
-                    <div className="space-y-4">
-                      {csvResults.input && (
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <h5 className="text-sm font-medium">Input Data</h5>
-                            <button
-                              onClick={() => {
-                                const blob = new Blob([csvResults.input.raw], { type: 'text/csv' })
-                                const url = window.URL.createObjectURL(blob)
-                                const a = document.createElement('a')
-                                a.href = url
-                                a.download = `input-${selectedRun.job_id}.csv`
-                                a.click()
-                              }}
-                              className="text-xs text-primary hover:underline"
-                            >
-                              Download CSV
-                            </button>
-                          </div>
-                          <div className="border rounded-lg overflow-auto max-h-[200px]">
-                            <table className="w-full text-xs">
-                              <thead className="bg-muted sticky top-0">
-                                <tr>
-                                  {csvResults.input.headers?.map((header: string, i: number) => (
-                                    <th key={i} className="px-2 py-1 text-left font-medium">{header}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {csvResults.input.preview?.map((row: any, i: number) => (
-                                  <tr key={i} className="border-t">
-                                    {csvResults.input.headers?.map((header: string, j: number) => (
-                                      <td key={j} className="px-2 py-1">{row[header]}</td>
-                                    ))}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Showing {csvResults.input.preview?.length || 0} of {csvResults.input.totalRows || 0} rows
-                          </p>
-                        </div>
-                      )}
-                      
-                      {csvResults.output && (
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <h5 className="text-sm font-medium">Output Data</h5>
-                            <button
-                              onClick={() => {
-                                const blob = new Blob([csvResults.output.raw], { type: 'text/csv' })
-                                const url = window.URL.createObjectURL(blob)
-                                const a = document.createElement('a')
-                                a.href = url
-                                a.download = `output-${selectedRun.job_id}.csv`
-                                a.click()
-                              }}
-                              className="text-xs text-primary hover:underline"
-                            >
-                              Download CSV
-                            </button>
-                          </div>
-                          <div className="border rounded-lg overflow-auto max-h-[200px]">
-                            <table className="w-full text-xs">
-                              <thead className="bg-muted sticky top-0">
-                                <tr>
-                                  {csvResults.output.headers?.map((header: string, i: number) => (
-                                    <th key={i} className="px-2 py-1 text-left font-medium">{header}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {csvResults.output.preview?.map((row: any, i: number) => (
-                                  <tr key={i} className="border-t">
-                                    {csvResults.output.headers?.map((header: string, j: number) => (
-                                      <td key={j} className="px-2 py-1">{row[header]}</td>
-                                    ))}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Showing {csvResults.output.preview?.length || 0} of {csvResults.output.totalRows || 0} rows
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No CSV data available</p>
-                  )}
-                </div>
               </div>
             )}
-        </ResizableDialog>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )
