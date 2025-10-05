@@ -62,10 +62,21 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching workflow names:', workflowsError)
     }
     
+    // Fetch user-org mappings
+    const { data: userOrgs } = await supabaseAdmin
+      .from('users-org')
+      .select('*')
+    
+    const userToOrgMap = new Map()
+    userOrgs?.forEach((mapping: any) => {
+      userToOrgMap.set(mapping.id, mapping.org_id)
+    })
+    
     // Enrich runs with workflow info and job details
     const enrichedRuns = runs?.map((run: any) => {
       const workflow = workflows?.find((w: any) => w.id === run.workflow_id)
       const runJobs = jobs?.filter((job: any) => job.job_id === run.job_id) || []
+      const userOrg = userToOrgMap.get(run.user_id) || 'Unknown'
       
       // Parse metrics
       let metrics = {}
@@ -79,6 +90,8 @@ export async function GET(request: NextRequest) {
         ...run,
         workflow_name: workflow?.name || 'Unknown Workflow',
         workflow_description: workflow?.description,
+        user_org: userOrg,
+        user_name: userOrg,
         jobs: runJobs,
         parsed_metrics: metrics,
         block_count: Array.isArray(run.blocks) ? run.blocks.length : 0

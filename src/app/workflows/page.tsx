@@ -534,6 +534,11 @@ export default function WorkflowsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h4 className="font-semibold">{run.workflow_name}</h4>
+                          {run.user_name && (
+                            <Badge variant="secondary" className="text-xs">
+                              {run.user_name}
+                            </Badge>
+                          )}
                           <Badge className={getStatusColor(run.status)}>
                             <div className="flex items-center gap-1">
                               {getStatusIcon(run.status)}

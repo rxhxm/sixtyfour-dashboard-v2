@@ -96,6 +96,9 @@ export async function GET(request: NextRequest) {
       // Get user org
       const userOrg = userToOrgMap.get(workflow.user_uuid) || 'Unknown'
       
+      // Create a display name (use org or extract from user_uuid)
+      const userName = userOrg !== 'Unknown' ? userOrg : workflow.user_uuid?.substring(0, 8)
+      
       // Get runs for this specific workflow
       const workflowSpecificRuns = workflowRuns.map((run: any) => ({
         job_id: run.job_id,
@@ -109,6 +112,7 @@ export async function GET(request: NextRequest) {
       return {
         ...workflow,
         user_org: userOrg,
+        user_name: userName,
         runs: workflowSpecificRuns, // Include actual runs for expansion
         stats: {
           totalRuns: workflowRuns.length,
