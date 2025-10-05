@@ -8,18 +8,16 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
-    const limit = parseInt(searchParams.get('limit') || '50')
     
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
     }
     
-    // Fetch workflows with their latest run data
+    // Fetch ALL workflows (no limit for accurate count)
     let workflowQuery = supabaseAdmin
       .from('workflows')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(limit)
     
     if (userId) {
       workflowQuery = workflowQuery.eq('user_uuid', userId)
@@ -42,12 +40,11 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching runs:', runsError)
     }
     
-    // Fetch workflow jobs for detailed metrics
+    // Fetch workflow jobs for detailed metrics (get ALL for accurate stats)
     const { data: jobs, error: jobsError } = await supabaseAdmin
       .from('workflow_jobs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(1000)
     
     if (jobsError) {
       console.error('Error fetching jobs:', jobsError)
