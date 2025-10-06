@@ -32,15 +32,28 @@ export async function GET(request: NextRequest) {
     
     console.log(`Found ${results?.length || 0} results for job ${jobId}`)
     
-    // Log the first result to see its structure
-    if (results && results.length > 0) {
-      console.log('Sample result structure:', JSON.stringify(results[0], null, 2))
+    // If no results found, return early with helpful message
+    if (!results || results.length === 0) {
+      console.log('No workflow_results found for this job')
+      return NextResponse.json({
+        input: null,
+        output: null,
+        total: 0,
+        allResults: [],
+        message: 'No CSV data saved for this workflow run yet'
+      })
     }
+    
+    // Log the first result to see its structure
+    console.log('Sample result structure:', JSON.stringify(results[0], null, 2))
+    console.log(`Attempting to download ${results.length} CSV files from storage...`)
     
     // Fetch CSV content from Supabase Storage
     const enrichedResults = await Promise.all(
       (results || []).map(async (result: any) => {
         try {
+          console.log(`Downloading: ${result.storage_bucket}/${result.storage_url}`)
+          
           // Download CSV from storage
           const { data: csvData, error: storageError } = await supabaseAdmin
             .storage
@@ -48,8 +61,9 @@ export async function GET(request: NextRequest) {
             .download(result.storage_url)
           
           if (storageError) {
-            console.error('Storage error:', storageError)
-            return { ...result, csvData: null, error: 'Failed to fetch CSV' }
+            console.error('Storage download error:', storageError)
+            console.error('Failed file:', result.storage_bucket, result.storage_url)
+            return { ...result, csvData: null, error: 'Storage access denied or file not found', storageError: storageError.message }
           }
           
           // Convert blob to text
@@ -85,18 +99,42 @@ export async function GET(request: NextRequest) {
       id: r.id, 
       block_number: r.block_number,
       storage_url: r.storage_url,
-      has_headers: !!r.headers 
+      has_headers: !!r.headers,
+      has_error: !!r.error
     })))
     
+    // Check if any results had errors
+    const errorResults = enrichedResults.filter((r: any) => r.error)
+    if (errorResults.length > 0) {
+      console.error(`${errorResults.length} files failed to download`)
+      console.error('First error:', errorResults[0].storageError)
+    }
+    
+    // Filter out results that failed to download
+    const successfulResults = enrichedResults.filter((r: any) => r.headers && !r.error)
+    
+    if (successfulResults.length === 0 && enrichedResults.length > 0) {
+      // Results exist in DB but all storage downloads failed
+      return NextResponse.json({
+        input: null,
+        output: null,
+        total: 0,
+        allResults: [],
+        message: 'CSV files exist but could not be accessed from storage. This may be a permissions issue.',
+        error: errorResults[0]?.storageError || 'Storage access failed'
+      })
+    }
+    
     // Find first and last results (typically input is first, output is last)
-    const inputResult = enrichedResults[0] || null
-    const outputResult = enrichedResults[enrichedResults.length - 1] || null
+    const inputResult = successfulResults[0] || null
+    const outputResult = successfulResults[successfulResults.length - 1] || null
     
     return NextResponse.json({
       input: inputResult,
       output: outputResult,
-      total: enrichedResults.length,
-      allResults: enrichedResults
+      total: successfulResults.length,
+      allResults: successfulResults,
+      ...(errorResults.length > 0 ? { partialError: `${errorResults.length} files could not be accessed` } : {})
     })
     
   } catch (error) {
