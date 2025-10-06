@@ -386,6 +386,9 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date('2025-09-08')) // Use date where data exists
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  
+  // Ref to prevent double-fetching
+  const isFetchingRef = React.useRef(false)
 
   // Timer effect to update elapsed time during loading
   useEffect(() => {
@@ -402,7 +405,16 @@ export default function DashboardPage() {
 
   // Load 24 hours first, then 7 days in background
   useEffect(() => {
-    fetchDataWithCache()
+    // Prevent double-fetch
+    if (isFetchingRef.current) {
+      console.log('⏭️ Skipping duplicate fetch call')
+      return
+    }
+    
+    isFetchingRef.current = true
+    fetchDataWithCache().finally(() => {
+      isFetchingRef.current = false
+    })
     
     // After initial load, fetch 7 days in background if not already cached
     if (timePeriod === '24hours') {
