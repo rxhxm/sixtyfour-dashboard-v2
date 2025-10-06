@@ -51,6 +51,8 @@ interface WorkflowRun {
   job_id: string
   workflow_id: string
   workflow_name: string
+  user_org?: string
+  user_name?: string
   status: string
   created_at: string
   started_at: string
@@ -438,7 +440,14 @@ export default function WorkflowsPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h4 className="font-semibold">{run.workflow_name}</h4>
+                            <div>
+                              <h4 className="font-semibold">{run.workflow_name}</h4>
+                              {run.user_org && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {run.user_org}
+                                </p>
+                              )}
+                            </div>
                             <Badge className={getStatusColor(run.status)}>
                               <div className="flex items-center gap-1">
                                 {getStatusIcon(run.status)}
