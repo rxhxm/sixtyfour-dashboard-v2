@@ -29,7 +29,6 @@ export default function SignIn() {
     // Pre-load 24 hours data in the background
     const preloadData = async () => {
       try {
-        setPreloadStatus("Pre-loading dashboard data...")
         console.log('🔄 Pre-loading 24 hours data on signin page...')
         
         const endDate = new Date()
@@ -120,7 +119,6 @@ export default function SignIn() {
         
         if (!preloadComplete) {
           console.log('⏳ Waiting for preload to complete before navigating...')
-          setPreloadStatus("Finishing data load...")
           
           // Wait up to 15 seconds for preload to complete
           const maxWait = 15000
