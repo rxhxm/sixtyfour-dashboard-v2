@@ -462,21 +462,20 @@ export default function DashboardPage() {
     
     // Check for preloaded data from signin page (24 hours only)
     if (timePeriod === '24hours' && !dataCache.has(cacheKey)) {
-      const preloadedMetrics = sessionStorage.getItem('preloaded_metrics_24h')
       const preloadedLangfuse = sessionStorage.getItem('preloaded_langfuse_24h')
       const preloadedChart = sessionStorage.getItem('preloaded_chart_24h')
       const preloadedTimestamp = sessionStorage.getItem('preloaded_timestamp')
       
-      if (preloadedMetrics && preloadedLangfuse && preloadedChart && preloadedTimestamp) {
+      // Use preloaded data if we have at least Langfuse metrics (the most important)
+      if (preloadedLangfuse && preloadedTimestamp) {
         const timestamp = parseInt(preloadedTimestamp)
         const age = Date.now() - timestamp
         
         // Use preloaded data if less than 5 minutes old
         if (age < 5 * 60 * 1000) {
           console.log('⚡ Using pre-loaded data from signin page!')
-          const metricsData = JSON.parse(preloadedMetrics)
+          
           const langfuseData = JSON.parse(preloadedLangfuse)
-          const chartData = JSON.parse(preloadedChart)
           
           // Transform langfuse data
           const transformedLangfuse = {
@@ -497,17 +496,28 @@ export default function DashboardPage() {
             traceTypes: langfuseData.traceTypes || {}
           }
           
-          setDatabaseMetrics(metricsData)
           setLangfuseMetrics(transformedLangfuse)
-          setLangfuseChartData(chartData)
+          
+          // Use preloaded chart if available
+          if (preloadedChart) {
+            const chartData = JSON.parse(preloadedChart)
+            setLangfuseChartData(chartData)
+          }
+          
+          // Use preloaded metrics if available, otherwise will fetch separately
+          const preloadedMetrics = sessionStorage.getItem('preloaded_metrics_24h')
+          if (preloadedMetrics) {
+            const metricsData = JSON.parse(preloadedMetrics)
+            setDatabaseMetrics(metricsData)
+          }
           
           // Store in cache
           setDataCache(prev => {
             const newCache = new Map(prev)
             newCache.set(cacheKey, {
-              databaseMetrics: metricsData,
+              databaseMetrics: preloadedMetrics ? JSON.parse(preloadedMetrics) : null,
               langfuseMetrics: transformedLangfuse,
-              langfuseChartData: chartData,
+              langfuseChartData: preloadedChart ? JSON.parse(preloadedChart) : [],
               timestamp
             })
             return newCache

@@ -84,6 +84,11 @@ export default function SignIn() {
         if (successCount > 0) {
           sessionStorage.setItem('preloaded_timestamp', Date.now().toString())
           console.log(`✅ Pre-loaded ${successCount}/3 endpoints successfully!`)
+          console.log('📦 Stored in sessionStorage:')
+          console.log('  - preloaded_langfuse_24h:', !!sessionStorage.getItem('preloaded_langfuse_24h'))
+          console.log('  - preloaded_chart_24h:', !!sessionStorage.getItem('preloaded_chart_24h'))
+          console.log('  - preloaded_metrics_24h:', !!sessionStorage.getItem('preloaded_metrics_24h'))
+          console.log('  - preloaded_timestamp:', sessionStorage.getItem('preloaded_timestamp'))
           setPreloadStatus(`Data ready! (${successCount}/3)`)
           setTimeout(() => setPreloadStatus(""), 2000)
         } else {
