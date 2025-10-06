@@ -437,17 +437,21 @@ export default function WorkflowsPage() {
                     }}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-4">
+                        {/* Organization Badge on the left */}
+                        <div className="flex items-center gap-3">
+                          <div className="min-w-[100px]">
+                            <Badge variant="secondary" className="w-full justify-center font-medium">
+                              {run.user_org || 'Unknown'}
+                            </Badge>
+                          </div>
+                          <div className="w-px h-12 bg-border" /> {/* Vertical separator */}
+                        </div>
+                        
+                        {/* Main content */}
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <div>
-                              <h4 className="font-semibold">{run.workflow_name}</h4>
-                              {run.user_org && (
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {run.user_org}
-                                </p>
-                              )}
-                            </div>
+                            <h4 className="font-semibold">{run.workflow_name}</h4>
                             <Badge className={getStatusColor(run.status)}>
                               <div className="flex items-center gap-1">
                                 {getStatusIcon(run.status)}
