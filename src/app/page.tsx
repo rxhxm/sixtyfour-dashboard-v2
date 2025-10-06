@@ -531,8 +531,8 @@ export default function DashboardPage() {
         const timestamp = parseInt(preloadedTimestamp)
         const age = Date.now() - timestamp
         
-        // Use preloaded data if less than 5 minutes old
-        if (age < 5 * 60 * 1000) {
+        // Use preloaded data if less than 10 minutes old
+        if (age < 10 * 60 * 1000) {
           console.log('⚡ Using pre-loaded data from signin page!')
           
           const langfuseData = JSON.parse(preloadedLangfuse)
@@ -607,7 +607,7 @@ export default function DashboardPage() {
     // Check if data is in cache (valid for 5 minutes)
     const cached = dataCache.get(cacheKey)
     const now = Date.now()
-    const cacheValidDuration = 5 * 60 * 1000 // 5 minutes
+    const cacheValidDuration = 10 * 60 * 1000 // 10 minutes
     
     if (cached && (now - cached.timestamp) < cacheValidDuration) {
       console.log(`⚡ Using cached data for ${timePeriod}`)

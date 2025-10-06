@@ -6,7 +6,7 @@ export const maxDuration = 120 // Set 2 minute timeout for heavy data processing
 
 // In-memory cache for chart data (simple server-side cache)
 const chartDataCache = new Map<string, { data: any[], timestamp: number }>()
-const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes
+const CACHE_DURATION_MS = 10 * 60 * 1000 // 10 minutes
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       console.log('✅ Returning cached chart data')
       return NextResponse.json(cached.data, {
         headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
         }
       })
     }
@@ -209,7 +209,7 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json(chartData, {
         headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
         }
       })
     }
@@ -272,7 +272,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(chartData, {
         headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
         }
       })
 
