@@ -12,8 +12,26 @@ import { fetchInBatches } from '@/lib/langfuse-parallel'
 export const runtime = 'nodejs'
 export const maxDuration = 120 // Set 2 minute timeout for heavy data processing
 
+// In-memory cache for metrics data
+const metricsCache = new Map<string, { data: any, timestamp: number }>()
+const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
+  
+  // Check cache first
+  const { searchParams } = new URL(request.url)
+  const cacheKey = `${searchParams.get('startDate')}-${searchParams.get('endDate')}`
+  const cached = metricsCache.get(cacheKey)
+  
+  if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
+    console.log('✅ Returning cached langfuse metrics')
+    return NextResponse.json(cached.data, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      }
+    })
+  }
   
   // Log API call start with performance tracking
   console.log(`\n🔵 === LANGFUSE METRICS API STARTED ===`)
@@ -993,7 +1011,14 @@ export async function GET(request: NextRequest) {
       organizationsCount: response.organizations.length
     })
 
-    return NextResponse.json(response)
+    // Cache the successful response
+    metricsCache.set(cacheKey, { data: response, timestamp: Date.now() })
+
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      }
+    })
 
   } catch (error) {
     console.error('Error in Langfuse metrics API:', error)

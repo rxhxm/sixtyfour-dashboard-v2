@@ -4,6 +4,10 @@ import { fetchLangfuseDailyMetrics, fetchLangfuseTraces } from '@/lib/langfuse'
 export const runtime = 'nodejs'
 export const maxDuration = 120 // Set 2 minute timeout for heavy data processing
 
+// In-memory cache for chart data (simple server-side cache)
+const chartDataCache = new Map<string, { data: any[], timestamp: number }>()
+const CACHE_DURATION_MS = 5 * 60 * 1000 // 5 minutes
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
   try {
@@ -11,6 +15,20 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
     const selectedOrg = searchParams.get('selectedOrg')
+    
+    // Create cache key
+    const cacheKey = `${startDate}-${endDate}-${selectedOrg || 'all'}`
+    
+    // Check cache first
+    const cached = chartDataCache.get(cacheKey)
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
+      console.log('✅ Returning cached chart data')
+      return NextResponse.json(cached.data, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        }
+      })
+    }
 
     console.log('Langfuse chart data API called with:', { startDate, endDate, selectedOrg })
 
@@ -64,9 +82,9 @@ export async function GET(request: NextRequest) {
         tracesOptions.tags = [`org_id:${selectedOrg}`]
       }
       
-      // Fetch traces with PARALLEL pagination for speed
+      // Fetch traces with AGGRESSIVE PARALLEL pagination for maximum speed
       let allTraces: any[] = []
-      const maxPages = 50 // Reduced for speed, still ~5000 traces
+      const maxPages = 30 // Reduced further for speed, still 3000 traces (sufficient for charts)
       
       try {
         const firstPage = await fetchLangfuseTraces({ ...tracesOptions, page: 1 })
@@ -76,25 +94,22 @@ export async function GET(request: NextRequest) {
           const totalPages = Math.min(Math.ceil(totalItems / 100), maxPages)
           
           if (totalPages > 1) {
-            // Fetch remaining pages in parallel (batches of 10 for safety)
-            const batchSize = 10
+            // AGGRESSIVE: Fetch ALL remaining pages in parallel at once!
             const pageNumbers = Array.from({ length: totalPages - 1 }, (_, i) => i + 2)
             
-            for (let i = 0; i < pageNumbers.length; i += batchSize) {
-              const batch = pageNumbers.slice(i, i + batchSize)
-              const batchResults = await Promise.allSettled(
-                batch.map(page => fetchLangfuseTraces({ ...tracesOptions, page }))
-              )
-              
-              for (const result of batchResults) {
-                if (result.status === 'fulfilled' && result.value?.data) {
-                  allTraces = [...allTraces, ...result.value.data]
-                }
+            console.log(`⚡ Fetching ${pageNumbers.length} pages in parallel...`)
+            const allResults = await Promise.allSettled(
+              pageNumbers.map(page => fetchLangfuseTraces({ ...tracesOptions, page }))
+            )
+            
+            for (const result of allResults) {
+              if (result.status === 'fulfilled' && result.value?.data) {
+                allTraces.push(...result.value.data)
               }
             }
           }
           
-          console.log(`Fetched ${allTraces.length} traces for chart from ${totalPages} pages`)
+          console.log(`✅ Fetched ${allTraces.length} traces for chart from ${totalPages} pages`)
         }
       } catch (error) {
         console.warn('Failed to fetch traces for chart:', error)
@@ -188,7 +203,15 @@ export async function GET(request: NextRequest) {
           }))
       
       console.log(`${groupingType} chart data points:`, chartData.length)
-      return NextResponse.json(chartData)
+      
+      // Cache the result
+      chartDataCache.set(cacheKey, { data: chartData, timestamp: Date.now() })
+      
+      return NextResponse.json(chartData, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        }
+      })
     }
 
     // For longer windows, use daily metrics
@@ -244,7 +267,14 @@ export async function GET(request: NextRequest) {
         totalTokens: chartData.reduce((sum: number, day: any) => sum + day.tokens, 0)
       })
 
-      return NextResponse.json(chartData)
+      // Cache the result
+      chartDataCache.set(cacheKey, { data: chartData, timestamp: Date.now() })
+
+      return NextResponse.json(chartData, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        }
+      })
 
     } catch (error) {
       console.error('Error fetching Langfuse daily metrics for chart:', error)
