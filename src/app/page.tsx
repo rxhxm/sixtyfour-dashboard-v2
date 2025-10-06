@@ -259,6 +259,8 @@ export default function DashboardPage() {
   const [timeOffset, setTimeOffset] = useState(0) // 0 = current period
   const [selectedOrg, setSelectedOrg] = useState<string>('') // For filtering (not currently used)
   const [expandedOrg, setExpandedOrg] = useState<string>('') // For expanding row details
+  const [lastFetchTimestamp, setLastFetchTimestamp] = useState<number>(0) // Track when we last fetched
+  const [isRefreshing, setIsRefreshing] = useState(false) // Show subtle refresh indicator
   
   // Track contacted users (persisted in localStorage)
   const [contactedUsers, setContactedUsers] = useState<Set<string>>(new Set())
@@ -429,6 +431,16 @@ export default function DashboardPage() {
     }
   }, [loading, loadingStartTime])
 
+  // Auto-refresh every 10 minutes with incremental updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refresh triggered (10 min interval)')
+      refreshDataIncrementally()
+    }, 10 * 60 * 1000) // Every 10 minutes
+    
+    return () => clearInterval(interval)
+  }, [timePeriod])
+
   // Load 24 hours first, then 7 days in background
   useEffect(() => {
     // Prevent double-fetch
@@ -454,6 +466,116 @@ export default function DashboardPage() {
   // Generate cache key based on time period only (no org filter - we filter client-side)
   const getCacheKey = (period: TimePeriod) => {
     return period
+  }
+
+  // Incremental refresh - only fetch new data since last refresh
+  const refreshDataIncrementally = async () => {
+    setIsRefreshing(true)
+    console.log('🔄 Incremental refresh started...')
+    
+    try {
+      // Calculate time window for NEW data only
+      const now = Date.now()
+      const timeSinceLastFetch = lastFetchTimestamp > 0 ? now - lastFetchTimestamp : 10 * 60 * 1000
+      
+      const endDate = new Date()
+      const startDate = new Date(endDate.getTime() - timeSinceLastFetch)
+      
+      console.log(`📊 Fetching incremental data from ${startDate.toISOString()} to ${endDate.toISOString()}`)
+      
+      // Fetch only new data (much faster!)
+      const params = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      })
+      
+      // Fetch new data in parallel
+      const [newLangfuseRes, newChartRes] = await Promise.all([
+        fetch(`/api/langfuse-metrics?${params}`),
+        fetch(`/api/langfuse-chart-data?${params}`)
+      ])
+      
+      if (newLangfuseRes.ok) {
+        const newData = await newLangfuseRes.json()
+        console.log('✅ Got new Langfuse data:', newData.summary?.totalTraces, 'new traces')
+        
+        // Merge with existing data
+        setLangfuseMetrics(prev => {
+          if (!prev) return prev
+          
+          // Merge organization data
+          const mergedOrgs: any[] = [...(prev.organizationBreakdown || [])]
+          newData.organizations?.forEach((newOrg: any) => {
+            const existingIndex = mergedOrgs.findIndex(o => o.org_id === newOrg.org_id)
+            if (existingIndex >= 0) {
+              // Update existing org
+              const existing = mergedOrgs[existingIndex]
+              mergedOrgs[existingIndex] = {
+                ...existing,
+                requests: existing.requests + newOrg.requests,
+                cost: existing.cost + newOrg.cost,
+                tokens: existing.tokens + newOrg.tokens,
+                traceTypes: existing.traceTypes || {}
+              }
+            } else {
+              // Add new org
+              mergedOrgs.push({
+                org_id: newOrg.org_id || newOrg.name,
+                org_name: newOrg.name,
+                key_name: newOrg.key_name || 'Via Langfuse',
+                requests: newOrg.requests,
+                cost: newOrg.cost || 0,
+                tokens: newOrg.tokens || 0,
+                traceTypes: newOrg.traceTypes || {}
+              })
+            }
+          })
+          
+          return {
+            ...prev,
+            totalRequests: prev.totalRequests + (newData.summary?.totalTraces || 0),
+            totalCost: prev.totalCost + (newData.summary?.totalCost || 0),
+            totalTokens: prev.totalTokens + (newData.summary?.totalTokens || 0),
+            organizationBreakdown: mergedOrgs
+          }
+        })
+      }
+      
+      if (newChartRes.ok) {
+        const newChartData = await newChartRes.json()
+        console.log('✅ Got new chart data:', newChartData.length, 'points')
+        
+        // Merge chart data
+        setLangfuseChartData(prev => {
+          // Combine and deduplicate by date
+          const combined = [...prev, ...newChartData]
+          const byDate = new Map()
+          
+          combined.forEach(point => {
+            const existing = byDate.get(point.date)
+            if (existing) {
+              byDate.set(point.date, {
+                date: point.date,
+                traces: existing.traces + point.traces,
+                cost: existing.cost + point.cost,
+                tokens: existing.tokens + point.tokens
+              })
+            } else {
+              byDate.set(point.date, point)
+            }
+          })
+          
+          return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date))
+        })
+      }
+      
+      setLastFetchTimestamp(now)
+      console.log('✅ Incremental refresh complete!')
+    } catch (error) {
+      console.error('❌ Incremental refresh failed:', error)
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
   // Fetch data in background without blocking UI
@@ -604,17 +726,21 @@ export default function DashboardPage() {
       console.log('ℹ️ Not using preload (timePeriod:', timePeriod, ', has cache:', dataCache.has(cacheKey), ')')
     }
     
-    // Check if data is in cache (valid for 5 minutes)
+    // Check if data is in cache (valid for entire session!)
     const cached = dataCache.get(cacheKey)
-    const now = Date.now()
-    const cacheValidDuration = 10 * 60 * 1000 // 10 minutes
     
-    if (cached && (now - cached.timestamp) < cacheValidDuration) {
-      console.log(`⚡ Using cached data for ${timePeriod}`)
+    if (cached) {
+      console.log(`⚡ Using session-cached data for ${timePeriod}`)
       setDatabaseMetrics(cached.databaseMetrics)
       setLangfuseMetrics(cached.langfuseMetrics)
       setLangfuseChartData(cached.langfuseChartData)
       setLoading(false)
+      
+      // Update last fetch timestamp
+      if (cached.timestamp > lastFetchTimestamp) {
+        setLastFetchTimestamp(cached.timestamp)
+      }
+      
       return
     }
     
@@ -633,14 +759,18 @@ export default function DashboardPage() {
       setLangfuseChartData(data.langfuseChartData)
       
       // Store in cache
+      const timestamp = Date.now()
       setDataCache(prev => {
         const newCache = new Map(prev)
         newCache.set(cacheKey, {
           ...data,
-          timestamp: Date.now()
+          timestamp
         })
         return newCache
       })
+      
+      // Update last fetch timestamp
+      setLastFetchTimestamp(timestamp)
     } catch (error) {
       console.error('Failed to fetch data:', error)
       setDatabaseMetrics(null)
@@ -939,6 +1069,12 @@ export default function DashboardPage() {
                 <Badge variant="outline" className="text-xs flex items-center gap-1">
                   <div className="animate-spin rounded-full h-2 w-2 border border-muted-foreground border-t-transparent"></div>
                   Loading 7 days in background...
+                </Badge>
+              )}
+              {isRefreshing && (
+                <Badge variant="outline" className="text-xs flex items-center gap-1 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                  <div className="animate-spin rounded-full h-2 w-2 border border-green-600 border-t-transparent"></div>
+                  Fetching new data...
                 </Badge>
               )}
             </div>
