@@ -64,29 +64,37 @@ export async function GET(request: NextRequest) {
         tracesOptions.tags = [`org_id:${selectedOrg}`]
       }
       
-      // Fetch traces with pagination
+      // Fetch traces with PARALLEL pagination for speed
       let allTraces: any[] = []
-      let page = 1
-      const maxPages = 150 // Increased limit for comprehensive hourly coverage with longer timeout
+      const maxPages = 50 // Reduced for speed, still ~5000 traces
       
       try {
-        const firstPage = await fetchLangfuseTraces({ ...tracesOptions, page })
+        const firstPage = await fetchLangfuseTraces({ ...tracesOptions, page: 1 })
         if (firstPage?.data) {
           allTraces = [...firstPage.data]
           const totalItems = firstPage.meta?.totalItems || 0
           const totalPages = Math.min(Math.ceil(totalItems / 100), maxPages)
           
-          for (page = 2; page <= totalPages; page++) {
-            try {
-              const pageData = await fetchLangfuseTraces({ ...tracesOptions, page })
-              if (pageData?.data) {
-                allTraces = [...allTraces, ...pageData.data]
+          if (totalPages > 1) {
+            // Fetch remaining pages in parallel (batches of 10 for safety)
+            const batchSize = 10
+            const pageNumbers = Array.from({ length: totalPages - 1 }, (_, i) => i + 2)
+            
+            for (let i = 0; i < pageNumbers.length; i += batchSize) {
+              const batch = pageNumbers.slice(i, i + batchSize)
+              const batchResults = await Promise.allSettled(
+                batch.map(page => fetchLangfuseTraces({ ...tracesOptions, page }))
+              )
+              
+              for (const result of batchResults) {
+                if (result.status === 'fulfilled' && result.value?.data) {
+                  allTraces = [...allTraces, ...result.value.data]
+                }
               }
-            } catch (e) {
-              console.warn(`Failed to fetch page ${page} for chart data`)
-              break
             }
           }
+          
+          console.log(`Fetched ${allTraces.length} traces for chart from ${totalPages} pages`)
         }
       } catch (error) {
         console.warn('Failed to fetch traces for chart:', error)
@@ -137,32 +145,25 @@ export async function GET(request: NextRequest) {
         groupedData[groupKey].tokens += tokens
       }
       
-      // Fill in missing hours/minutes for continuous chart
+      // Fill in missing hours/minutes for continuous chart (optimized)
       const filledData: any[] = []
       if (fromTimestamp && toTimestamp) {
         const start = new Date(fromTimestamp)
         const end = new Date(toTimestamp)
-        const current = new Date(start)
+        const incrementMs = groupingType === 'minute' ? 60000 : 3600000
+        const currentTime = start.getTime()
+        const endTime = end.getTime()
         
-        while (current <= end) {
+        for (let time = currentTime; time <= endTime; time += incrementMs) {
+          const current = new Date(time)
           let groupKey: string
+          
           if (groupingType === 'minute') {
-            groupKey = new Date(
-              current.getFullYear(),
-              current.getMonth(),
-              current.getDate(),
-              current.getHours(),
-              current.getMinutes()
-            ).toISOString()
-            current.setMinutes(current.getMinutes() + 1)
+            current.setSeconds(0, 0)
+            groupKey = current.toISOString()
           } else {
-            groupKey = new Date(
-              current.getFullYear(),
-              current.getMonth(),
-              current.getDate(),
-              current.getHours()
-            ).toISOString()
-            current.setHours(current.getHours() + 1)
+            current.setMinutes(0, 0, 0)
+            groupKey = current.toISOString()
           }
           
           const data = groupedData[groupKey] || { traces: 0, cost: 0, tokens: 0 }
