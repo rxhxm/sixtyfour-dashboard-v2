@@ -598,8 +598,8 @@ export default function DashboardPage() {
     }
     // Don't filter by org - we'll filter client-side for instant response
     
-    // Fetch both database and Langfuse data in parallel with timeout
-    const fetchWithTimeout = (url: string, timeout = 110000) => {
+    // Fetch both database and Langfuse data in parallel with timeout (3 minutes)
+    const fetchWithTimeout = (url: string, timeout = 180000) => {
       return Promise.race([
         fetch(url),
         new Promise<Response>((_, reject) => 
@@ -694,7 +694,11 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium">Loading dashboard</p>
-              <p className="text-xs text-muted-foreground">Fetching your metrics...</p>
+              <p className="text-xs text-muted-foreground">
+                {timePeriod === '7days' || timePeriod === '1month' || timePeriod === '3months' || timePeriod === '1year'
+                  ? 'Loading large dataset, this may take up to 2 minutes...'
+                  : 'Fetching your metrics...'}
+              </p>
             </div>
           </div>
         </div>

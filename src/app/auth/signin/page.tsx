@@ -40,31 +40,56 @@ export default function SignIn() {
           endDate: endDate.toISOString()
         })
         
-        // Pre-load all three endpoints in parallel
-        const [metricsRes, langfuseRes, chartRes] = await Promise.all([
-          fetch(`/api/metrics?${params}`),
-          fetch(`/api/langfuse-metrics?${params}`),
-          fetch(`/api/langfuse-chart-data?${params}`)
+        // Pre-load with longer timeout (3 minutes)
+        const fetchWithTimeout = (url: string, timeout = 180000) => {
+          return Promise.race([
+            fetch(url),
+            new Promise<Response>((_, reject) => 
+              setTimeout(() => reject(new Error('Preload timeout')), timeout)
+            )
+          ])
+        }
+        
+        // Pre-load all three endpoints in parallel with timeout
+        const results = await Promise.allSettled([
+          fetchWithTimeout(`/api/metrics?${params}`).then(r => r.json()),
+          fetchWithTimeout(`/api/langfuse-metrics?${params}`).then(r => r.json()),
+          fetchWithTimeout(`/api/langfuse-chart-data?${params}`).then(r => r.json())
         ])
         
-        // Store responses in sessionStorage for instant loading
-        if (metricsRes.ok) {
-          const data = await metricsRes.json()
-          sessionStorage.setItem('preloaded_metrics_24h', JSON.stringify(data))
-        }
-        if (langfuseRes.ok) {
-          const data = await langfuseRes.json()
-          sessionStorage.setItem('preloaded_langfuse_24h', JSON.stringify(data))
-        }
-        if (chartRes.ok) {
-          const data = await chartRes.json()
-          sessionStorage.setItem('preloaded_chart_24h', JSON.stringify(data))
+        // Store successful responses in sessionStorage
+        let successCount = 0
+        
+        if (results[0].status === 'fulfilled') {
+          sessionStorage.setItem('preloaded_metrics_24h', JSON.stringify(results[0].value))
+          successCount++
+        } else {
+          console.warn('Metrics preload failed:', results[0].reason)
         }
         
-        sessionStorage.setItem('preloaded_timestamp', Date.now().toString())
-        console.log('✅ Pre-loaded 24 hours data successfully!')
-        setPreloadStatus("Data ready!")
-        setTimeout(() => setPreloadStatus(""), 1000)
+        if (results[1].status === 'fulfilled') {
+          sessionStorage.setItem('preloaded_langfuse_24h', JSON.stringify(results[1].value))
+          successCount++
+        } else {
+          console.warn('Langfuse metrics preload failed:', results[1].reason)
+        }
+        
+        if (results[2].status === 'fulfilled') {
+          sessionStorage.setItem('preloaded_chart_24h', JSON.stringify(results[2].value))
+          successCount++
+        } else {
+          console.warn('Chart data preload failed:', results[2].reason)
+        }
+        
+        if (successCount > 0) {
+          sessionStorage.setItem('preloaded_timestamp', Date.now().toString())
+          console.log(`✅ Pre-loaded ${successCount}/3 endpoints successfully!`)
+          setPreloadStatus(`Data ready! (${successCount}/3)`)
+          setTimeout(() => setPreloadStatus(""), 2000)
+        } else {
+          console.log('⚠️ All preloads failed, will load normally after login')
+          setPreloadStatus("")
+        }
       } catch (error) {
         console.error('Failed to pre-load data:', error)
         setPreloadStatus("")
