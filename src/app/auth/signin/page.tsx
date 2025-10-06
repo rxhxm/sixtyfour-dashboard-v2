@@ -109,13 +109,30 @@ export default function SignIn() {
     setLoading(true)
     setError("")
 
-    // Simulate a small delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 500))
-
     try {
       if (password === CORRECT_PASSWORD) {
         // Set authentication in session storage
         sessionStorage.setItem("authenticated", "true")
+        
+        // IMPORTANT: Wait for preload to complete before navigating
+        // This prevents browser from cancelling the fetch requests
+        const preloadComplete = sessionStorage.getItem('preloaded_timestamp')
+        
+        if (!preloadComplete) {
+          console.log('⏳ Waiting for preload to complete before navigating...')
+          setPreloadStatus("Finishing data load...")
+          
+          // Wait up to 15 seconds for preload to complete
+          const maxWait = 15000
+          const startWait = Date.now()
+          
+          while (!sessionStorage.getItem('preloaded_timestamp') && (Date.now() - startWait) < maxWait) {
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+          
+          console.log('✅ Preload complete, navigating...')
+        }
+        
         router.push("/")
       } else {
         setError("Invalid password")
