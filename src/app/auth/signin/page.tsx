@@ -12,6 +12,7 @@ export default function SignIn() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [preloadStatus, setPreloadStatus] = useState("")
   const router = useRouter()
 
   // Hardcoded password
@@ -22,7 +23,55 @@ export default function SignIn() {
     const isAuthenticated = sessionStorage.getItem("authenticated")
     if (isAuthenticated === "true") {
       router.push("/")
+      return
     }
+
+    // Pre-load 24 hours data in the background
+    const preloadData = async () => {
+      try {
+        setPreloadStatus("Pre-loading dashboard data...")
+        console.log('🔄 Pre-loading 24 hours data on signin page...')
+        
+        const endDate = new Date()
+        const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000)
+        
+        const params = new URLSearchParams({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        })
+        
+        // Pre-load all three endpoints in parallel
+        const [metricsRes, langfuseRes, chartRes] = await Promise.all([
+          fetch(`/api/metrics?${params}`),
+          fetch(`/api/langfuse-metrics?${params}`),
+          fetch(`/api/langfuse-chart-data?${params}`)
+        ])
+        
+        // Store responses in sessionStorage for instant loading
+        if (metricsRes.ok) {
+          const data = await metricsRes.json()
+          sessionStorage.setItem('preloaded_metrics_24h', JSON.stringify(data))
+        }
+        if (langfuseRes.ok) {
+          const data = await langfuseRes.json()
+          sessionStorage.setItem('preloaded_langfuse_24h', JSON.stringify(data))
+        }
+        if (chartRes.ok) {
+          const data = await chartRes.json()
+          sessionStorage.setItem('preloaded_chart_24h', JSON.stringify(data))
+        }
+        
+        sessionStorage.setItem('preloaded_timestamp', Date.now().toString())
+        console.log('✅ Pre-loaded 24 hours data successfully!')
+        setPreloadStatus("Data ready!")
+        setTimeout(() => setPreloadStatus(""), 1000)
+      } catch (error) {
+        console.error('Failed to pre-load data:', error)
+        setPreloadStatus("")
+      }
+    }
+    
+    preloadData()
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,6 +163,13 @@ export default function SignIn() {
         <p className="text-center text-xs text-muted-foreground">
           Protected dashboard • Authorized access only
         </p>
+        
+        {/* Preload Status */}
+        {preloadStatus && (
+          <p className="text-center text-xs text-green-600 dark:text-green-400">
+            {preloadStatus}
+          </p>
+        )}
       </div>
     </div>
   )

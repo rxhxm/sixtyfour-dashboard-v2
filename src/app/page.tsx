@@ -396,16 +396,16 @@ export default function DashboardPage() {
       }, 1000) // Wait 1 second after 24h loads
       return () => clearTimeout(timer)
     }
-  }, [timePeriod, timeOffset, selectedDate, customRange, expandedOrg])
+  }, [timePeriod, timeOffset, selectedDate, customRange]) // Removed expandedOrg - just filter client-side!
 
-  // Generate cache key based on time period and org filter
-  const getCacheKey = (period: TimePeriod, org: string = '') => {
-    return `${period}-${org}`
+  // Generate cache key based on time period only (no org filter - we filter client-side)
+  const getCacheKey = (period: TimePeriod) => {
+    return period
   }
 
   // Fetch data in background without blocking UI
   const fetchDataInBackground = async (period: TimePeriod) => {
-    const cacheKey = getCacheKey(period, expandedOrg)
+    const cacheKey = getCacheKey(period)
     
     // Don't fetch if already in cache or currently loading
     if (dataCache.has(cacheKey) || backgroundLoading.has(period)) {
@@ -417,7 +417,7 @@ export default function DashboardPage() {
     setBackgroundLoading(prev => new Set(prev).add(period))
     
     try {
-      const data = await fetchDataForPeriod(period, expandedOrg, false)
+      const data = await fetchDataForPeriod(period, '', false) // No org filter - load all data
       
       // Store in cache
       setDataCache(prev => {
@@ -443,7 +443,73 @@ export default function DashboardPage() {
 
   // Main fetch function with caching
   const fetchDataWithCache = async () => {
-    const cacheKey = getCacheKey(timePeriod, expandedOrg)
+    const cacheKey = getCacheKey(timePeriod)
+    
+    // Check for preloaded data from signin page (24 hours only)
+    if (timePeriod === '24hours' && !dataCache.has(cacheKey)) {
+      const preloadedMetrics = sessionStorage.getItem('preloaded_metrics_24h')
+      const preloadedLangfuse = sessionStorage.getItem('preloaded_langfuse_24h')
+      const preloadedChart = sessionStorage.getItem('preloaded_chart_24h')
+      const preloadedTimestamp = sessionStorage.getItem('preloaded_timestamp')
+      
+      if (preloadedMetrics && preloadedLangfuse && preloadedChart && preloadedTimestamp) {
+        const timestamp = parseInt(preloadedTimestamp)
+        const age = Date.now() - timestamp
+        
+        // Use preloaded data if less than 5 minutes old
+        if (age < 5 * 60 * 1000) {
+          console.log('⚡ Using pre-loaded data from signin page!')
+          const metricsData = JSON.parse(preloadedMetrics)
+          const langfuseData = JSON.parse(preloadedLangfuse)
+          const chartData = JSON.parse(preloadedChart)
+          
+          // Transform langfuse data
+          const transformedLangfuse = {
+            totalRequests: langfuseData.summary.totalTraces,
+            totalCost: langfuseData.summary.totalCost,
+            totalTokens: langfuseData.summary.totalTokens || 0,
+            averageResponseTime: 0,
+            successRate: 100,
+            organizationBreakdown: langfuseData.organizations.map((org: any) => ({
+              org_id: org.org_id || org.name,
+              org_name: org.name,
+              key_name: org.key_name || 'Via Langfuse',
+              requests: org.requests,
+              cost: org.cost || 0,
+              tokens: org.tokens || 0,
+              traceTypes: org.traceTypes || {}
+            })),
+            traceTypes: langfuseData.traceTypes || {}
+          }
+          
+          setDatabaseMetrics(metricsData)
+          setLangfuseMetrics(transformedLangfuse)
+          setLangfuseChartData(chartData)
+          
+          // Store in cache
+          setDataCache(prev => {
+            const newCache = new Map(prev)
+            newCache.set(cacheKey, {
+              databaseMetrics: metricsData,
+              langfuseMetrics: transformedLangfuse,
+              langfuseChartData: chartData,
+              timestamp
+            })
+            return newCache
+          })
+          
+          setLoading(false)
+          
+          // Clear preloaded data
+          sessionStorage.removeItem('preloaded_metrics_24h')
+          sessionStorage.removeItem('preloaded_langfuse_24h')
+          sessionStorage.removeItem('preloaded_chart_24h')
+          sessionStorage.removeItem('preloaded_timestamp')
+          
+          return
+        }
+      }
+    }
     
     // Check if data is in cache (valid for 5 minutes)
     const cached = dataCache.get(cacheKey)
@@ -464,7 +530,7 @@ export default function DashboardPage() {
     setLoading(true)
     
     try {
-      const data = await fetchDataForPeriod(timePeriod, expandedOrg, true)
+      const data = await fetchDataForPeriod(timePeriod, '', true) // No org filter - load all data
       
       // Update state
       setDatabaseMetrics(data.databaseMetrics)
@@ -530,10 +596,7 @@ export default function DashboardPage() {
       langfuseParams.set('startDate', timeRange.startDate)
       langfuseParams.set('endDate', timeRange.endDate)
     }
-    // When a row is expanded, filter chart data and top metrics by that org
-    if (orgFilter && orgFilter !== '') {
-      langfuseParams.set('selectedOrg', orgFilter)
-    }
+    // Don't filter by org - we'll filter client-side for instant response
     
     // Fetch both database and Langfuse data in parallel with timeout
     const fetchWithTimeout = (url: string, timeout = 110000) => {
@@ -879,7 +942,9 @@ export default function DashboardPage() {
         {/* Charts */}
         <div className="grid gap-6">
           <LangfuseAreaChart 
-            data={langfuseChartData}
+            data={expandedOrg ? langfuseChartData.filter((dataPoint: any) => 
+              !dataPoint.org_id || dataPoint.org_id === expandedOrg
+            ) : langfuseChartData}
             title={expandedOrg ? `Metrics for ${expandedOrg}` : "Langfuse Metrics Over Time"}
             description={expandedOrg ? `Showing traces for ${expandedOrg} only` : "Traces from Langfuse daily metrics"}
             timePeriod={timePeriod}
