@@ -236,6 +236,8 @@ export default function DashboardPage() {
   
   // Shared state
   const [loading, setLoading] = useState(true)
+  const [loadingStartTime, setLoadingStartTime] = useState<number>(0)
+  const [loadingElapsed, setLoadingElapsed] = useState<number>(0)
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('24hours')
   const [timeOffset, setTimeOffset] = useState(0) // 0 = current period
   const [selectedOrg, setSelectedOrg] = useState<string>('') // For filtering (not currently used)
@@ -385,6 +387,19 @@ export default function DashboardPage() {
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined)
   const [showDatePicker, setShowDatePicker] = useState(false)
 
+  // Timer effect to update elapsed time during loading
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (loading && loadingStartTime > 0) {
+      interval = setInterval(() => {
+        setLoadingElapsed(((Date.now() - loadingStartTime) / 1000))
+      }, 100) // Update every 100ms for smooth animation
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [loading, loadingStartTime])
+
   // Load 24 hours first, then 7 days in background
   useEffect(() => {
     fetchDataWithCache()
@@ -528,6 +543,8 @@ export default function DashboardPage() {
     // No cache or expired - fetch fresh data
     console.log(`🔄 Fetching fresh data for ${timePeriod}...`)
     setLoading(true)
+    setLoadingStartTime(Date.now())
+    setLoadingElapsed(0)
     
     try {
       const data = await fetchDataForPeriod(timePeriod, '', true) // No org filter - load all data
@@ -699,6 +716,16 @@ export default function DashboardPage() {
                   ? 'Loading large dataset, this may take up to 2 minutes...'
                   : 'Fetching your metrics...'}
               </p>
+              {loadingStartTime > 0 && (
+                <div className="mt-3 pt-3 border-t border-muted">
+                  <p className="text-2xl font-bold tabular-nums text-primary">
+                    {loadingElapsed.toFixed(1)}s
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Loading time
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
