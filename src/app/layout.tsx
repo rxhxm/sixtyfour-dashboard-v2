@@ -17,14 +17,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Sixtyfour Dashboard",
   description: "API metrics and workflow monitoring dashboard",
-  icons: {
-    icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico' },
-    ],
-    shortcut: '/favicon.svg',
-    apple: '/favicon.png',
-  },
 };
 
 export default function RootLayout({

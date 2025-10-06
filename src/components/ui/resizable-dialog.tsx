@@ -77,6 +77,88 @@ export function ResizableDialog({
         minHeight={300}
         bounds="window"
         dragHandleClassName="drag-handle"
+        enableResizing={{
+          top: true,
+          right: true,
+          bottom: true,
+          left: true,
+          topRight: true,
+          bottomRight: true,
+          bottomLeft: true,
+          topLeft: true,
+        }}
+        resizeHandleStyles={{
+          top: { 
+            cursor: 'n-resize',
+            height: '10px',
+            width: '100%',
+            top: '0',
+            background: 'transparent',
+          },
+          right: { 
+            cursor: 'e-resize',
+            width: '10px',
+            height: '100%',
+            right: '0',
+            background: 'transparent',
+          },
+          bottom: { 
+            cursor: 's-resize',
+            height: '10px',
+            width: '100%',
+            bottom: '0',
+            background: 'transparent',
+          },
+          left: { 
+            cursor: 'w-resize',
+            width: '10px',
+            height: '100%',
+            left: '0',
+            background: 'transparent',
+          },
+          topRight: { 
+            cursor: 'ne-resize',
+            width: '20px',
+            height: '20px',
+            top: '0',
+            right: '0',
+            background: 'transparent',
+          },
+          bottomRight: { 
+            cursor: 'se-resize',
+            width: '20px',
+            height: '20px',
+            bottom: '0',
+            right: '0',
+            background: 'transparent',
+          },
+          bottomLeft: { 
+            cursor: 'sw-resize',
+            width: '20px',
+            height: '20px',
+            bottom: '0',
+            left: '0',
+            background: 'transparent',
+          },
+          topLeft: { 
+            cursor: 'nw-resize',
+            width: '20px',
+            height: '20px',
+            top: '0',
+            left: '0',
+            background: 'transparent',
+          },
+        }}
+        resizeHandleComponent={{
+          bottomRight: <div className="resize-handle resize-handle-br" />,
+          bottomLeft: <div className="resize-handle resize-handle-bl" />,
+          topRight: <div className="resize-handle resize-handle-tr" />,
+          topLeft: <div className="resize-handle resize-handle-tl" />,
+          bottom: <div className="resize-handle-edge" />,
+          right: <div className="resize-handle-edge" />,
+          top: <div className="resize-handle-edge" />,
+          left: <div className="resize-handle-edge" />,
+        }}
         className="z-50 border-2 border-gray-300"
         style={{
           display: 'flex',

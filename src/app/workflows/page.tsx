@@ -14,6 +14,7 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   PlayCircle,
   Loader2,
   FileText,
@@ -22,6 +23,7 @@ import {
 import { getBlockColor } from '@/lib/workflow-colors'
 import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ResizableDialog } from '@/components/ui/resizable-dialog'
 
 interface WorkflowData {
   id: string
@@ -74,6 +76,8 @@ export default function WorkflowsPage() {
   const [filterView, setFilterView] = useState<'all' | 'org' | 'workflow'>('all')
   const [csvResults, setCsvResults] = useState<any>(null)
   const [loadingCsv, setLoadingCsv] = useState(false)
+  const [showAllBlocks, setShowAllBlocks] = useState(false)
+  const [showAllOrgs, setShowAllOrgs] = useState(false)
   
   // Fetch CSV results
   const fetchCsvResults = async (jobId: string) => {
@@ -184,8 +188,14 @@ export default function WorkflowsPage() {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-            <p className="text-sm font-medium">Loading workflows...</p>
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
+              <div className="absolute inset-0 animate-ping rounded-full h-12 w-12 border border-primary opacity-20 mx-auto"></div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Loading workflows</p>
+              <p className="text-xs text-muted-foreground">Fetching workflow data...</p>
+            </div>
           </div>
         </div>
       </DashboardLayout>
@@ -265,13 +275,27 @@ export default function WorkflowsPage() {
           {/* Top Blocks Card */}
           {summary?.topBlocks && summary.topBlocks.length > 0 && (
             <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Most Used Blocks</CardTitle>
-                <CardDescription>Top 5 workflow blocks by usage</CardDescription>
+              <CardHeader className="cursor-pointer" onClick={() => setShowAllBlocks(!showAllBlocks)}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      Most Used Blocks
+                      {showAllBlocks ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </CardTitle>
+                    <CardDescription>
+                      {showAllBlocks ? `All ${summary.topBlocks.length} blocks by usage` : 'Top 5 workflow blocks by usage'}
+                    </CardDescription>
+                  </div>
+                  {summary.topBlocks.length > 5 && (
+                    <Button variant="ghost" size="sm" className="text-xs">
+                      {showAllBlocks ? 'Show Less' : `Show All (${summary.topBlocks.length})`}
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {summary.topBlocks.slice(0, 5).map((block: any, idx: number) => (
+                <div className={`space-y-2 ${showAllBlocks ? 'max-h-96 overflow-y-auto' : ''}`}>
+                  {summary.topBlocks.slice(0, showAllBlocks ? undefined : 5).map((block: any, idx: number) => (
                     <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono bg-primary/10 px-2 py-1 rounded">#{idx + 1}</span>
@@ -291,15 +315,29 @@ export default function WorkflowsPage() {
           {/* Organization Activity */}
           {summary?.organizationStats && summary.organizationStats.length > 0 && (
             <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Organization Activity</CardTitle>
-                <CardDescription>Top 5 orgs by last activity</CardDescription>
+              <CardHeader className="cursor-pointer" onClick={() => setShowAllOrgs(!showAllOrgs)}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      Organization Activity
+                      {showAllOrgs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </CardTitle>
+                    <CardDescription>
+                      {showAllOrgs ? `All ${summary.organizationStats.length} orgs by last activity` : 'Top 5 orgs by last activity'}
+                    </CardDescription>
+                  </div>
+                  {summary.organizationStats.length > 5 && (
+                    <Button variant="ghost" size="sm" className="text-xs">
+                      {showAllOrgs ? 'Show Less' : `Show All (${summary.organizationStats.length})`}
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className={`space-y-2 ${showAllOrgs ? 'max-h-96 overflow-y-auto' : ''}`}>
                   {summary.organizationStats
                     .sort((a: any, b: any) => new Date(b.lastActivity || 0).getTime() - new Date(a.lastActivity || 0).getTime())
-                    .slice(0, 5)
+                    .slice(0, showAllOrgs ? undefined : 5)
                     .map((org: any, idx: number) => (
                       <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                         <div className="flex items-center gap-2">
@@ -393,6 +431,7 @@ export default function WorkflowsPage() {
                     onClick={() => {
                       setSelectedRun(run)
                       setShowRunDetails(true)
+                      fetchCsvResults(run.job_id)
                     }}
                   >
                     <CardContent className="p-4">
@@ -406,7 +445,6 @@ export default function WorkflowsPage() {
                                 {run.status}
                               </div>
                             </Badge>
-                            <Badge variant="outline">{run.trigger_type}</Badge>
                           </div>
                           
                           <div className="flex items-center gap-6 text-sm text-muted-foreground">
@@ -565,15 +603,11 @@ export default function WorkflowsPage() {
         </Card>
         
         {/* Run Details Modal */}
-        <Dialog open={showRunDetails} onOpenChange={setShowRunDetails}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <PlayCircle className="h-5 w-5" />
-                Workflow Run Details
-              </DialogTitle>
-            </DialogHeader>
-            
+        <ResizableDialog 
+          open={showRunDetails} 
+          onOpenChange={setShowRunDetails}
+          title="Workflow Run Details"
+        >
             {selectedRun && (
               <div className="space-y-6 mt-4">
                 <div className="space-y-2">
@@ -681,14 +715,20 @@ export default function WorkflowsPage() {
                         </Card>
                       ) : null)}
                     </div>
+                  ) : csvResults?.error || csvResults?.message ? (
+                    <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+                      <p className="text-sm text-orange-800 font-medium">{csvResults.message || 'Unable to load CSV data'}</p>
+                      {csvResults.error && (
+                        <p className="text-xs text-orange-600 mt-1">{csvResults.error}</p>
+                      )}
+                    </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">No CSV data available</p>
                   )}
                 </div>
               </div>
             )}
-          </DialogContent>
-        </Dialog>
+        </ResizableDialog>
       </div>
     </DashboardLayout>
   )
