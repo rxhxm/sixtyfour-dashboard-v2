@@ -62,13 +62,14 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching workflow names:', workflowsError)
     }
     
-    // Fetch user-org mappings
+    // Fetch user-org mappings (note: table name has hyphen)
     const { data: userOrgs } = await supabaseAdmin
       .from('users-org')
       .select('*')
     
     const userToOrgMap = new Map()
     userOrgs?.forEach((mapping: any) => {
+      // The 'id' field in users-org table is actually the user_id
       userToOrgMap.set(mapping.id, mapping.org_id)
     })
     
