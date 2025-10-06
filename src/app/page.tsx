@@ -460,11 +460,21 @@ export default function DashboardPage() {
   const fetchDataWithCache = async () => {
     const cacheKey = getCacheKey(timePeriod)
     
+    console.log('🔍 fetchDataWithCache called for:', timePeriod)
+    console.log('🔍 Checking for preloaded data...')
+    
     // Check for preloaded data from signin page (24 hours only)
     if (timePeriod === '24hours' && !dataCache.has(cacheKey)) {
       const preloadedLangfuse = sessionStorage.getItem('preloaded_langfuse_24h')
       const preloadedChart = sessionStorage.getItem('preloaded_chart_24h')
       const preloadedTimestamp = sessionStorage.getItem('preloaded_timestamp')
+      
+      console.log('📦 Preloaded data check:', {
+        hasLangfuse: !!preloadedLangfuse,
+        hasChart: !!preloadedChart,
+        hasTimestamp: !!preloadedTimestamp,
+        timestamp: preloadedTimestamp
+      })
       
       // Use preloaded data if we have at least Langfuse metrics (the most important)
       if (preloadedLangfuse && preloadedTimestamp) {
@@ -525,6 +535,8 @@ export default function DashboardPage() {
           
           setLoading(false)
           
+          console.log('✅ Dashboard loaded using preloaded data! No API calls needed.')
+          
           // Clear preloaded data
           sessionStorage.removeItem('preloaded_metrics_24h')
           sessionStorage.removeItem('preloaded_langfuse_24h')
@@ -532,8 +544,14 @@ export default function DashboardPage() {
           sessionStorage.removeItem('preloaded_timestamp')
           
           return
+        } else {
+          console.log('⚠️ Preloaded data too old (age:', age, 'ms), fetching fresh...')
         }
+      } else {
+        console.log('❌ No preloaded data available, fetching fresh...')
       }
+    } else {
+      console.log('ℹ️ Not using preload (timePeriod:', timePeriod, ', has cache:', dataCache.has(cacheKey), ')')
     }
     
     // Check if data is in cache (valid for 5 minutes)
