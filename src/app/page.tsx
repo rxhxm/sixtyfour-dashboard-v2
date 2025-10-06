@@ -18,6 +18,9 @@ import { LangfuseAreaChart } from "@/components/charts/langfuse-area-chart"
 
 type TimePeriod = '5min' | '30min' | '1hour' | '24hours' | '7days' | '1month' | '3months' | '1year' | 'custom'
 
+// Global background loading state (persists across component unmounts)
+const backgroundLoadingGlobal = new Set<TimePeriod>()
+
 // Completely timezone-safe date functions
 function getDateString(date: Date): string {
   // Extract date components directly to avoid timezone issues
@@ -228,8 +231,22 @@ export default function DashboardPage() {
   const [langfuseMetrics, setLangfuseMetrics] = useState<(UsageMetrics & { traceTypes?: Record<string, number> }) | null>(null)
   const [langfuseChartData, setLangfuseChartData] = useState<any[]>([])
   
-  // Cache for different time periods
-  const [dataCache, setDataCache] = useState<Map<string, CachedData>>(new Map())
+  // Cache for different time periods - stored in sessionStorage for persistence across tab switches
+  const [dataCache, setDataCache] = useState<Map<string, CachedData>>(() => {
+    // Load cache from sessionStorage on mount
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('dashboard_cache')
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          return new Map(Object.entries(parsed))
+        } catch (e) {
+          console.warn('Failed to parse cache from sessionStorage')
+        }
+      }
+    }
+    return new Map()
+  })
   
   // Background loading state
   const [backgroundLoading, setBackgroundLoading] = useState<Set<TimePeriod>>(new Set())
@@ -390,6 +407,15 @@ export default function DashboardPage() {
   // Ref to prevent double-fetching
   const isFetchingRef = React.useRef(false)
 
+  // Save cache to sessionStorage whenever it changes
+  useEffect(() => {
+    if (dataCache.size > 0) {
+      const cacheObject = Object.fromEntries(dataCache)
+      sessionStorage.setItem('dashboard_cache', JSON.stringify(cacheObject))
+      console.log('💾 Saved cache to sessionStorage:', Array.from(dataCache.keys()))
+    }
+  }, [dataCache])
+
   // Timer effect to update elapsed time during loading
   useEffect(() => {
     let interval: NodeJS.Timeout
@@ -434,13 +460,24 @@ export default function DashboardPage() {
   const fetchDataInBackground = async (period: TimePeriod) => {
     const cacheKey = getCacheKey(period)
     
+    // Check both component cache and sessionStorage
+    const stored = sessionStorage.getItem('dashboard_cache')
+    let hasCache = dataCache.has(cacheKey)
+    if (!hasCache && stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        hasCache = parsed[cacheKey] !== undefined
+      } catch (e) {}
+    }
+    
     // Don't fetch if already in cache or currently loading
-    if (dataCache.has(cacheKey) || backgroundLoading.has(period)) {
+    if (hasCache || backgroundLoadingGlobal.has(period)) {
       console.log(`⚡ Skipping background fetch for ${period} - already cached or loading`)
       return
     }
     
     console.log(`🔄 Background loading ${period}...`)
+    backgroundLoadingGlobal.add(period)
     setBackgroundLoading(prev => new Set(prev).add(period))
     
     try {
@@ -460,6 +497,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error(`❌ Background load failed for ${period}:`, error)
     } finally {
+      backgroundLoadingGlobal.delete(period)
       setBackgroundLoading(prev => {
         const newSet = new Set(prev)
         newSet.delete(period)
