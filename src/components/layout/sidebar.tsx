@@ -1,6 +1,6 @@
 'use client'
 
-import { Activity, Workflow } from 'lucide-react'
+import { Activity, Workflow, UserPlus, Coins } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -8,6 +8,8 @@ import { usePathname } from 'next/navigation'
 const navigation = [
   { name: 'API Usage', href: '/', icon: Activity },
   { name: 'Workflows', href: '/workflows', icon: Workflow },
+  { name: 'Platform Access', href: '/platform-access', icon: UserPlus },
+  { name: 'Credits Management', href: '/credits-management', icon: Coins },
 ]
 
 export function Sidebar() {
