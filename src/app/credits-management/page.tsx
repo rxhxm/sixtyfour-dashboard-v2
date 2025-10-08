@@ -145,8 +145,8 @@ export default function CreditsManagementPage() {
       return
     }
 
-    // Check confirmation
-    const expectedConfirm = `CONFIRM ${actionType.toUpperCase()} $${amount.toFixed(2)}`
+    // Check confirmation (with commas for readability)
+    const expectedConfirm = `CONFIRM ${actionType.toUpperCase()} $${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     if (confirmInput.trim() !== expectedConfirm) {
       setMessage({
         type: 'error',
