@@ -219,7 +219,11 @@ export default function DashboardPage() {
   const router = useRouter()
   const supabase = React.useMemo(() => createClientComponentClient(), [])
   
-  // CRITICAL: HARDCODED AUTH CHECK - EMERGENCY SECURITY
+  // CRITICAL: Start with auth checking state - don't render until verified
+  const [authVerified, setAuthVerified] = useState(false)
+  const [authChecking, setAuthChecking] = useState(true)
+  
+  // CRITICAL: HARDCODED AUTH CHECK - RUNS IMMEDIATELY, BLOCKS RENDERING
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -240,10 +244,28 @@ export default function DashboardPage() {
       }
       
       console.log('✅ Authorized access:', session.user.email)
+      setAuthVerified(true)
+      setAuthChecking(false)
     }
     
     checkAuth()
   }, [router, supabase])
+  
+  // BLOCK RENDERING if auth not verified
+  if (authChecking || !authVerified) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
+            </div>
+            <p className="text-sm font-medium">Verifying access...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
   
   // Database data state
   const [databaseMetrics, setDatabaseMetrics] = useState<UsageMetrics | null>(null)

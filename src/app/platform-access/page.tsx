@@ -33,6 +33,11 @@ interface FeatureFlag {
 export default function PlatformAccessPage() {
   const router = useRouter()
   const supabase = React.useMemo(() => createClientComponentClient(), [])
+  
+  // CRITICAL: Block rendering until auth verified
+  const [authVerified, setAuthVerified] = useState(false)
+  const [authChecking, setAuthChecking] = useState(true)
+  
   const [loading, setLoading] = useState(true)
   const [featureFlag, setFeatureFlag] = useState<FeatureFlag | null>(null)
   const [emailInput, setEmailInput] = useState('')
@@ -41,20 +46,40 @@ export default function PlatformAccessPage() {
   const [set2Emails, setSet2Emails] = useState<string[]>([])
   const [set1Pattern, setSet1Pattern] = useState<string>('')
 
-  // CRITICAL: HARDCODED AUTH CHECK - EMERGENCY SECURITY
+  // CRITICAL: HARDCODED AUTH CHECK - BLOCKS RENDERING
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session || !isAuthorizedEmail(session.user.email)) {
         console.log('🚨 UNAUTHORIZED ACCESS TO PLATFORM:', session?.user.email || 'no session')
-        alert('UNAUTHORIZED - You cannot access Platform Access')
-        await supabase.auth.signOut()
+        if (session) await supabase.auth.signOut()
         window.location.href = '/auth/signin'
+        return
       }
+      
+      console.log('✅ Authorized for platform:', session.user.email)
+      setAuthVerified(true)
+      setAuthChecking(false)
     }
     checkAuth()
   }, [supabase])
+  
+  // BLOCK RENDERING if auth not verified
+  if (authChecking || !authVerified) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
+            </div>
+            <p className="text-sm font-medium">Verifying access...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   // Fetch feature flag data on mount
   useEffect(() => {

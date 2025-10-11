@@ -71,6 +71,11 @@ interface WorkflowRun {
 export default function WorkflowsPage() {
   const router = useRouter()
   const supabase = React.useMemo(() => createClientComponentClient(), [])
+  
+  // CRITICAL: Block rendering until auth verified
+  const [authVerified, setAuthVerified] = useState(false)
+  const [authChecking, setAuthChecking] = useState(true)
+  
   const [loading, setLoading] = useState(true)
   const [workflows, setWorkflows] = useState<WorkflowData[]>([])
   const [recentRuns, setRecentRuns] = useState<WorkflowRun[]>([])
@@ -100,20 +105,40 @@ export default function WorkflowsPage() {
     }
   }
   
-  // CRITICAL: HARDCODED AUTH CHECK - EMERGENCY SECURITY
+  // CRITICAL: HARDCODED AUTH CHECK - BLOCKS RENDERING
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session || !isAuthorizedEmail(session.user.email)) {
         console.log('🚨 UNAUTHORIZED ACCESS TO WORKFLOWS:', session?.user.email || 'no session')
-        alert('UNAUTHORIZED - Access denied')
-        await supabase.auth.signOut()
+        if (session) await supabase.auth.signOut()
         window.location.href = '/auth/signin'
+        return
       }
+      
+      console.log('✅ Authorized for workflows:', session.user.email)
+      setAuthVerified(true)
+      setAuthChecking(false)
     }
     checkAuth()
   }, [supabase])
+  
+  // BLOCK RENDERING if auth not verified
+  if (authChecking || !authVerified) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
+            </div>
+            <p className="text-sm font-medium">Verifying access...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
   
   // Fetch workflow data
   useEffect(() => {

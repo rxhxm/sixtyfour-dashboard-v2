@@ -59,25 +59,35 @@ export default function CreditsManagementPage() {
     newBalance: number
   } | null>(null)
   
-  // CRITICAL: HARDCODED AUTH CHECK - EMERGENCY SECURITY
+  // CRITICAL: Add state to block rendering
+  const [authVerified, setAuthVerified] = useState(false)
+  const [authChecking, setAuthChecking] = useState(true)
+  
+  // CRITICAL: HARDCODED AUTH CHECK - BLOCKS RENDERING
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session || !isAuthorizedEmail(session.user.email)) {
         console.log('🚨 UNAUTHORIZED ACCESS TO CREDITS:', session?.user.email || 'no session')
-        alert('UNAUTHORIZED - You cannot access Credits Management')
-        await supabase.auth.signOut()
+        if (session) await supabase.auth.signOut()
         window.location.href = '/auth/signin'
+        return
       }
+      
+      console.log('✅ Authorized for credits:', session.user.email)
+      setAuthVerified(true)
+      setAuthChecking(false)
     }
     checkAuth()
   }, [supabase])
 
-  // Fetch subscriptions on mount
+  // Fetch subscriptions on mount (only after auth verified)
   useEffect(() => {
-    fetchSubscriptions()
-  }, [])
+    if (authVerified) {
+      fetchSubscriptions()
+    }
+  }, [authVerified])
 
   const fetchSubscriptions = async () => {
     setLoading(true)
@@ -221,6 +231,22 @@ export default function CreditsManagementPage() {
     .filter(sub => 
       sub.org_id.toLowerCase().includes(searchTerm.toLowerCase())
     )
+
+  // BLOCK RENDERING if auth not verified
+  if (authChecking || !authVerified) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
+            </div>
+            <p className="text-sm font-medium">Verifying access...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   if (loading) {
     return (
