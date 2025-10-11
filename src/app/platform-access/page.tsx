@@ -61,6 +61,8 @@ export default function PlatformAccessPage() {
       console.log('✅ Authorized for platform:', session.user.email)
       setAuthVerified(true)
       setAuthChecking(false)
+      // Show the page now that auth is verified
+      document.body.classList.add('auth-checked')
     }
     checkAuth()
   }, [supabase])

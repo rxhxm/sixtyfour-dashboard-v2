@@ -246,6 +246,8 @@ export default function DashboardPage() {
       console.log('✅ Authorized access:', session.user.email)
       setAuthVerified(true)
       setAuthChecking(false)
+      // Show the page now that auth is verified
+      document.body.classList.add('auth-checked')
     }
     
     checkAuth()

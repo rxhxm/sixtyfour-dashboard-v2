@@ -26,6 +26,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Prevent any flash of content before auth check */}
+        <style dangerouslySetInnerHTML={{__html: `
+          body { opacity: 0; transition: opacity 0.3s; }
+          body.auth-checked { opacity: 1; }
+        `}} />
+        <script dangerouslySetInnerHTML={{__html: `
+          (function() {
+            // Immediately check if we're on a protected route
+            const protectedPaths = ['/', '/workflows', '/credits-management', '/platform-access'];
+            const isProtected = protectedPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + '/'));
+            
+            if (!isProtected || window.location.pathname.includes('/auth/')) {
+              // Not protected or auth page - show immediately
+              document.body.classList.add('auth-checked');
+            }
+            // Otherwise stay hidden until React auth check completes
+          })();
+        `}} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

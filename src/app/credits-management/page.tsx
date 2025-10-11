@@ -78,6 +78,8 @@ export default function CreditsManagementPage() {
       console.log('✅ Authorized for credits:', session.user.email)
       setAuthVerified(true)
       setAuthChecking(false)
+      // Show the page now that auth is verified
+      document.body.classList.add('auth-checked')
     }
     checkAuth()
   }, [supabase])

@@ -120,6 +120,8 @@ export default function WorkflowsPage() {
       console.log('✅ Authorized for workflows:', session.user.email)
       setAuthVerified(true)
       setAuthChecking(false)
+      // Show the page now that auth is verified
+      document.body.classList.add('auth-checked')
     }
     checkAuth()
   }, [supabase])
