@@ -27,64 +27,8 @@ export default function SignIn() {
     }
     checkAuth()
     
-    // Start preloading data in background (silent)
-    const preloadData = async () => {
-      try {
-        console.log('🔄 Pre-loading 24 hours data...')
-        
-        const endDate = new Date()
-        const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000)
-        
-        const params = new URLSearchParams({
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString()
-        })
-        
-        // Pre-load with longer timeout (3 minutes)
-        const fetchWithTimeout = (url: string, timeout = 180000) => {
-          return Promise.race([
-            fetch(url),
-            new Promise<Response>((_, reject) => 
-              setTimeout(() => reject(new Error('Preload timeout')), timeout)
-            )
-          ])
-        }
-        
-        // Pre-load all three endpoints in parallel
-        const results = await Promise.allSettled([
-          fetchWithTimeout(`/api/metrics?${params}`).then(r => r.json()),
-          fetchWithTimeout(`/api/langfuse-metrics?${params}`).then(r => r.json()),
-          fetchWithTimeout(`/api/langfuse-chart-data?${params}`).then(r => r.json())
-        ])
-        
-        // Store successful responses
-        let successCount = 0
-        
-        if (results[0].status === 'fulfilled') {
-          sessionStorage.setItem('preloaded_metrics_24h', JSON.stringify(results[0].value))
-          successCount++
-        }
-        
-        if (results[1].status === 'fulfilled') {
-          sessionStorage.setItem('preloaded_langfuse_24h', JSON.stringify(results[1].value))
-          successCount++
-        }
-        
-        if (results[2].status === 'fulfilled') {
-          sessionStorage.setItem('preloaded_chart_24h', JSON.stringify(results[2].value))
-          successCount++
-        }
-        
-        if (successCount > 0) {
-          sessionStorage.setItem('preloaded_timestamp', Date.now().toString())
-          console.log(`✅ Pre-loaded ${successCount}/3 endpoints`)
-        }
-      } catch (error) {
-        console.error('Preload failed:', error)
-      }
-    }
-    
-    preloadData()
+    // REMOVED: No preloading before authentication verification
+    // This was a security risk - data should only load AFTER auth is confirmed
   }, [router, supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,19 +78,7 @@ export default function SignIn() {
         return
       }
 
-      // Wait for preload if not complete
-      const preloadComplete = sessionStorage.getItem('preloaded_timestamp')
-      if (!preloadComplete) {
-        console.log('⏳ Waiting for preload...')
-        const maxWait = 15000
-        const startWait = Date.now()
-        
-        while (!sessionStorage.getItem('preloaded_timestamp') && (Date.now() - startWait) < maxWait) {
-          await new Promise(resolve => setTimeout(resolve, 500))
-        }
-      }
-
-      // Success - navigate to dashboard
+      // Success - navigate to dashboard immediately
       console.log('✅ Login successful, navigating...')
       router.push("/")
       
