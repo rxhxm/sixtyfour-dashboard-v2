@@ -16,6 +16,7 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, e
 import { DateRange } from 'react-day-picker'
 import { LangfuseAreaChart } from "@/components/charts/langfuse-area-chart"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { isAuthorizedEmail } from '@/lib/auth-guard'
 
 type TimePeriod = '5min' | '30min' | '1hour' | '24hours' | '7days' | '1month' | '3months' | '1year' | 'custom'
 
@@ -218,36 +219,27 @@ export default function DashboardPage() {
   const router = useRouter()
   const supabase = React.useMemo(() => createClientComponentClient(), [])
   
-  // CRITICAL: Client-side auth check as fallback (in case middleware fails)
+  // CRITICAL: HARDCODED AUTH CHECK - EMERGENCY SECURITY
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
-        console.log('🚫 No Supabase session - redirecting to signin')
+        console.log('🚫 No Supabase session - redirecting')
         router.push('/auth/signin')
         return
       }
       
-      // Check dashboard access
-      try {
-        const response = await fetch('/api/auth/check-access', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: session.user.email })
-        })
-        
-        const { hasAccess } = await response.json()
-        
-        if (!hasAccess) {
-          console.log('🚫 No dashboard access - signing out')
-          await supabase.auth.signOut()
-          router.push('/auth/signin')
-        }
-      } catch (error) {
-        console.error('Access check failed:', error)
-        router.push('/auth/signin')
+      // HARDCODED WHITELIST CHECK
+      if (!isAuthorizedEmail(session.user.email)) {
+        console.log('🚨 UNAUTHORIZED EMAIL:', session.user.email)
+        alert('UNAUTHORIZED ACCESS - You do not have permission to access this dashboard.')
+        await supabase.auth.signOut()
+        window.location.href = '/auth/signin'
+        return
       }
+      
+      console.log('✅ Authorized access:', session.user.email)
     }
     
     checkAuth()

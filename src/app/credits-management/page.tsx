@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Coins, Search, AlertCircle, CheckCircle2, Loader2, TrendingUp, TrendingDown, RefreshCw, X } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { isAuthorizedEmail } from '@/lib/auth-guard'
 
 interface Subscription {
   id: number
@@ -37,6 +39,7 @@ const dollarsToCredits = (dollars: number): number => {
 
 export default function CreditsManagementPage() {
   const router = useRouter()
+  const supabase = React.useMemo(() => createClientComponentClient(), [])
   const [loading, setLoading] = useState(true)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -56,8 +59,20 @@ export default function CreditsManagementPage() {
     newBalance: number
   } | null>(null)
   
-  // Note: Authentication is handled by middleware
-  // No need to check sessionStorage anymore - Supabase Auth + middleware handles it
+  // CRITICAL: HARDCODED AUTH CHECK - EMERGENCY SECURITY
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session || !isAuthorizedEmail(session.user.email)) {
+        console.log('🚨 UNAUTHORIZED ACCESS TO CREDITS:', session?.user.email || 'no session')
+        alert('UNAUTHORIZED - You cannot access Credits Management')
+        await supabase.auth.signOut()
+        window.location.href = '/auth/signin'
+      }
+    }
+    checkAuth()
+  }, [supabase])
 
   // Fetch subscriptions on mount
   useEffect(() => {

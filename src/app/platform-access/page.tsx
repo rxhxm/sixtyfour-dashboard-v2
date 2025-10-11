@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, Info } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { isAuthorizedEmail } from '@/lib/auth-guard'
 
 interface FeatureFlag {
   id: number
@@ -30,6 +32,7 @@ interface FeatureFlag {
 
 export default function PlatformAccessPage() {
   const router = useRouter()
+  const supabase = React.useMemo(() => createClientComponentClient(), [])
   const [loading, setLoading] = useState(true)
   const [featureFlag, setFeatureFlag] = useState<FeatureFlag | null>(null)
   const [emailInput, setEmailInput] = useState('')
@@ -38,8 +41,20 @@ export default function PlatformAccessPage() {
   const [set2Emails, setSet2Emails] = useState<string[]>([])
   const [set1Pattern, setSet1Pattern] = useState<string>('')
 
-  // Note: Authentication is handled by middleware
-  // No need to check sessionStorage anymore - Supabase Auth + middleware handles it
+  // CRITICAL: HARDCODED AUTH CHECK - EMERGENCY SECURITY
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session || !isAuthorizedEmail(session.user.email)) {
+        console.log('🚨 UNAUTHORIZED ACCESS TO PLATFORM:', session?.user.email || 'no session')
+        alert('UNAUTHORIZED - You cannot access Platform Access')
+        await supabase.auth.signOut()
+        window.location.href = '/auth/signin'
+      }
+    }
+    checkAuth()
+  }, [supabase])
 
   // Fetch feature flag data on mount
   useEffect(() => {
