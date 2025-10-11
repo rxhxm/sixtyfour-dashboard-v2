@@ -26,18 +26,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        {/* Prevent flash of dashboard content before auth check - only hide dashboard routes */}
-        <style dangerouslySetInnerHTML={{__html: `
-          body:not(.auth-page):not(.auth-checked) .dashboard-content { opacity: 0; }
-        `}} />
-        <script dangerouslySetInnerHTML={{__html: `
-          // Show auth pages immediately
-          if (window.location.pathname.includes('/auth/')) {
-            document.body.classList.add('auth-page');
-          }
-        `}} />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

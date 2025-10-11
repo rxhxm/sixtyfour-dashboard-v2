@@ -61,25 +61,21 @@ export default function PlatformAccessPage() {
       console.log('✅ Authorized for platform:', session.user.email)
       setAuthVerified(true)
       setAuthChecking(false)
-      // Show the page now that auth is verified
-      document.body.classList.add('auth-checked')
     }
     checkAuth()
   }, [supabase])
   
-  // BLOCK RENDERING if auth not verified
+  // BLOCK RENDERING if auth not verified - NO DashboardLayout (prevents Sidebar/Header flash)
   if (authChecking || !authVerified) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-4">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
-            </div>
-            <p className="text-sm font-medium">Verifying access...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
           </div>
+          <p className="text-sm font-medium">Verifying access...</p>
         </div>
-      </DashboardLayout>
+      </div>
     )
   }
 
@@ -303,7 +299,7 @@ export default function PlatformAccessPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 dashboard-content">
+      <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
