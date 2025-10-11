@@ -7,63 +7,24 @@ import CredentialsProvider from "next-auth/providers/credentials"
 
 const ALLOWED_USERS: never[] = []
 
+// This NextAuth config is no longer used - deprecated in favor of Supabase Auth
+// Kept for backwards compatibility only
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production',
   providers: [
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: { 
-          label: "Email", 
-          type: "email", 
-          placeholder: "your-email@company.com" 
-        },
-        password: { 
-          label: "Password", 
-          type: "password" 
-        }
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
-        }
-
-        // Find user in allowed users list
-        const user = ALLOWED_USERS.find(
-          u => u.email === credentials.email && u.password === credentials.password
-        )
-
-        if (user) {
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-          }
-        }
-
+      async authorize() {
+        // Disabled - use Supabase Auth instead
+        // See src/lib/supabase-auth.ts
         return null
       }
     })
   ],
-  session: {
-    strategy: "jwt",
-    maxAge: 7 * 24 * 60 * 60, // 7 days - we'll adjust based on your preference
-  },
-  pages: {
-    signIn: "/auth/signin",
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (token && session.user) {
-        (session.user as any).id = token.id as string
-      }
-      return session
-    },
-  },
+  session: { strategy: "jwt" },
+  pages: { signIn: "/auth/signin" },
 } 
