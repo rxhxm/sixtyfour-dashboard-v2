@@ -38,13 +38,8 @@ export default function PlatformAccessPage() {
   const [set2Emails, setSet2Emails] = useState<string[]>([])
   const [set1Pattern, setSet1Pattern] = useState<string>('')
 
-  // Check authentication
-  useEffect(() => {
-    const isAuthenticated = sessionStorage.getItem("authenticated")
-    if (isAuthenticated !== "true") {
-      router.push("/auth/signin")
-    }
-  }, [router])
+  // Note: Authentication is handled by middleware
+  // No need to check sessionStorage anymore - Supabase Auth + middleware handles it
 
   // Fetch feature flag data on mount
   useEffect(() => {
