@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
+  console.log('🔒 MIDDLEWARE RUNNING for:', req.nextUrl.pathname)
+  
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
 
@@ -10,15 +12,20 @@ export async function middleware(req: NextRequest) {
   const {
     data: { session },
   } = await supabase.auth.getSession()
+  
+  console.log('🔍 Session check:', session ? `User: ${session.user.email}` : 'No session')
 
   // Protected routes
   const protectedRoutes = ['/', '/workflows', '/credits-management', '/platform-access']
   const isProtectedRoute = protectedRoutes.some(route => 
     req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(route + '/')
   )
+  
+  console.log('🔐 Protected route?', isProtectedRoute, 'Path:', req.nextUrl.pathname)
 
   // If accessing a protected route without a session, redirect to signin
   if (isProtectedRoute && !session) {
+    console.log('🚫 NO SESSION - Redirecting to signin')
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/auth/signin'
     redirectUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname)
