@@ -35,19 +35,37 @@ export async function middleware(req: NextRequest) {
         body: JSON.stringify({ email: session.user.email })
       })
       
+      if (!checkResponse.ok) {
+        // Access check failed - DENY ACCESS
+        console.error('Access check API failed, denying access')
+        await supabase.auth.signOut()
+        const redirectUrl = req.nextUrl.clone()
+        redirectUrl.pathname = '/auth/signin'
+        redirectUrl.searchParams.set('error', 'access-check-failed')
+        return NextResponse.redirect(redirectUrl)
+      }
+      
       const { hasAccess } = await checkResponse.json()
       
       if (!hasAccess) {
         // User authenticated but no dashboard access - sign them out and redirect
+        console.log('User does not have dashboard access:', session.user.email)
         await supabase.auth.signOut()
         const redirectUrl = req.nextUrl.clone()
         redirectUrl.pathname = '/auth/signin'
         redirectUrl.searchParams.set('error', 'no-access')
         return NextResponse.redirect(redirectUrl)
       }
+      
+      console.log('✅ Access granted to:', session.user.email)
     } catch (error) {
       console.error('Error checking dashboard access in middleware:', error)
-      // On error, allow through (fail open for now)
+      // SECURITY: Fail CLOSED - deny access on error
+      await supabase.auth.signOut()
+      const redirectUrl = req.nextUrl.clone()
+      redirectUrl.pathname = '/auth/signin'
+      redirectUrl.searchParams.set('error', 'security-error')
+      return NextResponse.redirect(redirectUrl)
     }
   }
 
