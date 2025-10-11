@@ -2,34 +2,35 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Lock } from "lucide-react"
+import { Loader2, Lock, Mail } from "lucide-react"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function SignIn() {
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [preloadStatus, setPreloadStatus] = useState("")
   const router = useRouter()
-
-  // Hardcoded password
-  const CORRECT_PASSWORD = "thepursuitofllh"
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     // Check if user is already authenticated
-    const isAuthenticated = sessionStorage.getItem("authenticated")
-    if (isAuthenticated === "true") {
-      router.push("/")
-      return
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        router.push("/")
+      }
     }
-
-    // Pre-load 24 hours data in the background
+    checkAuth()
+    
+    // Start preloading data in background (silent)
     const preloadData = async () => {
       try {
-        console.log('🔄 Pre-loading 24 hours data on signin page...')
+        console.log('🔄 Pre-loading 24 hours data...')
         
         const endDate = new Date()
         const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000)
@@ -49,59 +50,42 @@ export default function SignIn() {
           ])
         }
         
-        // Pre-load all three endpoints in parallel with timeout
+        // Pre-load all three endpoints in parallel
         const results = await Promise.allSettled([
           fetchWithTimeout(`/api/metrics?${params}`).then(r => r.json()),
           fetchWithTimeout(`/api/langfuse-metrics?${params}`).then(r => r.json()),
           fetchWithTimeout(`/api/langfuse-chart-data?${params}`).then(r => r.json())
         ])
         
-        // Store successful responses in sessionStorage
+        // Store successful responses
         let successCount = 0
         
         if (results[0].status === 'fulfilled') {
           sessionStorage.setItem('preloaded_metrics_24h', JSON.stringify(results[0].value))
           successCount++
-        } else {
-          console.warn('Metrics preload failed:', results[0].reason)
         }
         
         if (results[1].status === 'fulfilled') {
           sessionStorage.setItem('preloaded_langfuse_24h', JSON.stringify(results[1].value))
           successCount++
-        } else {
-          console.warn('Langfuse metrics preload failed:', results[1].reason)
         }
         
         if (results[2].status === 'fulfilled') {
           sessionStorage.setItem('preloaded_chart_24h', JSON.stringify(results[2].value))
           successCount++
-        } else {
-          console.warn('Chart data preload failed:', results[2].reason)
         }
         
         if (successCount > 0) {
           sessionStorage.setItem('preloaded_timestamp', Date.now().toString())
-          console.log(`✅ Pre-loaded ${successCount}/3 endpoints successfully!`)
-          console.log('📦 Stored in sessionStorage:')
-          console.log('  - preloaded_langfuse_24h:', !!sessionStorage.getItem('preloaded_langfuse_24h'))
-          console.log('  - preloaded_chart_24h:', !!sessionStorage.getItem('preloaded_chart_24h'))
-          console.log('  - preloaded_metrics_24h:', !!sessionStorage.getItem('preloaded_metrics_24h'))
-          console.log('  - preloaded_timestamp:', sessionStorage.getItem('preloaded_timestamp'))
-          setPreloadStatus(`Data ready! (${successCount}/3)`)
-          setTimeout(() => setPreloadStatus(""), 2000)
-        } else {
-          console.log('⚠️ All preloads failed, will load normally after login')
-          setPreloadStatus("")
+          console.log(`✅ Pre-loaded ${successCount}/3 endpoints`)
         }
       } catch (error) {
-        console.error('Failed to pre-load data:', error)
-        setPreloadStatus("")
+        console.error('Preload failed:', error)
       }
     }
     
     preloadData()
-  }, [router])
+  }, [router, supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,35 +93,66 @@ export default function SignIn() {
     setError("")
 
     try {
-      if (password === CORRECT_PASSWORD) {
-        // Set authentication in session storage
-        sessionStorage.setItem("authenticated", "true")
-        
-        // IMPORTANT: Wait for preload to complete before navigating
-        // This prevents browser from cancelling the fetch requests
-        const preloadComplete = sessionStorage.getItem('preloaded_timestamp')
-        
-        if (!preloadComplete) {
-          console.log('⏳ Waiting for preload to complete before navigating...')
-          
-          // Wait up to 15 seconds for preload to complete
-          const maxWait = 15000
-          const startWait = Date.now()
-          
-          while (!sessionStorage.getItem('preloaded_timestamp') && (Date.now() - startWait) < maxWait) {
-            await new Promise(resolve => setTimeout(resolve, 500))
-          }
-          
-          console.log('✅ Preload complete, navigating...')
+      // Sign in with Supabase Auth
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: password,
+      })
+
+      if (signInError) {
+        if (signInError.message.includes('Invalid login credentials')) {
+          setError("Invalid email or password")
+        } else if (signInError.message.includes('Email not confirmed')) {
+          setError("Please check your email to confirm your account")
+        } else {
+          setError(signInError.message)
         }
-        
-        router.push("/")
-      } else {
-        setError("Invalid password")
+        setLoading(false)
+        return
       }
+
+      if (!data.session) {
+        setError("Authentication failed. Please try again.")
+        setLoading(false)
+        return
+      }
+
+      // Check if user has dashboard access
+      const checkAccessResponse = await fetch('/api/auth/check-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() })
+      })
+
+      const accessData = await checkAccessResponse.json()
+
+      if (!accessData.hasAccess) {
+        // User authenticated but doesn't have dashboard access
+        await supabase.auth.signOut()
+        setError("You don't have access to this dashboard. Contact admin.")
+        setLoading(false)
+        return
+      }
+
+      // Wait for preload if not complete
+      const preloadComplete = sessionStorage.getItem('preloaded_timestamp')
+      if (!preloadComplete) {
+        console.log('⏳ Waiting for preload...')
+        const maxWait = 15000
+        const startWait = Date.now()
+        
+        while (!sessionStorage.getItem('preloaded_timestamp') && (Date.now() - startWait) < maxWait) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+      }
+
+      // Success - navigate to dashboard
+      console.log('✅ Login successful, navigating...')
+      router.push("/")
+      
     } catch (error) {
+      console.error('Login error:', error)
       setError("An error occurred. Please try again.")
-    } finally {
       setLoading(false)
     }
   }
@@ -149,7 +164,7 @@ export default function SignIn() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Dashboard Access</h1>
           <p className="text-muted-foreground">
-            Enter your password to continue
+            Sign in with your Sixtyfour email
           </p>
         </div>
 
@@ -157,6 +172,25 @@ export default function SignIn() {
         <Card className="border-muted/50 shadow-sm">
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your-email@sixtyfour.ai"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium">
                   Password
@@ -166,12 +200,11 @@ export default function SignIn() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Enter password"
+                    placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
                     required
-                    autoFocus
                   />
                 </div>
               </div>
@@ -191,31 +224,31 @@ export default function SignIn() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Authenticating...
+                    Signing in...
                   </>
                 ) : (
                   <>
                     <Lock className="mr-2 h-4 w-4" />
-                    Access Dashboard
+                    Sign In
                   </>
                 )}
               </Button>
+              
+              <div className="text-center">
+                <a
+                  href="https://app.sixtyfour.ai/login"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+                >
+                  Forgot password? Reset on Sixtyfour
+                </a>
+              </div>
             </form>
           </CardContent>
         </Card>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground">
-          Protected dashboard • Authorized access only
-        </p>
-        
-        {/* Preload Status */}
-        {preloadStatus && (
-          <p className="text-center text-xs text-green-600 dark:text-green-400">
-            {preloadStatus}
-          </p>
-        )}
       </div>
     </div>
   )
-} 
+}
+

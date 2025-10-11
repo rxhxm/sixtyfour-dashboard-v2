@@ -1,33 +1,11 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 
-// Sixtyfour Team - Easy to add/remove users
-const ALLOWED_USERS = [
-  {
-    id: "1",
-    name: "Saarth",
-    email: "saarth@sixtyfour.ai",
-    password: "aurelia"
-  },
-  {
-    id: "2", 
-    name: "Roham",
-    email: "roham@sixtyfour.ai",
-    password: "saja"
-  },
-  {
-    id: "3",
-    name: "Chris Price", 
-    email: "chrisprice@sixtyfour.ai",
-    password: "fish"
-  },
-  {
-    id: "4",
-    name: "Josh",
-    email: "josh@sixtyfour.ai", 
-    password: "violet"
-  }
-]
+// NOTE: This NextAuth config is deprecated - now using Supabase Auth
+// Kept for reference only, not used in production
+// See src/lib/supabase-auth.ts for current auth implementation
+
+const ALLOWED_USERS: never[] = []
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production',

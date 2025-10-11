@@ -216,13 +216,8 @@ interface CachedData {
 export default function DashboardPage() {
   const router = useRouter()
   
-  // Check authentication
-  useEffect(() => {
-    const isAuthenticated = sessionStorage.getItem("authenticated")
-    if (isAuthenticated !== "true") {
-      router.push("/auth/signin")
-    }
-  }, [router])
+  // Note: Authentication is handled by middleware
+  // No need to check sessionStorage anymore - Supabase Auth + middleware handles it
   
   // Database data state
   const [databaseMetrics, setDatabaseMetrics] = useState<UsageMetrics | null>(null)
@@ -405,7 +400,7 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date('2025-09-08')) // Use date where data exists
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined)
   const [showDatePicker, setShowDatePicker] = useState(false)
-  
+
   // Ref to prevent double-fetching
   const isFetchingRef = React.useRef(false)
 
@@ -746,7 +741,7 @@ export default function DashboardPage() {
     
     // No cache or expired - fetch fresh data
     console.log(`🔄 Fetching fresh data for ${timePeriod}...`)
-    setLoading(true)
+      setLoading(true)
     setLoadingStartTime(Date.now())
     setLoadingElapsed(0)
     
@@ -807,53 +802,53 @@ export default function DashboardPage() {
         }
       })
     }
-    
-    // Build query parameters for database
-    const databaseParams = new URLSearchParams()
-    if (timeRange.startDate && timeRange.endDate) {
-      databaseParams.set('startDate', timeRange.startDate)
-      databaseParams.set('endDate', timeRange.endDate)
-    }
-    
-    // Build query parameters for Langfuse
-    const langfuseParams = new URLSearchParams()
-    if (timeRange.startDate && timeRange.endDate) {
-      langfuseParams.set('startDate', timeRange.startDate)
-      langfuseParams.set('endDate', timeRange.endDate)
-    }
+      
+      // Build query parameters for database
+      const databaseParams = new URLSearchParams()
+      if (timeRange.startDate && timeRange.endDate) {
+        databaseParams.set('startDate', timeRange.startDate)
+        databaseParams.set('endDate', timeRange.endDate)
+      }
+      
+      // Build query parameters for Langfuse
+      const langfuseParams = new URLSearchParams()
+      if (timeRange.startDate && timeRange.endDate) {
+        langfuseParams.set('startDate', timeRange.startDate)
+        langfuseParams.set('endDate', timeRange.endDate)
+      }
     // Don't filter by org - we'll filter client-side for instant response
     
     // Fetch both database and Langfuse data in parallel with timeout (3 minutes)
     const fetchWithTimeout = (url: string, timeout = 180000) => {
-      return Promise.race([
-        fetch(url),
-        new Promise<Response>((_, reject) => 
-          setTimeout(() => reject(new Error('Request timeout')), timeout)
-        )
-      ])
-    }
+        return Promise.race([
+          fetch(url),
+          new Promise<Response>((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), timeout)
+          )
+        ])
+      }
 
-    const [
-      databaseMetricsResponse,
-      langfuseResponse,
-      langfuseChartResponse
-    ] = await Promise.all([
-      fetchWithTimeout(`/api/metrics?${databaseParams}&_t=${Date.now()}`),
-      fetchWithTimeout(`/api/langfuse-metrics?${new URLSearchParams({ startDate: timeRange.startDate || '', endDate: timeRange.endDate || '' }).toString()}&_t=${Date.now()}`),
-      fetchWithTimeout(`/api/langfuse-chart-data?${langfuseParams}&_t=${Date.now()}`)
-    ])
+      const [
+        databaseMetricsResponse,
+        langfuseResponse,
+        langfuseChartResponse
+      ] = await Promise.all([
+        fetchWithTimeout(`/api/metrics?${databaseParams}&_t=${Date.now()}`),
+        fetchWithTimeout(`/api/langfuse-metrics?${new URLSearchParams({ startDate: timeRange.startDate || '', endDate: timeRange.endDate || '' }).toString()}&_t=${Date.now()}`),
+        fetchWithTimeout(`/api/langfuse-chart-data?${langfuseParams}&_t=${Date.now()}`)
+      ])
     
     let databaseData = null
     let langfuseData = null
     let chartData: any[] = []
-    
-    // Process database data
-    if (databaseMetricsResponse.ok) {
+      
+      // Process database data
+      if (databaseMetricsResponse.ok) {
       databaseData = await databaseMetricsResponse.json()
-    }
-    
-    // Process Langfuse data
-    if (langfuseResponse.ok) {
+      }
+      
+      // Process Langfuse data
+      if (langfuseResponse.ok) {
       const rawLangfuseData = await langfuseResponse.json()
       if (showLogs) {
         console.log('=== CLIENT SIDE: LANGFUSE DATA RECEIVED ===')
@@ -867,8 +862,8 @@ export default function DashboardPage() {
         }
         console.log('===========================================')
       }
-      
-      // Transform Langfuse data to match existing metrics format
+        
+        // Transform Langfuse data to match existing metrics format
       langfuseData = {
         totalRequests: rawLangfuseData.summary.totalTraces,
         totalCost: rawLangfuseData.summary.totalCost,
@@ -877,26 +872,26 @@ export default function DashboardPage() {
         successRate: 100,
         organizationBreakdown: rawLangfuseData.organizations.map((org: any) => ({
           org_id: org.org_id || org.name,
-          org_name: org.name,
-          key_name: org.key_name || 'Via Langfuse',
-          requests: org.requests,
-          cost: org.cost || 0,
-          tokens: org.tokens || 0,
-          traceTypes: org.traceTypes || {}
-        })),
+            org_name: org.name,
+            key_name: org.key_name || 'Via Langfuse',
+            requests: org.requests,
+            cost: org.cost || 0,
+            tokens: org.tokens || 0,
+            traceTypes: org.traceTypes || {}
+          })),
         traceTypes: rawLangfuseData.traceTypes || {}
       }
-    }
-    
-    // Process Langfuse chart data
-    if (langfuseChartResponse.ok) {
+      }
+      
+      // Process Langfuse chart data
+      if (langfuseChartResponse.ok) {
       chartData = await langfuseChartResponse.json()
       if (showLogs) {
         console.log('Langfuse chart data received:', chartData)
       }
     }
     
-    const fetchEndTime = Date.now()
+      const fetchEndTime = Date.now()
     if (showLogs) {
       console.log(`Data fetch completed in ${fetchEndTime - fetchStartTime}ms`)
     }
@@ -1064,7 +1059,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold">Langfuse Metrics</h2>
+            <h2 className="text-2xl font-bold">Langfuse Metrics</h2>
               {backgroundLoading.size > 0 && (
                 <Badge variant="outline" className="text-xs flex items-center gap-1">
                   <div className="animate-spin rounded-full h-2 w-2 border border-muted-foreground border-t-transparent"></div>

@@ -96,13 +96,8 @@ export default function WorkflowsPage() {
     }
   }
   
-  // Check authentication
-  useEffect(() => {
-    const isAuthenticated = sessionStorage.getItem('authenticated')
-    if (isAuthenticated !== 'true') {
-      router.push('/auth/signin')
-    }
-  }, [router])
+  // Note: Authentication is handled by middleware
+  // No need to check sessionStorage anymore - Supabase Auth + middleware handles it
   
   // Fetch workflow data
   useEffect(() => {
