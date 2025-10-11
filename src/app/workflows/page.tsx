@@ -244,7 +244,7 @@ export default function WorkflowsPage() {
   
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 dashboard-content">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Workflows Dashboard</h1>

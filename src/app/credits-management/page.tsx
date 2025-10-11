@@ -271,7 +271,7 @@ export default function CreditsManagementPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 dashboard-content">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

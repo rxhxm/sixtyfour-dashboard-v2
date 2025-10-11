@@ -27,19 +27,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Prevent any flash of content before auth check */}
+        {/* Prevent flash of dashboard content before auth check - only hide dashboard routes */}
         <style dangerouslySetInnerHTML={{__html: `
-          body { opacity: 0; transition: opacity 0.3s; }
-          body.auth-checked { opacity: 1; }
+          body:not(.auth-page):not(.auth-checked) .dashboard-content { opacity: 0; }
         `}} />
         <script dangerouslySetInnerHTML={{__html: `
-          (function() {
-            // Show signin page immediately, hide everything else
-            if (window.location.pathname.startsWith('/auth/')) {
-              document.body.classList.add('auth-checked');
-            }
-            // All other pages stay hidden until React verifies auth
-          })();
+          // Show auth pages immediately
+          if (window.location.pathname.includes('/auth/')) {
+            document.body.classList.add('auth-page');
+          }
         `}} />
       </head>
       <body
