@@ -34,15 +34,11 @@ export default function RootLayout({
         `}} />
         <script dangerouslySetInnerHTML={{__html: `
           (function() {
-            // Immediately check if we're on a protected route
-            const protectedPaths = ['/', '/workflows', '/credits-management', '/platform-access'];
-            const isProtected = protectedPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p + '/'));
-            
-            if (!isProtected || window.location.pathname.includes('/auth/')) {
-              // Not protected or auth page - show immediately
+            // Show signin page immediately, hide everything else
+            if (window.location.pathname.startsWith('/auth/')) {
               document.body.classList.add('auth-checked');
             }
-            // Otherwise stay hidden until React auth check completes
+            // All other pages stay hidden until React verifies auth
           })();
         `}} />
       </head>
