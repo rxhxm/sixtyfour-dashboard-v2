@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { LangfuseAreaChart } from "@/components/charts/langfuse-area-chart"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 type TimePeriod = '5min' | '30min' | '1hour' | '24hours' | '7days' | '1month' | '3months' | '1year' | 'custom'
 
@@ -215,9 +216,42 @@ interface CachedData {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const supabase = React.useMemo(() => createClientComponentClient(), [])
   
-  // Note: Authentication is handled by middleware
-  // No need to check sessionStorage anymore - Supabase Auth + middleware handles it
+  // CRITICAL: Client-side auth check as fallback (in case middleware fails)
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        console.log('🚫 No Supabase session - redirecting to signin')
+        router.push('/auth/signin')
+        return
+      }
+      
+      // Check dashboard access
+      try {
+        const response = await fetch('/api/auth/check-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: session.user.email })
+        })
+        
+        const { hasAccess } = await response.json()
+        
+        if (!hasAccess) {
+          console.log('🚫 No dashboard access - signing out')
+          await supabase.auth.signOut()
+          router.push('/auth/signin')
+        }
+      } catch (error) {
+        console.error('Access check failed:', error)
+        router.push('/auth/signin')
+      }
+    }
+    
+    checkAuth()
+  }, [router, supabase])
   
   // Database data state
   const [databaseMetrics, setDatabaseMetrics] = useState<UsageMetrics | null>(null)

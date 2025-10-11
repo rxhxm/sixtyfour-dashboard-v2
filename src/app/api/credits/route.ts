@@ -1,12 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 // Server-side only - credentials never exposed to client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY! // Use service key for admin operations
 
+// HARDCODED WHITELIST - ONLY THESE 3 EMAILS CAN MODIFY CREDITS
+const AUTHORIZED_EMAILS = [
+  'saarth@sixtyfour.ai',
+  'roham@sixtyfour.ai',
+  'chrisprice@sixtyfour.ai'
+]
+
+// CRITICAL: Verify authentication for sensitive operations
+async function verifyAuth(): Promise<{ authorized: boolean, email?: string }> {
+  try {
+    // Create Supabase client with cookies
+    const cookieStore = cookies()
+    const supabase = createServerComponentClient({ cookies: () => cookieStore })
+    
+    // Get session
+    const { data: { session }, error } = await supabase.auth.getSession()
+    
+    if (error || !session) {
+      console.log('🚫 No valid session')
+      return { authorized: false }
+    }
+    
+    const email = session.user.email?.toLowerCase()
+    console.log('📧 Session email:', email)
+    
+    // Check against whitelist
+    if (!email || !AUTHORIZED_EMAILS.includes(email)) {
+      console.log('🚨 UNAUTHORIZED ACCESS ATTEMPT:', email || 'unknown')
+      return { authorized: false }
+    }
+    
+    console.log('✅ AUTHORIZED:', email)
+    return { authorized: true, email }
+    
+  } catch (error) {
+    console.error('🚨 Auth verification error:', error)
+    // SECURITY: Fail closed
+    return { authorized: false }
+  }
+}
+
 // GET - Fetch all subscriptions with balances
 export async function GET(request: NextRequest) {
+  // CRITICAL: Check authentication
+  const { authorized, email } = await verifyAuth()
+  
+  if (!authorized) {
+    console.log('🚫 Unauthorized GET request to /api/credits')
+    return NextResponse.json(
+      { error: 'Unauthorized - Access denied' },
+      { status: 401 }
+    )
+  }
+  
+  console.log('✅ Authorized GET request from:', email)
+  
   try {
     if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
@@ -55,6 +111,17 @@ export async function GET(request: NextRequest) {
 
 // POST - Adjust credits (add or remove)
 export async function POST(request: NextRequest) {
+  // CRITICAL: Check authentication FIRST before any operations
+  const { authorized, email } = await verifyAuth()
+  
+  if (!authorized) {
+    console.log('🚨 UNAUTHORIZED ATTEMPT TO MODIFY CREDITS!')
+    return NextResponse.json(
+      { error: 'Unauthorized - Access denied. This incident will be logged.' },
+      { status: 401 }
+    )
+  }
+  
   try {
     if (!supabaseUrl || !supabaseServiceKey) {
       return NextResponse.json(
@@ -65,6 +132,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { org_id, amount, operation } = body
+    
+    // Log who is making this change for audit trail
+    console.log(`💰 Credits ${operation} requested by ${email}:`, { org_id, amount })
 
     // Validation
     if (!org_id) {
