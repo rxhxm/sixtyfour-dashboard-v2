@@ -219,53 +219,12 @@ export default function DashboardPage() {
   const router = useRouter()
   const supabase = React.useMemo(() => createClient(), [])
   
+  // All useState hooks MUST be called before any conditional returns
   // CRITICAL: Start with auth checking state - don't render until verified
   const [authVerified, setAuthVerified] = useState(false)
   const [authChecking, setAuthChecking] = useState(true)
   
-  // CRITICAL: HARDCODED AUTH CHECK - RUNS IMMEDIATELY, BLOCKS RENDERING
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        console.log('🚫 No Supabase session - redirecting')
-        router.push('/auth/signin')
-        return
-      }
-      
-      // HARDCODED WHITELIST CHECK
-      if (!isAuthorizedEmail(session.user.email)) {
-        console.log('🚨 UNAUTHORIZED EMAIL:', session.user.email)
-        alert('UNAUTHORIZED ACCESS - You do not have permission to access this dashboard.')
-        await supabase.auth.signOut()
-        window.location.href = '/auth/signin'
-        return
-      }
-      
-      console.log('✅ Authorized access:', session.user.email)
-      setAuthVerified(true)
-      setAuthChecking(false)
-    }
-    
-    checkAuth()
-  }, [router, supabase])
-  
-  // BLOCK RENDERING if auth not verified - NO DashboardLayout (prevents Sidebar/Header flash)
-  if (authChecking || !authVerified) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
-          </div>
-          <p className="text-sm font-medium">Verifying access...</p>
-        </div>
-      </div>
-    )
-  }
-  
-  // Database data state
+  // Database data state - MUST be declared before conditional returns
   const [databaseMetrics, setDatabaseMetrics] = useState<UsageMetrics | null>(null)
   
   // Langfuse data state
@@ -315,6 +274,56 @@ export default function DashboardPage() {
   const [selectedOrgForTraces, setSelectedOrgForTraces] = useState<string>('')
   const [traceDetails, setTraceDetails] = useState<any[]>([])
   const [loadingTraces, setLoadingTraces] = useState(false)
+  
+  // Date and time range state - MUST be here before useEffect
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date('2025-09-08'))
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  
+  // Ref to prevent double-fetching
+  const isFetchingRef = React.useRef(false)
+  
+  // CRITICAL: AUTH CHECK - Must run before showing dashboard
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        console.log('🚫 No Supabase session - redirecting')
+        router.push('/auth/signin')
+        return
+      }
+      
+      // HARDCODED WHITELIST CHECK
+      if (!isAuthorizedEmail(session.user.email)) {
+        console.log('🚨 UNAUTHORIZED EMAIL:', session.user.email)
+        alert('UNAUTHORIZED ACCESS - You do not have permission to access this dashboard.')
+        await supabase.auth.signOut()
+        window.location.href = '/auth/signin'
+        return
+      }
+      
+      console.log('✅ Authorized access:', session.user.email)
+      setAuthVerified(true)
+      setAuthChecking(false)
+    }
+    
+    checkAuth()
+  }, [router, supabase])
+  
+  // BLOCK RENDERING if auth not verified - NO DashboardLayout (prevents Sidebar/Header flash)
+  if (authChecking || !authVerified) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
+          </div>
+          <p className="text-sm font-medium">Verifying access...</p>
+        </div>
+      </div>
+    )
+  }
   
   // Load contacted users from localStorage on mount
   useEffect(() => {
@@ -443,13 +452,6 @@ export default function DashboardPage() {
     setLoadingTraces(false)
   }
   
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date('2025-09-08')) // Use date where data exists
-  const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined)
-  const [showDatePicker, setShowDatePicker] = useState(false)
-
-  // Ref to prevent double-fetching
-  const isFetchingRef = React.useRef(false)
-
   // Save cache to sessionStorage whenever it changes
   useEffect(() => {
     if (dataCache.size > 0) {
