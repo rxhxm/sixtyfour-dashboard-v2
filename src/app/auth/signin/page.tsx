@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Lock, Mail } from "lucide-react"
 import { createClient } from '@/lib/supabase/client'
+import { isAuthorizedEmail } from '@/lib/auth-guard'
 
 export default function SignIn() {
   const [email, setEmail] = useState("")
@@ -26,9 +27,6 @@ export default function SignIn() {
       }
     }
     checkAuth()
-    
-    // REMOVED: No preloading before authentication verification
-    // This was a security risk - data should only load AFTER auth is confirmed
   }, [router, supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,20 +35,14 @@ export default function SignIn() {
     setError("")
 
     try {
-      // Sign in with Supabase Auth
+      // Sign in with Supabase Auth (same as main app)
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password: password,
       })
 
       if (signInError) {
-        if (signInError.message.includes('Invalid login credentials')) {
-          setError("Invalid email or password")
-        } else if (signInError.message.includes('Email not confirmed')) {
-          setError("Please check your email to confirm your account")
-        } else {
-          setError(signInError.message)
-        }
+        setError(signInError.message)
         setLoading(false)
         return
       }
@@ -61,25 +53,17 @@ export default function SignIn() {
         return
       }
 
-      // Check if user has dashboard access
-      const checkAccessResponse = await fetch('/api/auth/check-access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase() })
-      })
-
-      const accessData = await checkAccessResponse.json()
-
-      if (!accessData.hasAccess) {
-        // User authenticated but doesn't have dashboard access
+      // HARDCODED WHITELIST CHECK (only for this dashboard)
+      if (!isAuthorizedEmail(data.session.user.email)) {
+        console.log('🚨 UNAUTHORIZED EMAIL:', data.session.user.email)
         await supabase.auth.signOut()
-        setError("You don't have access to this dashboard. Contact admin.")
+        setError("Access denied. This dashboard is restricted to authorized team members only.")
         setLoading(false)
         return
       }
 
-      // Success - navigate to dashboard immediately
-      console.log('✅ Login successful, navigating...')
+      // Success - navigate to dashboard
+      router.refresh()
       router.push("/")
       
     } catch (error) {
@@ -90,95 +74,89 @@ export default function SignIn() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-8">
-        {/* Title Section */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Dashboard Access</h1>
-          <p className="text-muted-foreground">
-            Sign in with your Sixtyfour email
-          </p>
-        </div>
-
-        {/* Login Card */}
-        <Card className="border-muted/50 shadow-sm">
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm md:max-w-3xl">
+        <Card className="overflow-hidden">
+          <CardContent className="grid p-0 md:grid-cols-2">
+            <form className="p-6 md:p-8" onSubmit={handleSubmit}>
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col items-center text-center">
+                  <h1 className="text-2xl font-bold">Welcome back</h1>
+                  <p className="text-balance text-muted-foreground">
+                    Login to your Sixtyfour account
+                  </p>
+                </div>
+                
+                {error && (
+                  <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
+                
+                <div className="grid gap-3">
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     placeholder="your-email@sixtyfour.ai"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
                     required
+                    disabled={loading}
                     autoFocus
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                
+                <div className="grid gap-3">
+                  <div className="flex items-center">
+                    <Label htmlFor="password">Password</Label>
+                    <a
+                      href="https://app.sixtyfour.ai/login"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto text-sm underline-offset-2 hover:underline"
+                    >
+                      Forgot your password?
+                    </a>
+                  </div>
                   <Input
                     id="password"
                     type="password"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
                     required
+                    disabled={loading}
                   />
                 </div>
-              </div>
-
-              {error && (
-                <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md flex items-center space-x-2">
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={loading}
-                size="lg"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    <Lock className="mr-2 h-4 w-4" />
-                    Sign In
-                  </>
-                )}
-              </Button>
-              
-              <div className="text-center">
-                <a
-                  href="https://app.sixtyfour.ai/login"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
-                >
-                  Forgot password? Reset on Sixtyfour
-                </a>
+                
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Signing in..." : "Login"}
+                </Button>
               </div>
             </form>
+            
+            {/* Right side - Logo/Branding */}
+            <div className="bg-muted relative hidden md:flex items-center justify-center p-8">
+              <div className="text-center space-y-4">
+                <div className="text-6xl font-bold text-primary">64</div>
+                <p className="text-lg font-medium">Internal Dashboard</p>
+                <p className="text-sm text-muted-foreground">Restricted Access</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
+
+        <div className="text-center text-xs text-balance text-muted-foreground mt-4">
+          By clicking continue, you agree to our{" "}
+          <a href="https://sixtyfour.ai/terms-of-service" className="underline underline-offset-4 hover:text-primary">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="https://sixtyfour.ai/privacy-policy" className="underline underline-offset-4 hover:text-primary">
+            Privacy Policy
+          </a>.
+        </div>
       </div>
     </div>
   )
