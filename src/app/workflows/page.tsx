@@ -124,24 +124,12 @@ export default function WorkflowsPage() {
     checkAuth()
   }, [supabase])
   
-  // BLOCK RENDERING if auth not verified - NO DashboardLayout (prevents Sidebar/Header flash)
-  if (authChecking || !authVerified) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
-          </div>
-          <p className="text-sm font-medium">Verifying access...</p>
-        </div>
-      </div>
-    )
-  }
-  
   // Fetch workflow data
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (authVerified) {
+      fetchData()
+    }
+  }, [authVerified])
   
   const fetchData = async () => {
     setLoading(true)
@@ -219,6 +207,21 @@ export default function WorkflowsPage() {
     }
   }
   
+  // Auth check first
+  if (authChecking || !authVerified) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
+          </div>
+          <p className="text-sm font-medium">Verifying access...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Then loading check
   if (loading) {
     return (
       <DashboardLayout>
@@ -238,6 +241,7 @@ export default function WorkflowsPage() {
     )
   }
   
+  // Main content
   return (
     <DashboardLayout>
       <div className="space-y-6">

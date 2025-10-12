@@ -232,7 +232,7 @@ export default function CreditsManagementPage() {
       sub.org_id.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
-  // BLOCK RENDERING if auth not verified - NO DashboardLayout (prevents Sidebar/Header flash)
+  // Auth check first
   if (authChecking || !authVerified) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -246,6 +246,7 @@ export default function CreditsManagementPage() {
     )
   }
 
+  // Then loading check
   if (loading) {
     return (
       <DashboardLayout>
