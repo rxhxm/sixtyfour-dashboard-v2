@@ -24,8 +24,8 @@ import { getBlockColor } from '@/lib/workflow-colors'
 import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ResizableDialog } from '@/components/ui/resizable-dialog'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
+import { createClient } from '@/lib/supabase/client'
 import React from 'react'
 
 interface WorkflowData {
@@ -70,7 +70,7 @@ interface WorkflowRun {
 
 export default function WorkflowsPage() {
   const router = useRouter()
-  const supabase = React.useMemo(() => createClientComponentClient(), [])
+  const supabase = React.useMemo(() => createClient(), [])
   
   // CRITICAL: Block rendering until auth verified
   const [authVerified, setAuthVerified] = useState(false)

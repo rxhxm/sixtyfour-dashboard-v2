@@ -15,8 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { LangfuseAreaChart } from "@/components/charts/langfuse-area-chart"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
+import { createClient } from '@/lib/supabase/client'
 
 type TimePeriod = '5min' | '30min' | '1hour' | '24hours' | '7days' | '1month' | '3months' | '1year' | 'custom'
 
@@ -217,7 +217,7 @@ interface CachedData {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const supabase = React.useMemo(() => createClientComponentClient(), [])
+  const supabase = React.useMemo(() => createClient(), [])
   
   // CRITICAL: Start with auth checking state - don't render until verified
   const [authVerified, setAuthVerified] = useState(false)

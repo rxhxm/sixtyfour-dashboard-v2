@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Coins, Search, AlertCircle, CheckCircle2, Loader2, TrendingUp, TrendingDown, RefreshCw, X } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
+import { createClient } from '@/lib/supabase/client'
 
 interface Subscription {
   id: number
@@ -39,7 +39,7 @@ const dollarsToCredits = (dollars: number): number => {
 
 export default function CreditsManagementPage() {
   const router = useRouter()
-  const supabase = React.useMemo(() => createClientComponentClient(), [])
+  const supabase = React.useMemo(() => createClient(), [])
   const [loading, setLoading] = useState(true)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [submitting, setSubmitting] = useState(false)

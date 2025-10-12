@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, Info } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
+import { createClient } from '@/lib/supabase/client'
 
 interface FeatureFlag {
   id: number
@@ -32,7 +32,7 @@ interface FeatureFlag {
 
 export default function PlatformAccessPage() {
   const router = useRouter()
-  const supabase = React.useMemo(() => createClientComponentClient(), [])
+  const supabase = React.useMemo(() => createClient(), [])
   
   // CRITICAL: Block rendering until auth verified
   const [authVerified, setAuthVerified] = useState(false)

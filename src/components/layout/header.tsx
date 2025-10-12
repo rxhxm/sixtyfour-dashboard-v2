@@ -3,12 +3,12 @@
 import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
 
 export function Header() {
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const [loggingOut, setLoggingOut] = useState(false)
   
   const handleLogout = async () => {
