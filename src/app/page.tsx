@@ -474,15 +474,14 @@ export default function DashboardPage() {
     }
   }, [loading, loadingStartTime])
 
-  // Auto-refresh every 10 minutes with incremental updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('🔄 Auto-refresh triggered (10 min interval)')
-      refreshDataIncrementally()
-    }, 10 * 60 * 1000) // Every 10 minutes
-    
-    return () => clearInterval(interval)
-  }, [timePeriod])
+  // TODO: Re-enable auto-refresh after fixing dependencies
+  // Temporarily disabled to fix React hooks error
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     refreshDataIncrementally()
+  //   }, 10 * 60 * 1000)
+  //   return () => clearInterval(interval)
+  // }, [timePeriod])
 
   // Load 24 hours first, then 7 days in background
   useEffect(() => {
