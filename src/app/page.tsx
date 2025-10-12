@@ -311,20 +311,6 @@ export default function DashboardPage() {
     checkAuth()
   }, [router, supabase])
   
-  // BLOCK RENDERING if auth not verified - NO DashboardLayout (prevents Sidebar/Header flash)
-  if (authChecking || !authVerified) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
-          </div>
-          <p className="text-sm font-medium">Verifying access...</p>
-        </div>
-      </div>
-    )
-  }
-  
   // Load contacted users from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem('contactedUsers')
@@ -950,6 +936,22 @@ export default function DashboardPage() {
     }
   }
 
+  // CONDITIONAL RENDERING (not early return) - fixes React hooks error
+  // Auth check spinner
+  if (authChecking || !authVerified) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted border-t-primary mx-auto"></div>
+          </div>
+          <p className="text-sm font-medium">Verifying access...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  // Data loading spinner
   if (loading) {
     return (
       <DashboardLayout>
@@ -983,6 +985,7 @@ export default function DashboardPage() {
     )
   }
 
+  // Main dashboard
   return (
     <DashboardLayout>
       <div className="space-y-8">
