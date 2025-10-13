@@ -128,6 +128,13 @@ export default function WorkflowsPage() {
   useEffect(() => {
     if (authVerified) {
       fetchData()
+      
+      // After workflows start loading, preload API Usage data in background
+      setTimeout(() => {
+        import('@/lib/preload-api-usage').then(({ preloadApiUsageData }) => {
+          preloadApiUsageData()
+        })
+      }, 2000) // Wait 2 seconds after workflows load, then preload API Usage
     }
   }, [authVerified])
   

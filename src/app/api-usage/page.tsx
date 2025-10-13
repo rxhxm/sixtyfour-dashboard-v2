@@ -477,6 +477,12 @@ export default function DashboardPage() {
       return
     }
     
+    // Check if data was preloaded from Workflows page
+    const preloadedTimestamp = sessionStorage.getItem('preloaded_timestamp')
+    if (preloadedTimestamp) {
+      console.log('⚡ Using data preloaded from Workflows page!')
+    }
+    
     isFetchingRef.current = true
     fetchDataWithCache().finally(() => {
       isFetchingRef.current = false
