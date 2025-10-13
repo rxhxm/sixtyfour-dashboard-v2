@@ -147,56 +147,42 @@ export function OrgAccessManager() {
           <div className="grid md:grid-cols-2 gap-4">
             {/* User Selection */}
             <div className="space-y-2">
-              <Label>Select User</Label>
+              <Label>User Email</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by email..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="Type email address..."
+                  value={selectedUser}
+                  onChange={(e) => setSelectedUser(e.target.value)}
                   className="pl-10"
+                  list="user-list"
                 />
+                <datalist id="user-list">
+                  {filteredUsers.slice(0, 100).map(email => (
+                    <option key={email} value={email} />
+                  ))}
+                </datalist>
               </div>
-              <select 
-                className="w-full p-2 border rounded-md bg-background"
-                size={5}
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-              >
-                {filteredUsers.slice(0, 50).map(email => (
-                  <option key={email} value={email}>{email}</option>
-                ))}
-              </select>
-              <p className="text-xs text-muted-foreground">
-                Showing {Math.min(filteredUsers.length, 50)} of {users.length} users
-              </p>
             </div>
             
             {/* Org Selection */}
             <div className="space-y-2">
-              <Label>Select Organization</Label>
+              <Label>Organization</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search organizations..."
-                  value={orgSearch}
-                  onChange={(e) => setOrgSearch(e.target.value)}
+                  placeholder="Type organization name..."
+                  value={selectedOrg}
+                  onChange={(e) => setSelectedOrg(e.target.value)}
                   className="pl-10"
+                  list="org-list"
                 />
+                <datalist id="org-list">
+                  {filteredOrgs.slice(0, 100).map(org => (
+                    <option key={org} value={org} />
+                  ))}
+                </datalist>
               </div>
-              <select 
-                className="w-full p-2 border rounded-md bg-background"
-                size={5}
-                value={selectedOrg}
-                onChange={(e) => setSelectedOrg(e.target.value)}
-              >
-                {filteredOrgs.slice(0, 50).map(org => (
-                  <option key={org} value={org}>{org}</option>
-                ))}
-              </select>
-              <p className="text-xs text-muted-foreground">
-                Showing {Math.min(filteredOrgs.length, 50)} of {orgs.length} orgs
-              </p>
             </div>
           </div>
           
@@ -327,13 +313,6 @@ export function OrgAccessManager() {
           </div>
         </div>
         
-        {/* Safety Notice */}
-        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md p-3">
-          <p className="text-xs text-blue-900 dark:text-blue-100">
-            <strong>🛡️ Safety:</strong> Organization names are validated against the organizations table. 
-            Only existing orgs can be selected. All changes are logged for audit.
-          </p>
-        </div>
       </CardContent>
     </Card>
   )

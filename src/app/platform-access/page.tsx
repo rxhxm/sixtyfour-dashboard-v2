@@ -461,29 +461,6 @@ export default function PlatformAccessPage() {
           </CardContent>
         </Card>
 
-        {/* Set 1 - Read Only (Regex Pattern) */}
-        <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="h-5 w-5 text-blue-600" />
-              Set 1 - Regex Pattern (Read Only)
-            </CardTitle>
-            <CardDescription>
-              This pattern automatically grants access to all matching email domains. Cannot be modified here.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="p-4 bg-muted rounded-lg">
-              <code className="text-sm font-mono break-all">
-                {set1Pattern || 'No regex pattern found'}
-              </code>
-            </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              This regex pattern is managed directly in PostHog and remains unchanged by this interface.
-            </p>
-          </CardContent>
-        </Card>
-
         {/* Organization Access Management */}
         <OrgAccessManager />
 
