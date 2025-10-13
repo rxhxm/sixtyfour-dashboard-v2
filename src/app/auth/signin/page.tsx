@@ -137,14 +137,15 @@ export default function SignIn() {
             </form>
             
             {/* Right side - Animated Logo */}
-            <div className="bg-muted relative hidden md:block">
+            <div className="bg-muted relative hidden md:block overflow-hidden">
               <video
                 autoPlay
                 muted
                 loop
                 playsInline
                 preload="metadata"
-                className="absolute inset-0 h-full w-full object-cover"
+                className="h-full w-full object-cover"
+                style={{ display: 'block' }}
               >
                 <source src="/logo_chrome.mp4" type="video/mp4" />
               </video>
