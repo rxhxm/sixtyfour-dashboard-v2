@@ -411,6 +411,56 @@ export default function PlatformAccessPage() {
           </CardContent>
         </Card>
 
+        {/* Current Users with Access (Set 2) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Current Users with Access (Set 2)
+              </div>
+              <Badge variant="secondary" className="text-lg px-3 py-1">
+                {set2Emails.length} users
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Users explicitly granted access via email list (managed here)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {set2Emails.length === 0 ? (
+              <div className="text-center py-12">
+                <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground">No users in Set 2 yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Add an email above to grant access</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {set2Emails.map((email) => (
+                  <div
+                    key={email}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{email}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeEmail(email)}
+                      disabled={submitting}
+                      className="hover:bg-muted"
+                    >
+                      <Trash2 className="h-4 w-4 text-black dark:text-white" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Organization Access Management */}
         <OrgAccessManager />
 
