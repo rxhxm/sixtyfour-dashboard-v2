@@ -111,13 +111,14 @@ export async function POST(request: NextRequest) {
       .from('users-org')
       .select('*')
       .eq('id', targetUser.id)
-      .eq('org_id', orgId)
+      .eq('org-id', validatedOrgId)  // Fixed: use 'org-id' with hyphen, not 'org_id'
       .single()
     
     if (existing) {
+      console.log('⚠️ Duplicate detected:', userEmail, 'already has access to', validatedOrgId)
       return NextResponse.json({ 
-        error: `${userEmail} already has access to ${orgId}` 
-      }, { status: 400 })
+        error: `${userEmail} already has access to ${validatedOrgId}` 
+      }, { status: 409 })  // 409 = Conflict (more appropriate than 400)
     }
     
     // 5. INSERT MAPPING (SAFE - all validated!)
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest) {
       .from('users-org')
       .insert({
         id: targetUser.id,
-        org_id: validatedOrgId // Use exact case from DB
+        'org-id': validatedOrgId // Fixed: use 'org-id' with hyphen
       })
     
     console.log('Insert result:', insertError ? `Error: ${insertError.message}` : 'Success')
