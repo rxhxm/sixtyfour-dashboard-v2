@@ -14,13 +14,14 @@ export async function GET(request: NextRequest) {
     
     // Fetch recent traces from Langfuse (where the actual data is!)
     const tracesOptions: any = {
-      limit: parseInt(limit),
+      limit: Math.min(parseInt(limit), 200), // Cap at 200
       page: 1
     }
     
     // Filter by org if specified
     if (orgId) {
       tracesOptions.tags = [`org_id:${orgId}`]
+      console.log('🔍 Filtering by org:', orgId)
     }
     
     if (startDate && endDate) {
@@ -28,8 +29,16 @@ export async function GET(request: NextRequest) {
       tracesOptions.toTimestamp = endDate
     }
     
-    console.log('🔍 Fetching Langfuse traces with options:', tracesOptions)
-    const tracesData = await fetchLangfuseTraces(tracesOptions)
+    console.log('🔍 Fetching Langfuse traces, limit:', tracesOptions.limit)
+    
+    let tracesData
+    try {
+      tracesData = await fetchLangfuseTraces(tracesOptions)
+    } catch (fetchError) {
+      console.error('❌ Langfuse fetch failed:', fetchError)
+      // Return empty array instead of 500
+      return NextResponse.json({ calls: [], error: 'Langfuse unavailable' })
+    }
     
     console.log('📊 Langfuse response:', {
       hasData: !!tracesData?.data,
