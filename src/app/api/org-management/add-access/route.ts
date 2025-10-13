@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       if (validationError instanceof z.ZodError) {
         return NextResponse.json({ 
           error: 'Invalid input', 
-          details: validationError.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+          details: validationError.issues.map(e => `${e.path.join('.')}: ${e.message}`)
         }, { status: 400 })
       }
       return NextResponse.json({ error: 'Invalid request format' }, { status: 400 })
