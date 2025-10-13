@@ -356,7 +356,7 @@ export default function DashboardPage() {
       console.log('🔄 fetchRecentTraces called with timeRange:', timeRange)
       
       const params = new URLSearchParams({
-        limit: '20' // Fetch 20 to ensure we get 10 unique orgs after dedup
+        limit: '100' // Fetch 100 to get recent activity from all orgs (not just top caller)
       })
       
       if (timeRange.startDate && timeRange.endDate) {
