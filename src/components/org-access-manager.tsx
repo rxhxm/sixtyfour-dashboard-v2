@@ -21,6 +21,7 @@ export function OrgAccessManager() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [existingMapping, setExistingMapping] = useState<string | null>(null)
   
   // Load data on mount
   useEffect(() => {
@@ -57,11 +58,21 @@ export function OrgAccessManager() {
     setMappings(mappingArray)
   }
   
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!selectedUser || !selectedOrg) {
       setMessage({ type: 'error', text: 'Please select both user and organization' })
       return
     }
+    
+    // Check if user already has a mapping to a different org
+    const currentMapping = mappings.find(m => m.email === selectedUser)
+    
+    if (currentMapping && currentMapping.orgId !== selectedOrg) {
+      setExistingMapping(currentMapping.orgId)
+    } else {
+      setExistingMapping(null)
+    }
+    
     setShowConfirm(true)
   }
   
@@ -89,12 +100,15 @@ export function OrgAccessManager() {
         setMessage({ type: 'error', text: `${errorMsg} (Status: ${response.status})` })
       } else {
         console.log('✅ Success!', data)
-        setMessage({ type: 'success', text: `✅ Added ${selectedUser} to ${selectedOrg}` })
+        // Use server's message which includes reassignment info
+        const successMsg = data.message || `✅ Added ${selectedUser} to ${selectedOrg}`
+        setMessage({ type: 'success', text: successMsg })
         setSelectedUser('')
         setSelectedOrg('')
         setUserSearch('')
         setOrgSearch('')
         setShowConfirm(false)
+        setExistingMapping(null)
         loadMappings() // Refresh list
       }
     } catch (error) {
@@ -293,31 +307,69 @@ export function OrgAccessManager() {
         
         {/* Confirmation Dialog */}
         {showConfirm && (
-          <div className="border-2 border-orange-500 rounded-lg p-4 bg-orange-50 dark:bg-orange-950">
+          <div className={`border-2 rounded-lg p-4 ${
+            existingMapping 
+              ? 'border-red-500 bg-red-50 dark:bg-red-950' 
+              : 'border-orange-500 bg-orange-50 dark:bg-orange-950'
+          }`}>
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
+              <AlertCircle className={`h-5 w-5 mt-0.5 ${
+                existingMapping ? 'text-red-600' : 'text-orange-600'
+              }`} />
               <div className="flex-1">
-                <h4 className="font-semibold text-orange-900 dark:text-orange-100">
-                  Confirm Access Addition
+                <h4 className={`font-semibold ${
+                  existingMapping 
+                    ? 'text-red-900 dark:text-red-100' 
+                    : 'text-orange-900 dark:text-orange-100'
+                }`}>
+                  {existingMapping ? '⚠️ Confirm Reassignment' : 'Confirm Access Addition'}
                 </h4>
-                <p className="text-sm text-orange-800 dark:text-orange-200 mt-1">
-                  Add <strong>{selectedUser}</strong> to organization <strong>{selectedOrg}</strong>?
+                <p className={`text-sm mt-1 ${
+                  existingMapping 
+                    ? 'text-red-800 dark:text-red-200' 
+                    : 'text-orange-800 dark:text-orange-200'
+                }`}>
+                  {existingMapping ? (
+                    <>
+                      <strong>{selectedUser}</strong> is currently in <strong>{existingMapping}</strong>.
+                      <br />
+                      <strong>This will MOVE them</strong> from <strong>{existingMapping}</strong> to <strong>{selectedOrg}</strong>.
+                    </>
+                  ) : (
+                    <>
+                      Add <strong>{selectedUser}</strong> to organization <strong>{selectedOrg}</strong>?
+                    </>
+                  )}
                 </p>
-                <p className="text-xs text-orange-700 dark:text-orange-300 mt-2">
-                  This will grant them access to this organization's data and workflows.
+                <p className={`text-xs mt-2 ${
+                  existingMapping 
+                    ? 'text-red-700 dark:text-red-300' 
+                    : 'text-orange-700 dark:text-orange-300'
+                }`}>
+                  {existingMapping 
+                    ? 'Each user can only be in one organization. They will lose access to the previous organization.'
+                    : 'This will grant them access to this organization\'s data and workflows.'
+                  }
                 </p>
                 <div className="flex gap-2 mt-4">
                   <Button
                     size="sm"
                     onClick={confirmAdd}
                     disabled={loading}
+                    variant={existingMapping ? 'destructive' : 'default'}
                   >
-                    {loading ? 'Adding...' : 'Confirm'}
+                    {loading 
+                      ? (existingMapping ? 'Moving...' : 'Adding...') 
+                      : (existingMapping ? 'Confirm Move' : 'Confirm')
+                    }
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setShowConfirm(false)}
+                    onClick={() => {
+                      setShowConfirm(false)
+                      setExistingMapping(null)
+                    }}
                     disabled={loading}
                   >
                     Cancel

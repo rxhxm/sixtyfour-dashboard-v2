@@ -114,6 +114,8 @@ export async function POST(request: NextRequest) {
       .eq('id', targetUser.id)
       .maybeSingle()  // Use maybeSingle() to avoid error if not found
     
+    let previousOrg: string | null = null
+    
     if (existing) {
       if (existing.org_id === validatedOrgId) {
         console.log('⚠️ User already has access to this org')
@@ -121,14 +123,28 @@ export async function POST(request: NextRequest) {
           error: `${userEmail} already has access to ${validatedOrgId}` 
         }, { status: 409 })
       } else {
-        console.log('⚠️ User already mapped to different org:', existing.org_id)
-        return NextResponse.json({ 
-          error: `${userEmail} is already mapped to organization "${existing.org_id}". Each user can only be in one organization. Remove the existing mapping first.` 
-        }, { status: 409 })
+        // User is in a different org - we'll REASSIGN them
+        previousOrg = existing.org_id
+        console.log(`🔄 REASSIGNMENT: Moving ${userEmail} from "${previousOrg}" to "${validatedOrgId}"`)
+        
+        // Delete the old mapping first
+        const { error: deleteError } = await supabaseAdmin
+          .from('users-org')
+          .delete()
+          .eq('id', targetUser.id)
+        
+        if (deleteError) {
+          console.error('❌ Failed to remove old mapping:', deleteError)
+          return NextResponse.json({ 
+            error: 'Failed to remove existing mapping' 
+          }, { status: 500 })
+        }
+        
+        console.log(`✅ Removed old mapping: ${userEmail} → ${previousOrg}`)
       }
     }
     
-    // 5. INSERT MAPPING (SAFE - all validated!)
+    // 5. INSERT NEW MAPPING
     console.log('Step 6: Inserting into users-org...')
     
     const { error: insertError } = await supabaseAdmin
@@ -148,29 +164,35 @@ export async function POST(request: NextRequest) {
     }
     
     // 6. LOG SUCCESS
-    console.log(`✅ SUCCESS: ${userEmail} added to ${orgId} by ${user.email}`)
+    const actionType = previousOrg ? 'REASSIGNMENT' : 'NEW MAPPING'
+    console.log(`✅ SUCCESS [${actionType}]: ${userEmail} ${previousOrg ? `moved from "${previousOrg}" to` : 'added to'} "${validatedOrgId}" by ${user.email}`)
     
     // 7. CREATE AUDIT LOG ENTRY (if table exists)
     try {
       await supabaseAdmin
         .from('dashboard_audit_log')
         .insert({
-          action: 'add_org_access',
+          action: previousOrg ? 'reassign_org_access' : 'add_org_access',
           admin_email: user.email,
           target_email: userEmail,
-          org_id: orgId,
+          org_id: validatedOrgId,
+          previous_org_id: previousOrg,
           timestamp: new Date().toISOString()
         })
     } catch (auditError: any) {
       // Audit table might not exist - that's OK, log to console
-      console.log('📝 Audit log:', user.email, 'added', userEmail, 'to', orgId)
+      console.log('📝 Audit log:', user.email, previousOrg ? 'reassigned' : 'added', userEmail, previousOrg ? `from ${previousOrg}` : '', 'to', validatedOrgId)
     }
     
     return NextResponse.json({ 
       success: true,
-      message: `Added ${userEmail} to ${orgId}`,
+      message: previousOrg 
+        ? `Moved ${userEmail} from "${previousOrg}" to "${validatedOrgId}"` 
+        : `Added ${userEmail} to "${validatedOrgId}"`,
       user_id: targetUser.id,
-      org_id: orgId
+      org_id: validatedOrgId,
+      previous_org_id: previousOrg,
+      was_reassignment: !!previousOrg
     })
     
   } catch (error: any) {
