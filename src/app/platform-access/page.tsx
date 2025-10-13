@@ -369,6 +369,9 @@ export default function PlatformAccessPage() {
           </Card>
         )}
 
+        {/* Organization Access Management */}
+        <OrgAccessManager />
+
         {/* Add New User */}
         <Card>
           <CardHeader>
