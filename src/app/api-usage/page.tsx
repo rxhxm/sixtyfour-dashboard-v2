@@ -231,6 +231,7 @@ export default function DashboardPage() {
   const [langfuseMetrics, setLangfuseMetrics] = useState<(UsageMetrics & { traceTypes?: Record<string, number> }) | null>(null)
   const [langfuseChartData, setLangfuseChartData] = useState<any[]>([])
   const [recentApiCalls, setRecentApiCalls] = useState<any[]>([])
+  const [orgEmailMap, setOrgEmailMap] = useState<Record<string, string>>({})
   
   // Cache for different time periods - stored in sessionStorage for persistence across tab switches
   const [dataCache, setDataCache] = useState<Map<string, CachedData>>(() => {
@@ -323,6 +324,15 @@ export default function DashboardPage() {
         console.error('Failed to parse contacted users:', e)
       }
     }
+    
+    // Fetch org email mapping
+    fetch('/api/org-emails')
+      .then(r => r.json())
+      .then(data => {
+        console.log('📧 Org email mapping loaded:', Object.keys(data.emailMap || {}).length)
+        setOrgEmailMap(data.emailMap || {})
+      })
+      .catch(e => console.error('Failed to load org emails:', e))
   }, [])
   
   // Save contacted users to localStorage whenever it changes
@@ -1460,6 +1470,11 @@ export default function DashboardPage() {
                         <div className="text-sm">
                           {org.org_name}
                         </div>
+                        {orgEmailMap[org.org_id] && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {orgEmailMap[org.org_id]}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                           <div className="font-mono text-sm text-muted-foreground">
