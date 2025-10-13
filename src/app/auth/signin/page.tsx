@@ -42,7 +42,8 @@ export default function SignIn() {
       })
 
       if (signInError) {
-        setError(signInError.message)
+        // Generic error message (don't leak if email exists)
+        setError("Invalid email or password")
         setLoading(false)
         return
       }
@@ -54,10 +55,15 @@ export default function SignIn() {
       }
 
       // HARDCODED WHITELIST CHECK (only for this dashboard)
+      // ONLY these 3 emails allowed:
+      // - saarth@sixtyfour.ai
+      // - roham@sixtyfour.ai
+      // - chrisprice@sixtyfour.ai
       if (!isAuthorizedEmail(data.session.user.email)) {
-        console.log('🚨 UNAUTHORIZED EMAIL:', data.session.user.email)
+        console.log('🚨 UNAUTHORIZED EMAIL BLOCKED:', data.session.user.email)
         await supabase.auth.signOut()
-        setError("Access denied. This dashboard is restricted to authorized team members only.")
+        // Generic error - don't leak info
+        setError("Invalid credentials")
         setLoading(false)
         return
       }
