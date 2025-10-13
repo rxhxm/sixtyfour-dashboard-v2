@@ -30,13 +30,15 @@ export function OrgAccessManager() {
   }, [])
   
   const loadUsers = async () => {
-    // Load from org-emails API which already fetches all 631 users
+    // Fetch all auth users directly (for better autocomplete)
+    // This gets ALL 631 real user emails, not just mapped ones
     const response = await fetch('/api/org-emails')
     const data = await response.json()
     
-    // Extract unique emails from the mapping
-    const emails = Object.values(data.emailMap || {})
-    setUsers([...new Set(emails)] as any[])
+    // Get unique emails from the emailMap
+    const uniqueEmails = [...new Set(Object.values(data.emailMap || {}))] as string[]
+    console.log('📧 Loaded', uniqueEmails.length, 'user emails for autocomplete')
+    setUsers(uniqueEmails)
   }
   
   const loadOrgs = async () => {

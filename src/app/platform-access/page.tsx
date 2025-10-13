@@ -461,9 +461,6 @@ export default function PlatformAccessPage() {
           </CardContent>
         </Card>
 
-        {/* Organization Access Management */}
-        <OrgAccessManager />
-
       </div>
     </DashboardLayout>
   )
