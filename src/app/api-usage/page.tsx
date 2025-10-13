@@ -974,15 +974,23 @@ export default function DashboardPage() {
     }
     
       const fetchEndTime = Date.now()
-    if (showLogs) {
-      console.log(`Data fetch completed in ${fetchEndTime - fetchStartTime}ms`)
-    }
-    
-    return {
-      databaseMetrics: databaseData,
-      langfuseMetrics: langfuseData,
-      langfuseChartData: chartData
-    }
+      if (showLogs) {
+        console.log(`Data fetch completed in ${fetchEndTime - fetchStartTime}ms`)
+      }
+      
+      // IMPORTANT: Fetch recent API calls (for 4th card)
+      try {
+        console.log('🔄 Fetching recent API calls...')
+        await fetchRecentTraces(timeRange)
+      } catch (e) {
+        console.error('Failed to fetch recent API calls:', e)
+      }
+      
+      return {
+        databaseMetrics: databaseData,
+        langfuseMetrics: langfuseData,
+        langfuseChartData: chartData
+      }
   }
 
   // CONDITIONAL RENDERING (not early return) - fixes React hooks error
