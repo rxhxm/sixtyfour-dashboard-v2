@@ -81,12 +81,19 @@ export function OrgAccessManager() {
       
       const data = await response.json()
       
+      console.log('📡 Server response:', { status: response.status, data })
+      
       if (!response.ok) {
-        setMessage({ type: 'error', text: data.error || 'Failed to add access' })
+        const errorMsg = data.error || 'Failed to add access'
+        console.error('❌ Add failed:', errorMsg)
+        setMessage({ type: 'error', text: `${errorMsg} (Status: ${response.status})` })
       } else {
+        console.log('✅ Success!', data)
         setMessage({ type: 'success', text: `✅ Added ${selectedUser} to ${selectedOrg}` })
         setSelectedUser('')
         setSelectedOrg('')
+        setUserSearch('')
+        setOrgSearch('')
         setShowConfirm(false)
         loadMappings() // Refresh list
       }
