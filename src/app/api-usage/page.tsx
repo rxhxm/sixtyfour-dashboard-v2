@@ -1233,7 +1233,11 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow duration-200">
+            <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                  onClick={() => {
+                    // Scroll to leaderboard when clicked
+                    document.getElementById('org-leaderboard')?.scrollIntoView({ behavior: 'smooth' })
+                  }}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
                 <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
                 <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
@@ -1245,16 +1249,19 @@ export default function DashboardPage() {
                   {langfuseMetrics?.organizationBreakdown?.length || 0}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Active orgs
+                  Active orgs (click for more)
                 </p>
                 {langfuseMetrics?.organizationBreakdown && langfuseMetrics.organizationBreakdown.length > 0 && (
                   <div className="mt-2 space-y-1 border-t pt-2">
                     {langfuseMetrics.organizationBreakdown
+                      .sort((a: any, b: any) => b.requests - a.requests)
                       .slice(0, 3)
                       .map((org: any) => (
                         <div key={org.org_id} className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground truncate max-w-[100px]">{org.org_name}</span>
-                          <span className="font-medium">{org.requests}</span>
+                          <span className="text-muted-foreground truncate max-w-[120px]">
+                            {org.org_id || org.org_name || 'Unknown'}
+                          </span>
+                          <span className="font-medium">{org.requests.toLocaleString()}</span>
                         </div>
                       ))}
                   </div>
@@ -1278,7 +1285,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ORGANIZATION LEADERBOARD */}
-        <Card className="mt-8">
+        <Card className="mt-8" id="org-leaderboard">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Users className="h-5 w-5" />
