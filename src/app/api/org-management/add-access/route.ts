@@ -33,47 +33,61 @@ export async function POST(request: NextRequest) {
     console.log(`Step 2: Request data - Email: ${userEmail}, Org: ${orgId}`)
     console.log(`👤 Admin ${user.email} adding ${userEmail} to ${orgId}`)
     
-    // 2. VALIDATE ORG EXISTS
+    // 2. VALIDATE ORG EXISTS (case-insensitive for flexibility)
     console.log('Step 3: Validating org exists in organizations table...')
     
-    const { data: org, error: orgError } = await supabaseAdmin
+    const { data: orgsMatch, error: orgError } = await supabaseAdmin
       .from('organizations')
       .select('id, "org-id"')
-      .eq('org-id', orgId)
-      .single()
+      .ilike('org-id', orgId) // Case-insensitive match
     
-    console.log('Org query result:', { org, error: orgError?.message })
+    console.log('Org query result:', { matches: orgsMatch?.length, error: orgError?.message })
     
-    if (orgError || !org) {
+    if (orgError || !orgsMatch || orgsMatch.length === 0) {
       console.error('❌ VALIDATION FAILED: Org not found:', orgId)
-      console.error('Error details:', orgError)
       return NextResponse.json({ 
-        error: `Organization "${orgId}" does not exist. Try exact case (e.g., "Conduit" not "conduit")` 
+        error: `Organization "${orgId}" does not exist in database` 
       }, { status: 400 })
     }
     
-    console.log('✅ Org validated:', org['org-id'])
+    // Use the exact org-id from database (correct case)
+    const validatedOrgId = orgsMatch[0]['org-id']
+    console.log('✅ Org validated:', validatedOrgId, '(using exact case from DB)')
     
-    // 3. VALIDATE USER EXISTS & GET UUID
+    // 3. VALIDATE USER EXISTS & GET UUID (with timeout protection)
+    console.log('Step 4: Fetching auth users...')
+    
     let allUsers: any[] = []
     let page = 1
+    const maxPages = 2 // Limit to prevent timeout (gets 2000 users max)
     
-    while (true) {
-      const { data } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 })
-      if (!data.users || data.users.length === 0) break
-      allUsers = [...allUsers, ...data.users]
-      if (data.users.length < 1000) break
-      page++
+    try {
+      while (page <= maxPages) {
+        const { data } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 })
+        if (!data.users || data.users.length === 0) break
+        allUsers = [...allUsers, ...data.users]
+        if (data.users.length < 1000) break
+        page++
+      }
+      
+      console.log(`Loaded ${allUsers.length} users`)
+    } catch (userFetchError: any) {
+      console.error('❌ Failed to fetch users:', userFetchError.message)
+      return NextResponse.json({ 
+        error: 'Failed to fetch user list from auth system' 
+      }, { status: 500 })
     }
     
     const targetUser = allUsers.find(u => u.email?.toLowerCase() === userEmail.toLowerCase())
     
     if (!targetUser) {
-      console.error('❌ User not found:', userEmail)
+      console.error('❌ User not found:', userEmail, '(checked', allUsers.length, 'users)')
       return NextResponse.json({ 
-        error: `User "${userEmail}" does not exist in auth system` 
+        error: `User "${userEmail}" not found. Try exact email from suggestions.` 
       }, { status: 400 })
     }
+    
+    console.log('✅ User found:', targetUser.email)
     
     // 4. CHECK FOR DUPLICATE
     const { data: existing } = await supabaseAdmin
@@ -90,12 +104,16 @@ export async function POST(request: NextRequest) {
     }
     
     // 5. INSERT MAPPING (SAFE - all validated!)
+    console.log('Step 6: Inserting into users-org...')
+    
     const { error: insertError } = await supabaseAdmin
       .from('users-org')
       .insert({
         id: targetUser.id,
-        org_id: orgId
+        org_id: validatedOrgId // Use exact case from DB
       })
+    
+    console.log('Insert result:', insertError ? `Error: ${insertError.message}` : 'Success')
     
     if (insertError) {
       console.error('❌ Insert failed:', insertError)
