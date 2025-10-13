@@ -335,12 +335,13 @@ export default function DashboardPage() {
       .catch(e => console.error('Failed to load org emails:', e))
   }, [])
   
-  // Update Recently Active card when metrics load (instant!)
+  // Fetch recent activity after metrics load (cached for 1 min)
   useEffect(() => {
-    if (langfuseMetrics?.organizationBreakdown && !loading) {
-      updateRecentActivityFromLoadedData()
+    if (langfuseMetrics && !loading) {
+      const timeRange = getTimeRange(timePeriod, timeOffset, selectedDate, customRange)
+      fetchRecentActivity(timeRange)
     }
-  }, [langfuseMetrics, loading])
+  }, [langfuseMetrics, timePeriod, loading])
   
   // Save contacted users to localStorage whenever it changes
   const toggleContacted = (orgId: string) => {
@@ -357,24 +358,56 @@ export default function DashboardPage() {
     })
   }
   
-  // No need for extra API call - use loaded org data
-  // This function is no longer needed but kept for reference
-  const updateRecentActivityFromLoadedData = () => {
-    if (!langfuseMetrics?.organizationBreakdown) return
+  // Fetch recent traces to show WHEN each org last ran
+  const fetchRecentActivity = async (timeRange: any) => {
+    // Check cache first
+    const cached = sessionStorage.getItem('recent_activity_cache')
+    if (cached) {
+      try {
+        const { data, timestamp: cacheTime } = JSON.parse(cached)
+        if (Date.now() - cacheTime < 60000) { // 1 min cache
+          console.log('⚡ Using cached recent activity')
+          setRecentApiCalls(data)
+          return
+        }
+      } catch (e) {}
+    }
     
-    console.log('⚡ Using loaded org data for Recently Active card')
-    
-    // Convert org breakdown to activity format
-    const activities = langfuseMetrics.organizationBreakdown
-      .map((org: any) => ({
-        id: org.org_id,
-        org: org.org_id,
-        requests: org.requests
-      }))
-      .sort((a: any, b: any) => b.requests - a.requests) // Most active first
-    
-    console.log('✅ Activity data ready for', activities.length, 'orgs')
-    setRecentApiCalls(activities)
+    try {
+      console.log('🔄 Fetching 100 recent traces (one call)')
+      
+      const params = new URLSearchParams({ limit: '100' })
+      if (timeRange.startDate && timeRange.endDate) {
+        params.set('startDate', timeRange.startDate)
+        params.set('endDate', timeRange.endDate)
+      }
+      
+      const response = await fetch(`/api/recent-api-calls?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Deduplicate - keep FIRST (most recent) of each org
+        const seen = new Set()
+        const uniqueByOrg = (data.calls || []).filter((call: any) => {
+          if (!call.org || call.org === 'Unknown') return false
+          if (seen.has(call.org)) return false
+          seen.add(call.org)
+          return true
+        })
+        
+        console.log('✅ Got', uniqueByOrg.length, 'unique orgs with timestamps')
+        
+        // Cache it
+        sessionStorage.setItem('recent_activity_cache', JSON.stringify({
+          data: uniqueByOrg,
+          timestamp: Date.now()
+        }))
+        
+        setRecentApiCalls(uniqueByOrg)
+      }
+    } catch (error) {
+      console.error('Failed to fetch recent activity:', error)
+    }
   }
   
   // Format time ago
@@ -1320,7 +1353,7 @@ export default function DashboardPage() {
                       >
                         <span className="font-medium truncate">{call.org}</span>
                         <span className="text-muted-foreground text-[10px] ml-2 whitespace-nowrap">
-                          {call.requests?.toLocaleString() || 0} calls
+                          {call.timeAgo || 'Unknown'}
                         </span>
                       </div>
                     ))}
