@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { fetchLangfuseTraces } from '@/lib/langfuse'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -11,61 +11,35 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
     
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+    // Fetch recent traces from Langfuse (where the actual data is!)
+    const tracesOptions: any = {
+      limit: parseInt(limit),
+      page: 1
     }
     
-    // Build query
-    let query = supabaseAdmin
-      .from('api_usage')
-      .select(`
-        id,
-        endpoint,
-        timestamp,
-        api_key,
-        metadata
-      `)
-      .order('timestamp', { ascending: false })
-      .limit(parseInt(limit))
-    
-    // Add date filters if provided
-    if (startDate) {
-      query = query.gte('timestamp', startDate)
-    }
-    if (endDate) {
-      query = query.lte('timestamp', endDate)
+    if (startDate && endDate) {
+      tracesOptions.fromTimestamp = startDate
+      tracesOptions.toTimestamp = endDate
     }
     
-    const { data: calls, error } = await query
+    const tracesData = await fetchLangfuseTraces(tracesOptions)
     
-    if (error) {
-      console.error('Error fetching recent API calls:', error)
-      return NextResponse.json({ error: 'Failed to fetch API calls' }, { status: 500 })
+    if (!tracesData?.data || tracesData.data.length === 0) {
+      return NextResponse.json({ calls: [] })
     }
     
-    // Extract org info from metadata
-    const enrichedCalls = (calls || []).map((call: any) => {
-      let orgId = 'Unknown'
-      
-      // Try to get org from metadata
-      if (call.metadata) {
-        try {
-          const meta = typeof call.metadata === 'string' ? JSON.parse(call.metadata) : call.metadata
-          orgId = meta?.org_id || meta?.organization || meta?.org || 'Unknown'
-        } catch (e) {
-          // If metadata parse fails, try to extract from api_key or endpoint
-          if (call.api_key) {
-            orgId = call.api_key.split('_')[0] || 'Unknown'
-          }
-        }
-      }
+    // Extract relevant info from traces
+    const enrichedCalls = tracesData.data.map((trace: any) => {
+      // Extract org from tags
+      const orgTag = trace.tags?.find((t: string) => t.startsWith('org_id:'))
+      const orgId = orgTag ? orgTag.split(':')[1] : trace.metadata?.org_id || 'Unknown'
       
       return {
-        id: call.id,
+        id: trace.id,
         org: orgId,
-        endpoint: call.endpoint,
-        timestamp: call.timestamp,
-        timeAgo: formatTimeAgo(call.timestamp)
+        endpoint: trace.name || 'API call',
+        timestamp: trace.timestamp,
+        timeAgo: formatTimeAgo(trace.timestamp)
       }
     })
     
