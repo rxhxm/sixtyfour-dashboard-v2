@@ -31,9 +31,9 @@ export async function GET(request: NextRequest) {
     // Create mapping: org_id -> email
     const orgEmailMap: Record<string, string> = {}
     
-    userOrgs?.forEach(userOrg => {
+    userOrgs?.forEach((userOrg: any) => {
       // Find the auth user for this user_id
-      const authUser = users?.find(u => u.id === userOrg.id)
+      const authUser = users?.find((u: any) => u.id === userOrg.id)
       if (authUser?.email && userOrg.org_id) {
         orgEmailMap[userOrg.org_id] = authUser.email
       }
