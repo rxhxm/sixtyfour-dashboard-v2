@@ -1314,45 +1314,43 @@ export default function DashboardPage() {
                     document.getElementById('org-leaderboard')?.scrollIntoView({ behavior: 'smooth' })
                   }}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Recent API Calls</CardTitle>
+                <CardTitle className="text-sm font-medium">Active Orgs</CardTitle>
                 <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
                   <Activity className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-          </div>
+                </div>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="text-2xl font-bold tabular-nums">
-                  {recentApiCalls.length || 0}
+                  {langfuseMetrics?.organizationBreakdown?.length || 0}
                 </div>
                 <p className="text-xs text-muted-foreground mb-2">
-                  Last 24h (click for details)
+                  {timePeriod === '24hours' ? 'Last 24h' : getPeriodLabel(timePeriod, timeOffset, selectedDate, customRange)}
                 </p>
-                {recentApiCalls && recentApiCalls.length > 0 ? (
+                {langfuseMetrics?.organizationBreakdown && langfuseMetrics.organizationBreakdown.length > 0 ? (
                   <div className="space-y-1 border-t pt-2 max-h-[120px] overflow-y-auto">
-                    {(() => {
-                      // Deduplicate by org - show only most recent per org
-                      const seen = new Set()
-                      const uniqueCalls = recentApiCalls.filter(call => {
-                        if (seen.has(call.org)) return false
-                        seen.add(call.org)
-                        return true
-                      })
-                      
-                      return uniqueCalls.slice(0, 10).map((call: any, idx: number) => (
-                        <div key={call.id || idx} className="flex items-center justify-between text-xs py-0.5 hover:bg-muted/50 px-1 rounded">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <span className="font-medium truncate">{call.org !== 'Unknown' ? call.org : '???'}</span>
-                            <span className="text-muted-foreground text-[10px] truncate">{call.endpoint}</span>
-                          </div>
+                    {langfuseMetrics.organizationBreakdown
+                      .sort((a: any, b: any) => b.requests - a.requests)
+                      .slice(0, 10)
+                      .map((org: any) => (
+                        <div 
+                          key={org.org_id} 
+                          className="flex items-center justify-between text-xs py-0.5 hover:bg-muted/50 px-1 rounded cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setExpandedOrg(org.org_id)
+                            document.getElementById('org-leaderboard')?.scrollIntoView({ behavior: 'smooth' })
+                          }}
+                        >
+                          <span className="font-medium truncate">{org.org_id}</span>
                           <span className="text-muted-foreground text-[10px] ml-2 whitespace-nowrap">
-                            {call.timeAgo}
+                            {org.requests.toLocaleString()} calls
                           </span>
                         </div>
-                      ))
-                    })()}
+                      ))}
                   </div>
                 ) : (
                   <div className="mt-2 pt-2 text-xs text-muted-foreground text-center">
-                    No recent calls
+                    No activity
                   </div>
                 )}
               </CardContent>
