@@ -77,7 +77,7 @@ export default function SignIn() {
     <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm md:max-w-3xl">
         <Card className="overflow-hidden">
-          <CardContent className="grid p-0 md:grid-cols-2 h-full">
+          <CardContent className="grid p-0 md:grid-cols-2 md:min-h-[600px]">
             <form className="p-6 md:p-8" onSubmit={handleSubmit}>
               <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center text-center">
@@ -137,14 +137,15 @@ export default function SignIn() {
             </form>
             
             {/* Right side - Animated Logo */}
-            <div className="bg-muted relative hidden md:flex items-center justify-center p-0">
+            <div className="bg-muted relative hidden md:block min-h-full">
               <video
                 autoPlay
                 muted
                 loop
                 playsInline
                 preload="metadata"
-                className="absolute inset-0 h-full w-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ minHeight: '100%' }}
               >
                 <source src="/logo_chrome.mp4" type="video/mp4" />
               </video>
