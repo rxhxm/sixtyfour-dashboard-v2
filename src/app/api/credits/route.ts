@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'
 
 // Server-side only - credentials never exposed to client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -17,20 +16,19 @@ const AUTHORIZED_EMAILS = [
 // CRITICAL: Verify authentication for sensitive operations
 async function verifyAuth(): Promise<{ authorized: boolean, email?: string }> {
   try {
-    // Create Supabase client with cookies
-    const cookieStore = cookies()
-    const supabase = createServerComponentClient({ cookies: () => cookieStore })
+    // Use the same server client as main app
+    const supabase = await createSupabaseServerClient()
     
-    // Get session
-    const { data: { session }, error } = await supabase.auth.getSession()
+    // Get user from session
+    const { data: { user }, error } = await supabase.auth.getUser()
     
-    if (error || !session) {
-      console.log('🚫 No valid session')
+    if (error || !user) {
+      console.log('🚫 No valid user session')
       return { authorized: false }
     }
     
-    const email = session.user.email?.toLowerCase()
-    console.log('📧 Session email:', email)
+    const email = user.email?.toLowerCase()
+    console.log('📧 User email from session:', email)
     
     // Check against whitelist
     if (!email || !AUTHORIZED_EMAILS.includes(email)) {
