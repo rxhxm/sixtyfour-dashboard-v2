@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const limit = searchParams.get('limit') || '10'
+    const orgId = searchParams.get('orgId') // Filter by specific org
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
     
@@ -15,6 +16,11 @@ export async function GET(request: NextRequest) {
     const tracesOptions: any = {
       limit: parseInt(limit),
       page: 1
+    }
+    
+    // Filter by org if specified
+    if (orgId) {
+      tracesOptions.tags = [`org_id:${orgId}`]
     }
     
     if (startDate && endDate) {

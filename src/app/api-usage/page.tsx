@@ -335,6 +335,13 @@ export default function DashboardPage() {
       .catch(e => console.error('Failed to load org emails:', e))
   }, [])
   
+  // Update recent activity when langfuseMetrics loads (uses already-loaded org list)
+  useEffect(() => {
+    if (langfuseMetrics?.organizationBreakdown) {
+      updateRecentActivity(langfuseMetrics.organizationBreakdown)
+    }
+  }, [langfuseMetrics])
+  
   // Save contacted users to localStorage whenever it changes
   const toggleContacted = (orgId: string) => {
     setContactedUsers(prev => {
@@ -350,47 +357,35 @@ export default function DashboardPage() {
     })
   }
   
-  // Fetch recent API calls from database
-  const fetchRecentTraces = async (timeRange: any) => {
-    try {
-      console.log('🔄 fetchRecentTraces called with timeRange:', timeRange)
-      
-      const params = new URLSearchParams({
-        limit: '100' // Fetch 100 to get recent activity from all orgs (not just top caller)
-      })
-      
-      if (timeRange.startDate && timeRange.endDate) {
-        params.set('startDate', timeRange.startDate)
-        params.set('endDate', timeRange.endDate)
-        console.log('📅 Date range:', timeRange.startDate, 'to', timeRange.endDate)
-      } else {
-        console.log('⚠️ No date range provided to fetchRecentTraces!')
-      }
-      
-      const url = `/api/recent-api-calls?${params}`
-      console.log('🌐 Fetching:', url)
-      
-      const response = await fetch(url)
-      console.log('📡 Response status:', response.status)
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('📡 Recent API calls response:', data)
-        console.log('✅ Loaded', data.calls?.length, 'recent calls')
-        if (data.calls && data.calls.length > 0) {
-          console.log('🔍 First call:', data.calls[0])
+  // Get most recent activity for each loaded org (uses already-loaded orgs list)
+  const updateRecentActivity = (orgsData: any[]) => {
+    if (!orgsData || orgsData.length === 0) return
+    
+    // Fetch 1 most recent trace for each org in parallel
+    console.log('⚡ Getting recent activity for', orgsData.length, 'loaded orgs')
+    
+    const fetchPromises = orgsData.slice(0, 10).map(async (org: any) => {
+      try {
+        const response = await fetch(`/api/recent-api-calls?limit=1&orgId=${org.org_id}`)
+        if (response.ok) {
+          const data = await response.json()
+          return data.calls?.[0] || null
         }
-        if (data.debug) {
-          console.log('🔍 Debug info:', data.debug)
-        }
-        setRecentApiCalls(data.calls || [])
-      } else {
-        const errorText = await response.text()
-        console.error('❌ Recent API calls failed:', response.status, errorText)
+      } catch (e) {
+        console.warn('Failed to fetch recent for', org.org_id)
       }
-    } catch (error) {
-      console.error('Failed to fetch recent API calls:', error)
-    }
+      return null
+    })
+    
+    Promise.all(fetchPromises).then(results => {
+      const validCalls = results.filter(call => call !== null)
+      // Sort by timestamp (most recent first)
+      validCalls.sort((a: any, b: any) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      )
+      console.log('✅ Recent activity for', validCalls.length, 'orgs')
+      setRecentApiCalls(validCalls)
+    })
   }
   
   // Format time ago
@@ -1002,13 +997,9 @@ export default function DashboardPage() {
       console.log(`Data fetch completed in ${fetchEndTime - fetchStartTime}ms`)
       }
       
-      // IMPORTANT: Fetch recent API calls (for 4th card)
-      try {
-        console.log('🔄 Fetching recent API calls...')
-        await fetchRecentTraces(timeRange)
-      } catch (e) {
-        console.error('Failed to fetch recent API calls:', e)
-      }
+      // IMPORTANT: Update recent activity using loaded orgs (faster!)
+      // This happens after langfuseData is set, so we use orgs from that
+      // Will be called by useEffect watching langfuseMetrics
       
       return {
         databaseMetrics: databaseData,
