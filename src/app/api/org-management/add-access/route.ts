@@ -94,17 +94,21 @@ export async function POST(request: NextRequest) {
     // 6. LOG SUCCESS
     console.log(`✅ SUCCESS: ${userEmail} added to ${orgId} by ${user.email}`)
     
-    // 7. CREATE AUDIT LOG ENTRY
-    await supabaseAdmin
-      .from('dashboard_audit_log')
-      .insert({
-        action: 'add_org_access',
-        admin_email: user.email,
-        target_email: userEmail,
-        org_id: orgId,
-        timestamp: new Date().toISOString()
-      })
-      .catch((e: any) => console.warn('Audit log failed (non-critical):', e))
+    // 7. CREATE AUDIT LOG ENTRY (if table exists)
+    try {
+      await supabaseAdmin
+        .from('dashboard_audit_log')
+        .insert({
+          action: 'add_org_access',
+          admin_email: user.email,
+          target_email: userEmail,
+          org_id: orgId,
+          timestamp: new Date().toISOString()
+        })
+    } catch (auditError: any) {
+      // Audit table might not exist - that's OK, log to console
+      console.log('📝 Audit log:', user.email, 'added', userEmail, 'to', orgId)
+    }
     
     return NextResponse.json({ 
       success: true,
