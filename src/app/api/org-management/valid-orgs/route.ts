@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch organizations' }, { status: 500 })
     }
     
-    const validOrgIds = orgs?.map(o => o['org-id']).filter(Boolean) || []
+    const validOrgIds = orgs?.map((o: any) => o['org-id']).filter(Boolean) || []
     
     console.log(`✅ Loaded ${validOrgIds.length} valid org-ids`)
     
