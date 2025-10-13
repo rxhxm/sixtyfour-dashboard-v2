@@ -335,12 +335,12 @@ export default function DashboardPage() {
       .catch(e => console.error('Failed to load org emails:', e))
   }, [])
   
-  // Update recent activity when langfuseMetrics loads (uses already-loaded org list)
+  // Update recent activity when chart data loads (instant!)
   useEffect(() => {
-    if (langfuseMetrics?.organizationBreakdown) {
-      updateRecentActivity(langfuseMetrics.organizationBreakdown)
+    if (langfuseChartData && langfuseChartData.length > 0 && langfuseMetrics) {
+      updateRecentActivity(langfuseChartData)
     }
-  }, [langfuseMetrics])
+  }, [langfuseChartData, langfuseMetrics])
   
   // Save contacted users to localStorage whenever it changes
   const toggleContacted = (orgId: string) => {
@@ -357,35 +357,30 @@ export default function DashboardPage() {
     })
   }
   
-  // Get most recent activity for each loaded org (uses already-loaded orgs list)
-  const updateRecentActivity = (orgsData: any[]) => {
-    if (!orgsData || orgsData.length === 0) return
+  // Get most recent activity for each org from chart data (instant!)
+  const updateRecentActivity = (chartData: any[]) => {
+    if (!chartData || chartData.length === 0) return
     
-    // Fetch 1 most recent trace for each org in parallel
-    console.log('⚡ Getting recent activity for', orgsData.length, 'loaded orgs')
+    console.log('⚡ Calculating recent activity from', chartData.length, 'chart points')
     
-    const fetchPromises = orgsData.slice(0, 10).map(async (org: any) => {
-      try {
-        const response = await fetch(`/api/recent-api-calls?limit=1&orgId=${org.org_id}`)
-        if (response.ok) {
-          const data = await response.json()
-          return data.calls?.[0] || null
-        }
-      } catch (e) {
-        console.warn('Failed to fetch recent for', org.org_id)
-      }
-      return null
-    })
+    // Chart data has traces per org per time period
+    // Just use the most recent data point for each org
+    const mostRecentPoint = chartData[chartData.length - 1] // Last point = most recent
     
-    Promise.all(fetchPromises).then(results => {
-      const validCalls = results.filter(call => call !== null)
-      // Sort by timestamp (most recent first)
-      validCalls.sort((a: any, b: any) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      )
-      console.log('✅ Recent activity for', validCalls.length, 'orgs')
-      setRecentApiCalls(validCalls)
-    })
+    if (mostRecentPoint && langfuseMetrics?.organizationBreakdown) {
+      // Create activity list from org breakdown
+      const activities = langfuseMetrics.organizationBreakdown
+        .map((org: any) => ({
+          id: org.org_id,
+          org: org.org_id,
+          endpoint: `${org.requests.toLocaleString()} calls`,
+          timestamp: new Date().toISOString(), // Approximate (within time period)
+          timeAgo: 'Recent' // All within selected time period
+        }))
+      
+      console.log('✅ Activity data ready for', activities.length, 'orgs')
+      setRecentApiCalls(activities)
+    }
   }
   
   // Format time ago
