@@ -230,6 +230,7 @@ export default function DashboardPage() {
   // Langfuse data state
   const [langfuseMetrics, setLangfuseMetrics] = useState<(UsageMetrics & { traceTypes?: Record<string, number> }) | null>(null)
   const [langfuseChartData, setLangfuseChartData] = useState<any[]>([])
+  const [recentApiCalls, setRecentApiCalls] = useState<any[]>([])
   
   // Cache for different time periods - stored in sessionStorage for persistence across tab switches
   const [dataCache, setDataCache] = useState<Map<string, CachedData>>(() => {
@@ -337,6 +338,41 @@ export default function DashboardPage() {
       localStorage.setItem('contactedUsers', JSON.stringify(Array.from(newSet)))
       return newSet
     })
+  }
+  
+  // Fetch recent API traces for activity feed
+  const fetchRecentTraces = async (timeRange: any) => {
+    try {
+      const params = new URLSearchParams({
+        limit: '10'
+      })
+      
+      if (timeRange.startDate && timeRange.endDate) {
+        params.set('fromTimestamp', timeRange.startDate)
+        params.set('toTimestamp', timeRange.endDate)
+      }
+      
+      const response = await fetch(`/api/langfuse-traces-simple?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setRecentApiCalls(data.traces || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch recent traces:', error)
+    }
+  }
+  
+  // Format time ago
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date()
+    const then = new Date(timestamp)
+    const diffMs = now.getTime() - then.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`
+    return `${Math.floor(diffMins / 1440)}d ago`
   }
   
   // Helper function to copy text to clipboard
@@ -1238,32 +1274,35 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium">Recent API Calls</CardTitle>
                 <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
                   <Activity className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                </div>
+          </div>
               </CardHeader>
               <CardContent className="pt-1">
                 <div className="text-2xl font-bold tabular-nums">
-                  {langfuseMetrics?.totalRequests || 0}
+                  {recentApiCalls.length || 0}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Total calls {timePeriod === '24hours' ? '(24h)' : `(${getPeriodLabel(timePeriod, timeOffset, selectedDate, customRange)})`}
+                  Most recent
                 </p>
-                {langfuseMetrics?.traceTypes && Object.keys(langfuseMetrics.traceTypes).length > 0 && (
-                  <div className="mt-2 space-y-1 border-t pt-2">
-                    <div className="text-xs font-medium text-muted-foreground mb-1">Top API Types:</div>
-                    {Object.entries(langfuseMetrics.traceTypes)
-                      .sort(([, a], [, b]) => (b as number) - (a as number))
-                      .slice(0, 3)
-                      .map(([type, count]) => (
-                        <div key={type} className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground truncate max-w-[120px]">{type}</span>
-                          <span className="font-medium">{(count as number).toLocaleString()}</span>
+                {recentApiCalls && recentApiCalls.length > 0 && (
+                  <div className="mt-2 space-y-1.5 border-t pt-2">
+                    {recentApiCalls.slice(0, 4).map((call: any, idx: number) => {
+                      // Extract org from metadata or tags
+                      const orgId = call.metadata?.org_id || 
+                                   call.tags?.find((t: string) => t.startsWith('org_id:'))?.split(':')[1] || 
+                                   'Unknown'
+                      
+                      return (
+                        <div key={idx} className="flex items-center justify-between text-xs py-1">
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="font-medium truncate">{orgId}</span>
+                            <span className="text-muted-foreground text-[10px]">{call.name || 'API call'}</span>
+                          </div>
+                          <span className="text-muted-foreground text-[10px] ml-2 whitespace-nowrap">
+                            {formatTimeAgo(call.timestamp)}
+                          </span>
                         </div>
-                      ))}
-                    {Object.keys(langfuseMetrics.traceTypes).length > 3 && (
-                      <div className="text-xs text-muted-foreground text-center">
-                        +{Object.keys(langfuseMetrics.traceTypes).length - 3} more
-                      </div>
-                    )}
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
