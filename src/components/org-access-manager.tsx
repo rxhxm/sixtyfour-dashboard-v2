@@ -17,6 +17,7 @@ export function OrgAccessManager() {
   const [selectedOrg, setSelectedOrg] = useState('')
   const [userSearch, setUserSearch] = useState('')
   const [orgSearch, setOrgSearch] = useState('')
+  const [currentOrg, setCurrentOrg] = useState<string | null>(null)
   
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
@@ -29,6 +30,16 @@ export function OrgAccessManager() {
     loadOrgs()
     loadMappings()
   }, [])
+  
+  // Look up current org when user is selected
+  useEffect(() => {
+    if (selectedUser && mappings.length > 0) {
+      const mapping = mappings.find(m => m.email === selectedUser)
+      setCurrentOrg(mapping?.orgId || null)
+    } else {
+      setCurrentOrg(null)
+    }
+  }, [selectedUser, mappings])
   
   const loadUsers = async () => {
     // Fetch all auth users directly (for better autocomplete)
@@ -64,11 +75,9 @@ export function OrgAccessManager() {
       return
     }
     
-    // Check if user already has a mapping to a different org
-    const currentMapping = mappings.find(m => m.email === selectedUser)
-    
-    if (currentMapping && currentMapping.orgId !== selectedOrg) {
-      setExistingMapping(currentMapping.orgId)
+    // Use currentOrg state (already set by useEffect)
+    if (currentOrg && currentOrg !== selectedOrg) {
+      setExistingMapping(currentOrg)
     } else {
       setExistingMapping(null)
     }
@@ -107,6 +116,7 @@ export function OrgAccessManager() {
         setSelectedOrg('')
         setUserSearch('')
         setOrgSearch('')
+        setCurrentOrg(null)
         setShowConfirm(false)
         setExistingMapping(null)
         loadMappings() // Refresh list
@@ -163,40 +173,11 @@ export function OrgAccessManager() {
       </CardHeader>
       <CardContent className="space-y-6">
         
-        {/* Current Access List */}
-        <div>
-          <h3 className="font-semibold mb-3">Current Organization Access ({mappings.length})</h3>
-          <div className="border rounded-md divide-y max-h-[400px] overflow-y-auto">
-            {mappings.length > 0 ? (
-              mappings.map((mapping, idx) => (
-                <div key={idx} className="p-3 flex items-center justify-between hover:bg-muted/50">
-                  <div>
-                    <p className="font-medium text-sm">{mapping.email}</p>
-                    <p className="text-xs text-muted-foreground">→ {mapping.orgId}</p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleRemove(mapping.userId, mapping.orgId, mapping.email)}
-                    disabled={loading}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))
-            ) : (
-              <div className="p-8 text-center text-muted-foreground">
-                <p>No org access mappings found</p>
-              </div>
-            )}
-          </div>
-        </div>
-        
         {/* Add User Form */}
         <div className="border rounded-lg p-4 bg-muted/30">
           <h3 className="font-semibold mb-4">Add New User to Organization</h3>
           
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             {/* User Selection */}
             <div className="space-y-2">
               <Label>User Email</Label>
@@ -231,9 +212,27 @@ export function OrgAccessManager() {
               </div>
             </div>
             
+            {/* Current Organization Display */}
+            <div className="space-y-2">
+              <Label>Current Organization</Label>
+              <div className="relative">
+                {currentOrg ? (
+                  <div className="h-10 px-3 py-2 border rounded-md bg-muted/50 flex items-center">
+                    <Badge variant="secondary" className="text-sm">
+                      {currentOrg}
+                    </Badge>
+                  </div>
+                ) : (
+                  <div className="h-10 px-3 py-2 border rounded-md bg-background flex items-center text-sm text-muted-foreground">
+                    {selectedUser ? 'No org assigned' : 'Select user first'}
+                  </div>
+                )}
+              </div>
+            </div>
+            
             {/* Org Selection */}
             <div className="space-y-2">
-              <Label>Organization</Label>
+              <Label>New Organization</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -270,10 +269,23 @@ export function OrgAccessManager() {
           {(selectedUser || selectedOrg) && (
             <div className="mt-4 p-3 bg-background border rounded-md">
               <p className="text-sm">
-                <span className="text-muted-foreground">Adding:</span>{' '}
-                <span className="font-medium">{selectedUser || '(select user)'}</span>
-                {' → '}
-                <span className="font-medium">{selectedOrg || '(select org)'}</span>
+                {currentOrg && currentOrg !== selectedOrg ? (
+                  <>
+                    <span className="text-muted-foreground">Moving:</span>{' '}
+                    <span className="font-medium">{selectedUser || '(select user)'}</span>
+                    {' from '}
+                    <Badge variant="secondary" className="mx-1">{currentOrg}</Badge>
+                    {' to '}
+                    <Badge variant="secondary" className="mx-1">{selectedOrg || '(select org)'}</Badge>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-muted-foreground">Adding:</span>{' '}
+                    <span className="font-medium">{selectedUser || '(select user)'}</span>
+                    {' → '}
+                    <span className="font-medium">{selectedOrg || '(select org)'}</span>
+                  </>
+                )}
               </p>
             </div>
           )}
@@ -297,6 +309,7 @@ export function OrgAccessManager() {
                   setSelectedOrg('')
                   setUserSearch('')
                   setOrgSearch('')
+                  setCurrentOrg(null)
                 }}
               >
                 Clear
