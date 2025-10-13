@@ -49,7 +49,7 @@ export async function DELETE(request: NextRequest) {
         org_id: orgId,
         timestamp: new Date().toISOString()
       })
-      .catch(e => console.warn('Audit log failed:', e))
+      .catch((e: any) => console.warn('Audit log failed:', e))
     
     return NextResponse.json({ success: true })
     
