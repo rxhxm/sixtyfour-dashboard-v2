@@ -13,25 +13,42 @@ const AUTHORIZED_ADMINS = [
 ]
 
 export async function POST(request: NextRequest) {
+  const requestId = Math.random().toString(36).substring(7)
+  console.log(`\n${'='.repeat(70)}`)
+  console.log(`🔵 ORG ACCESS ADD REQUEST [${requestId}] STARTED`)
+  console.log(`Time: ${new Date().toISOString()}`)
+  console.log('='.repeat(70))
+  
   try {
-    console.log('🔵 === ORG ACCESS ADD REQUEST STARTED ===')
-    
     // 1. VERIFY ADMIN ACCESS
-    const supabase = await createClient()
+    console.log(`[${requestId}] Step 1: Verifying admin access...`)
+    
+    let supabase
+    try {
+      supabase = await createClient()
+      console.log(`[${requestId}]   ✓ Supabase client created`)
+    } catch (e: any) {
+      console.error(`[${requestId}]   ✗ Failed to create Supabase client:`, e.message)
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
+    }
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    console.log('Step 1: Admin check -', user?.email || 'NO USER', userError ? `Error: ${userError.message}` : 'OK')
+    console.log(`[${requestId}]   User: ${user?.email || 'NONE'}`)
+    console.log(`[${requestId}]   Error: ${userError?.message || 'NONE'}`)
     
     if (!user || !AUTHORIZED_ADMINS.includes(user.email?.toLowerCase() || '')) {
-      console.log('🚨 UNAUTHORIZED ORG MANAGEMENT ATTEMPT:', user?.email)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      console.log(`[${requestId}]   ✗ UNAUTHORIZED:`, user?.email)
+      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 403 })
     }
+    console.log(`[${requestId}]   ✓ Admin authorized`)
     
     const body = await request.json()
     const { userEmail, orgId } = body
     
-    console.log(`Step 2: Request data - Email: ${userEmail}, Org: ${orgId}`)
-    console.log(`👤 Admin ${user.email} adding ${userEmail} to ${orgId}`)
+    console.log(`[${requestId}] Step 2: Request validated`)
+    console.log(`[${requestId}]   Email: ${userEmail}`)
+    console.log(`[${requestId}]   Org: ${orgId}`)
     
     // 2. VALIDATE ORG EXISTS (case-insensitive for flexibility)
     console.log('Step 3: Validating org exists in organizations table...')
@@ -149,10 +166,15 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error: any) {
-    console.error('❌ FATAL ERROR in add-access API:', error)
-    console.error('Error stack:', error.stack)
+    console.error(`\n${'!'.repeat(70)}`)
+    console.error(`❌ FATAL ERROR in add-access API [${requestId || 'unknown'}]`)
+    console.error('Error:', error)
+    console.error('Message:', error.message)
+    console.error('Stack:', error.stack)
+    console.error('!'.repeat(70))
+    
     return NextResponse.json({ 
-      error: 'Internal server error: ' + (error.message || 'Unknown error')
+      error: `Server error: ${error.message || 'Unknown'}. Check logs for request ID: ${requestId}`
     }, { status: 500 })
   }
 }
