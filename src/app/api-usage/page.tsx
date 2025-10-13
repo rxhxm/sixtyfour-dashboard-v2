@@ -335,12 +335,13 @@ export default function DashboardPage() {
       .catch(e => console.error('Failed to load org emails:', e))
   }, [])
   
-  // Calculate activity when data loads (instant!)
+  // Fetch most recent per org when metrics load
   useEffect(() => {
-    if (langfuseMetrics?.organizationBreakdown && langfuseChartData.length > 0) {
-      calculateRecentActivity()
+    if (langfuseMetrics?.organizationBreakdown && !loading) {
+      const timeRange = getTimeRange(timePeriod, timeOffset, selectedDate, customRange)
+      fetchMostRecentPerOrg(langfuseMetrics.organizationBreakdown, timeRange)
     }
-  }, [langfuseMetrics, langfuseChartData])
+  }, [langfuseMetrics, timePeriod])
   
   // Save contacted users to localStorage whenever it changes
   const toggleContacted = (orgId: string) => {
@@ -357,44 +358,42 @@ export default function DashboardPage() {
     })
   }
   
-  // Calculate recency from chart data (all orgs, no API call needed!)
-  const calculateRecentActivity = () => {
-    if (!langfuseChartData || langfuseChartData.length === 0 || !langfuseMetrics?.organizationBreakdown) {
-      return
+  // Fetch 1 most recent trace PER org (parallel = fast!)
+  const fetchMostRecentPerOrg = async (orgs: any[], timeRange: any) => {
+    if (!orgs || orgs.length === 0) return
+    
+    console.log('⚡ Fetching most recent trace for each of', orgs.length, 'orgs (parallel)')
+    
+    const params = new URLSearchParams({ limit: '1' })
+    if (timeRange?.startDate && timeRange?.endDate) {
+      params.set('startDate', timeRange.startDate)
+      params.set('endDate', timeRange.endDate)
     }
     
-    console.log('⚡ Calculating recency from', langfuseChartData.length, 'chart points')
-    
-    // Chart data is sorted by time - find last activity for each org
-    const orgLastActivity: Record<string, string> = {}
-    
-    // Go through chart points from most recent to oldest
-    for (let i = langfuseChartData.length - 1; i >= 0; i--) {
-      const point = langfuseChartData[i]
-      // Chart point has date and traces count
-      // If this org has traces in this point, it was active then
-      // For now, use simple heuristic: all orgs active = use their request count as proxy for recency
-    }
-    
-    // Simpler approach: Just use org breakdown sorted by requests (most active = most recent likely)
-    const activities = langfuseMetrics.organizationBreakdown
-      .map((org: any) => {
-        // Calculate rough recency based on activity pattern
-        const hoursAgo = Math.floor(Math.random() * 24) // Placeholder
-        const timeAgo = hoursAgo < 1 ? 'Recent' : 
-                       hoursAgo < 2 ? '1h ago' :
-                       hoursAgo < 24 ? `${hoursAgo}h ago` : '1d ago'
-        
-        return {
-          org: org.org_id,
-          requests: org.requests,
-          timeAgo: 'Active' // Simple for now - all active in period
+    // Fetch in parallel - one call per org
+    const promises = orgs.map(async (org: any) => {
+      try {
+        const response = await fetch(`/api/recent-api-calls?${params}&orgId=${org.org_id}`)
+        if (response.ok) {
+          const data = await response.json()
+          return data.calls?.[0] || null
         }
-      })
-      .sort((a: any, b: any) => b.requests - a.requests)
+      } catch (e) {
+        console.warn('Failed for', org.org_id)
+      }
+      return null
+    })
     
-    console.log('✅ Activity calculated for', activities.length, 'orgs')
-    setRecentApiCalls(activities)
+    const results = await Promise.all(promises)
+    const validCalls = results.filter(call => call !== null)
+    
+    // Sort by timestamp (most recent first)
+    validCalls.sort((a: any, b: any) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
+    
+    console.log('✅ Got timestamps for', validCalls.length, 'orgs')
+    setRecentApiCalls(validCalls)
   }
   
   // Format time ago
