@@ -335,11 +335,14 @@ export default function DashboardPage() {
       .catch(e => console.error('Failed to load org emails:', e))
   }, [])
   
-  // Fetch most recent per org when metrics load
+  // Fetch most recent per org AFTER page renders (don't block rendering!)
   useEffect(() => {
     if (langfuseMetrics?.organizationBreakdown && !loading) {
-      const timeRange = getTimeRange(timePeriod, timeOffset, selectedDate, customRange)
-      fetchMostRecentPerOrg(langfuseMetrics.organizationBreakdown, timeRange)
+      // Delay slightly so page renders first
+      setTimeout(() => {
+        const timeRange = getTimeRange(timePeriod, timeOffset, selectedDate, customRange)
+        fetchMostRecentPerOrg(langfuseMetrics.organizationBreakdown, timeRange)
+      }, 100) // 100ms delay - page renders, THEN fetch
     }
   }, [langfuseMetrics, timePeriod])
   
@@ -358,11 +361,11 @@ export default function DashboardPage() {
     })
   }
   
-  // Fetch 1 most recent trace PER org (parallel = fast!)
+  // Fetch 1 most recent trace PER org (parallel, in background!)
   const fetchMostRecentPerOrg = async (orgs: any[], timeRange: any) => {
     if (!orgs || orgs.length === 0) return
     
-    console.log('⚡ Fetching most recent trace for each of', orgs.length, 'orgs (parallel)')
+    console.log('⚡ Fetching most recent trace for each of', orgs.length, 'orgs (background)')
     
     const params = new URLSearchParams({ limit: '1' })
     if (timeRange?.startDate && timeRange?.endDate) {
@@ -370,22 +373,33 @@ export default function DashboardPage() {
       params.set('endDate', timeRange.endDate)
     }
     
-    // Fetch in parallel - one call per org
+    // Fetch in parallel with timeout - don't wait forever
     const promises = orgs.map(async (org: any) => {
       try {
-        const response = await fetch(`/api/recent-api-calls?${params}&orgId=${org.org_id}`)
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 5000) // 5 sec timeout per request
+        
+        const response = await fetch(`/api/recent-api-calls?${params}&orgId=${org.org_id}`, {
+          signal: controller.signal
+        })
+        clearTimeout(timeout)
+        
         if (response.ok) {
           const data = await response.json()
           return data.calls?.[0] || null
         }
       } catch (e) {
-        console.warn('Failed for', org.org_id)
+        // Timeout or error - skip this org
+        return null
       }
       return null
     })
     
-    const results = await Promise.all(promises)
-    const validCalls = results.filter(call => call !== null)
+    // Use allSettled (don't wait for slow ones to finish)
+    const results = await Promise.allSettled(promises)
+    const validCalls = results
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
+      .map(r => r.value)
     
     // Sort by timestamp (most recent first)
     validCalls.sort((a: any, b: any) => 
