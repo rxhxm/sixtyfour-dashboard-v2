@@ -43,7 +43,7 @@ export async function updateSession(request: NextRequest) {
   const isAuthorizedEmail = user?.email && AUTHORIZED_EMAILS.includes(user.email.toLowerCase());
 
   // Protected routes that require authorization
-  const protectedPaths = ['/', '/workflows', '/credits-management', '/platform-access'];
+  const protectedPaths = ['/', '/workflows', '/api-usage', '/credits-management', '/platform-access'];
   const isProtectedRoute = protectedPaths.some(path => 
     request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + '/')
   );

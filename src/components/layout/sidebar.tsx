@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navigation = [
-  { name: 'API Usage', href: '/', icon: Activity },
   { name: 'Workflows', href: '/workflows', icon: Workflow },
+  { name: 'API Usage', href: '/api-usage', icon: Activity },
   { name: 'Platform Access', href: '/platform-access', icon: UserPlus },
   { name: 'Credits Management', href: '/credits-management', icon: Coins },
 ]
