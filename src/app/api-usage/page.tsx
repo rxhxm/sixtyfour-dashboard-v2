@@ -335,14 +335,12 @@ export default function DashboardPage() {
       .catch(e => console.error('Failed to load org emails:', e))
   }, [])
   
-  // Fetch recent activity after main data loads
+  // Update Recently Active card when metrics load (instant!)
   useEffect(() => {
-    if (langfuseMetrics && !loading) {
-      // Get time range from current state
-      const timeRange = getTimeRange(timePeriod, timeOffset, selectedDate, customRange)
-      fetchRecentActivity(timeRange)
+    if (langfuseMetrics?.organizationBreakdown && !loading) {
+      updateRecentActivityFromLoadedData()
     }
-  }, [langfuseMetrics, timePeriod])
+  }, [langfuseMetrics, loading])
   
   // Save contacted users to localStorage whenever it changes
   const toggleContacted = (orgId: string) => {
@@ -359,38 +357,24 @@ export default function DashboardPage() {
     })
   }
   
-  // Fetch recent traces efficiently - ONE call, then group by org
-  const fetchRecentActivity = async (timeRange: any) => {
-    try {
-      console.log('⚡ Fetching 200 recent traces to find each org\'s last activity')
-      
-      const params = new URLSearchParams({
-        limit: '200' // Fetch enough to cover all orgs
-      })
-      
-      if (timeRange.startDate && timeRange.endDate) {
-        params.set('startDate', timeRange.startDate)
-        params.set('endDate', timeRange.endDate)
-      }
-      
-      const response = await fetch(`/api/recent-api-calls?${params}`)
-      if (response.ok) {
-        const data = await response.json()
-        
-        // Deduplicate - keep first (most recent) of each org
-        const seen = new Set()
-        const uniqueByOrg = (data.calls || []).filter((call: any) => {
-          if (seen.has(call.org)) return false
-          seen.add(call.org)
-          return true
-        })
-        
-        console.log('✅ Got most recent activity for', uniqueByOrg.length, 'orgs')
-        setRecentApiCalls(uniqueByOrg)
-      }
-    } catch (error) {
-      console.error('Failed to fetch recent activity:', error)
-    }
+  // No need for extra API call - use loaded org data
+  // This function is no longer needed but kept for reference
+  const updateRecentActivityFromLoadedData = () => {
+    if (!langfuseMetrics?.organizationBreakdown) return
+    
+    console.log('⚡ Using loaded org data for Recently Active card')
+    
+    // Convert org breakdown to activity format
+    const activities = langfuseMetrics.organizationBreakdown
+      .map((org: any) => ({
+        id: org.org_id,
+        org: org.org_id,
+        requests: org.requests
+      }))
+      .sort((a: any, b: any) => b.requests - a.requests) // Most active first
+    
+    console.log('✅ Activity data ready for', activities.length, 'orgs')
+    setRecentApiCalls(activities)
   }
   
   // Format time ago
@@ -1324,32 +1308,22 @@ export default function DashboardPage() {
                 </p>
                 {recentApiCalls && recentApiCalls.length > 0 ? (
                   <div className="space-y-1 border-t pt-2 max-h-[120px] overflow-y-auto">
-                    {(() => {
-                      // Deduplicate by org - keep FIRST (most recent) of each
-                      const seen = new Set()
-                      const uniqueCalls = recentApiCalls.filter((call: any) => {
-                        if (seen.has(call.org)) return false
-                        seen.add(call.org)
-                        return true
-                      })
-                      
-                      return uniqueCalls.slice(0, 10).map((call: any) => (
-                        <div 
-                          key={call.id} 
-                          className="flex items-center justify-between text-xs py-0.5 hover:bg-muted/50 px-1 rounded cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setExpandedOrg(call.org)
-                            document.getElementById('org-leaderboard')?.scrollIntoView({ behavior: 'smooth' })
-                          }}
-                        >
-                          <span className="font-medium truncate">{call.org !== 'Unknown' ? call.org : '???'}</span>
-                          <span className="text-muted-foreground text-[10px] ml-2 whitespace-nowrap">
-                            {call.timeAgo}
-                          </span>
-                        </div>
-                      ))
-                    })()}
+                    {recentApiCalls.slice(0, 10).map((call: any) => (
+                      <div 
+                        key={call.org} 
+                        className="flex items-center justify-between text-xs py-0.5 hover:bg-muted/50 px-1 rounded cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setExpandedOrg(call.org)
+                          document.getElementById('org-leaderboard')?.scrollIntoView({ behavior: 'smooth' })
+                        }}
+                      >
+                        <span className="font-medium truncate">{call.org}</span>
+                        <span className="text-muted-foreground text-[10px] ml-2 whitespace-nowrap">
+                          {call.requests?.toLocaleString() || 0} calls
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="mt-2 pt-2 text-xs text-muted-foreground text-center">
