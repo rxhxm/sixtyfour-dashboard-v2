@@ -355,8 +355,14 @@ export default function DashboardPage() {
       const response = await fetch(`/api/recent-api-calls?${params}`)
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ Recent API calls loaded:', data.calls?.length)
+        console.log('📡 Recent API calls response:', data)
+        console.log('✅ Loaded', data.calls?.length, 'recent calls')
+        if (data.debug) {
+          console.log('🔍 Debug info:', data.debug)
+        }
         setRecentApiCalls(data.calls || [])
+      } else {
+        console.error('❌ Recent API calls failed:', response.status)
       }
     } catch (error) {
       console.error('Failed to fetch recent API calls:', error)
@@ -1258,7 +1264,7 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-1">
-                <div className="text-2xl font-bold tabular-nums">
+                <div className="text-2xl font-bold tabular-nums break-words">
                   {expandedOrg 
                     ? (langfuseMetrics?.organizationBreakdown?.find((org: any) => org.org_id === expandedOrg)?.tokens || 0).toLocaleString()
                     : (langfuseMetrics?.totalTokens || 0).toLocaleString()

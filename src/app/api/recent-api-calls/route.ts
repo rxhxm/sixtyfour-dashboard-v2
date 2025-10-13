@@ -22,10 +22,28 @@ export async function GET(request: NextRequest) {
       tracesOptions.toTimestamp = endDate
     }
     
+    console.log('🔍 Fetching Langfuse traces with options:', tracesOptions)
     const tracesData = await fetchLangfuseTraces(tracesOptions)
     
+    console.log('📊 Langfuse response:', {
+      hasData: !!tracesData?.data,
+      count: tracesData?.data?.length || 0,
+      totalItems: tracesData?.meta?.totalItems || 0
+    })
+    
     if (!tracesData?.data || tracesData.data.length === 0) {
-      return NextResponse.json({ calls: [] })
+      console.log('⚠️ No traces data returned from Langfuse')
+      return NextResponse.json({ calls: [], debug: { tracesData } })
+    }
+    
+    // Log first trace for debugging
+    if (tracesData.data[0]) {
+      console.log('🔍 Sample trace:', {
+        name: tracesData.data[0].name,
+        tags: tracesData.data[0].tags,
+        metadata: tracesData.data[0].metadata,
+        timestamp: tracesData.data[0].timestamp
+      })
     }
     
     // Extract relevant info from traces
@@ -43,6 +61,7 @@ export async function GET(request: NextRequest) {
       }
     })
     
+    console.log('✅ Returning', enrichedCalls.length, 'enriched calls')
     return NextResponse.json({ calls: enrichedCalls })
     
   } catch (error) {
