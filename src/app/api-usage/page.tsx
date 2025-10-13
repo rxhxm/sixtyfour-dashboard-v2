@@ -1239,7 +1239,7 @@ export default function DashboardPage() {
                     document.getElementById('org-leaderboard')?.scrollIntoView({ behavior: 'smooth' })
                   }}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
-                <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+                <CardTitle className="text-sm font-medium">Top Orgs</CardTitle>
                 <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
                   <Activity className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                 </div>
@@ -1249,21 +1249,35 @@ export default function DashboardPage() {
                   {langfuseMetrics?.organizationBreakdown?.length || 0}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Active orgs (click for more)
+                  {timePeriod === '24hours' ? 'Last 24 hours' : getPeriodLabel(timePeriod, timeOffset, selectedDate, customRange)}
                 </p>
                 {langfuseMetrics?.organizationBreakdown && langfuseMetrics.organizationBreakdown.length > 0 && (
                   <div className="mt-2 space-y-1 border-t pt-2">
                     {langfuseMetrics.organizationBreakdown
+                      .filter((org: any) => org.org_id && org.org_id !== 'Default Key' && org.org_id !== 'Unknown')
                       .sort((a: any, b: any) => b.requests - a.requests)
                       .slice(0, 3)
-                      .map((org: any) => (
-                        <div key={org.org_id} className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground truncate max-w-[120px]">
-                            {org.org_id || org.org_name || 'Unknown'}
+                      .map((org: any, idx: number) => (
+                        <div 
+                          key={org.org_id}
+                          className="flex items-center justify-between text-xs hover:bg-muted/50 px-1 py-0.5 rounded cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setExpandedOrg(org.org_id)
+                            document.getElementById('org-leaderboard')?.scrollIntoView({ behavior: 'smooth' })
+                          }}
+                        >
+                          <span className="text-muted-foreground truncate max-w-[120px] font-medium">
+                            {org.org_id}
                           </span>
-                          <span className="font-medium">{org.requests.toLocaleString()}</span>
+                          <span className="font-bold text-xs">{org.requests.toLocaleString()}</span>
                         </div>
                       ))}
+                    {langfuseMetrics.organizationBreakdown.length > 3 && (
+                      <div className="text-xs text-muted-foreground text-center pt-1 font-medium">
+                        Click to see all {langfuseMetrics.organizationBreakdown.length} orgs
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
