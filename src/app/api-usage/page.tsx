@@ -340,7 +340,7 @@ export default function DashboardPage() {
     })
   }
   
-  // Fetch recent API traces for activity feed
+  // Fetch recent API calls from database
   const fetchRecentTraces = async (timeRange: any) => {
     try {
       const params = new URLSearchParams({
@@ -348,17 +348,18 @@ export default function DashboardPage() {
       })
       
       if (timeRange.startDate && timeRange.endDate) {
-        params.set('fromTimestamp', timeRange.startDate)
-        params.set('toTimestamp', timeRange.endDate)
+        params.set('startDate', timeRange.startDate)
+        params.set('endDate', timeRange.endDate)
       }
       
-      const response = await fetch(`/api/langfuse-traces-simple?${params}`)
+      const response = await fetch(`/api/recent-api-calls?${params}`)
       if (response.ok) {
         const data = await response.json()
-        setRecentApiCalls(data.traces || [])
+        console.log('✅ Recent API calls loaded:', data.calls?.length)
+        setRecentApiCalls(data.calls || [])
       }
     } catch (error) {
-      console.error('Failed to fetch recent traces:', error)
+      console.error('Failed to fetch recent API calls:', error)
     }
   }
   
@@ -1283,26 +1284,23 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground">
                   Most recent
                 </p>
-                {recentApiCalls && recentApiCalls.length > 0 && (
+                {recentApiCalls && recentApiCalls.length > 0 ? (
                   <div className="mt-2 space-y-1.5 border-t pt-2">
-                    {recentApiCalls.slice(0, 4).map((call: any, idx: number) => {
-                      // Extract org from metadata or tags
-                      const orgId = call.metadata?.org_id || 
-                                   call.tags?.find((t: string) => t.startsWith('org_id:'))?.split(':')[1] || 
-                                   'Unknown'
-                      
-                      return (
-                        <div key={idx} className="flex items-center justify-between text-xs py-1">
-                          <div className="flex flex-col flex-1 min-w-0">
-                            <span className="font-medium truncate">{orgId}</span>
-                            <span className="text-muted-foreground text-[10px]">{call.name || 'API call'}</span>
-                          </div>
-                          <span className="text-muted-foreground text-[10px] ml-2 whitespace-nowrap">
-                            {formatTimeAgo(call.timestamp)}
-                          </span>
+                    {recentApiCalls.slice(0, 4).map((call: any, idx: number) => (
+                      <div key={call.id || idx} className="flex items-center justify-between text-xs py-1">
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="font-medium truncate">{call.org || 'Unknown'}</span>
+                          <span className="text-muted-foreground text-[10px] truncate">{call.endpoint}</span>
                         </div>
-                      )
-                    })}
+                        <span className="text-muted-foreground text-[10px] ml-2 whitespace-nowrap">
+                          {call.timeAgo}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 pt-2 text-xs text-muted-foreground text-center">
+                    No recent calls
                   </div>
                 )}
               </CardContent>
