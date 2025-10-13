@@ -372,18 +372,24 @@ export default function PlatformAccessPage() {
         {/* Organization Access Management */}
         <OrgAccessManager />
 
-        {/* Add New User */}
+        {/* Add New User - Unified with user list */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
-              Add New User
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Add New User
+              </div>
+              <Badge variant="secondary" className="text-lg px-3 py-1">
+                {set2Emails.length} users
+              </Badge>
             </CardTitle>
             <CardDescription>
               Grant platform access to a new user by adding their email address
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            {/* Add email input */}
             <div className="flex gap-3">
               <Input
                 type="email"
@@ -411,34 +417,16 @@ export default function PlatformAccessPage() {
                 )}
               </Button>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Current Users with Access (Set 2) */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Current Users with Access (Set 2)
-              </div>
-              <Badge variant="secondary" className="text-lg px-3 py-1">
-                {set2Emails.length} users
-              </Badge>
-            </CardTitle>
-            <CardDescription>
-              Users explicitly granted access via email list (managed here)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            {/* User list */}
             {set2Emails.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-12 border-t">
                 <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground">No users in Set 2 yet</p>
+                <p className="text-sm text-muted-foreground">No users added yet</p>
                 <p className="text-xs text-muted-foreground mt-1">Add an email above to grant access</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 pt-4 border-t">
                 {set2Emails.map((email) => (
                   <div
                     key={email}
