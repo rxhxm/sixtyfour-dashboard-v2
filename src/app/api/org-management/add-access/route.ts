@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
+
+// Input validation schema
+const AddAccessSchema = z.object({
+  userEmail: z.string().email('Invalid email format').max(255, 'Email too long'),
+  orgId: z.string()
+    .min(1, 'Organization ID required')
+    .max(255, 'Organization ID too long')
+    .regex(/^[a-zA-Z0-9-_.]+$/, 'Invalid organization ID format')
+})
 
 // HARDCODED WHITELIST - ONLY THESE 3 CAN MANAGE ORG ACCESS
 const AUTHORIZED_ADMINS = [
@@ -43,10 +53,27 @@ export async function POST(request: NextRequest) {
     }
     console.log(`[${requestId}]   ✓ Admin authorized`)
     
-    const body = await request.json()
+    // 2. VALIDATE INPUT
+    console.log(`[${requestId}] Step 2: Validating request input...`)
+    
+    let body
+    try {
+      const rawBody = await request.json()
+      body = AddAccessSchema.parse(rawBody)
+    } catch (validationError: any) {
+      console.error(`[${requestId}]   ✗ Validation failed:`, validationError.message)
+      if (validationError instanceof z.ZodError) {
+        return NextResponse.json({ 
+          error: 'Invalid input', 
+          details: validationError.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        }, { status: 400 })
+      }
+      return NextResponse.json({ error: 'Invalid request format' }, { status: 400 })
+    }
+    
     const { userEmail, orgId } = body
     
-    console.log(`[${requestId}] Step 2: Request validated`)
+    console.log(`[${requestId}]   ✓ Input validated`)
     console.log(`[${requestId}]   Email: ${userEmail}`)
     console.log(`[${requestId}]   Org: ${orgId}`)
     
@@ -203,8 +230,15 @@ export async function POST(request: NextRequest) {
     console.error('Stack:', error.stack)
     console.error('!'.repeat(70))
     
+    // Don't expose internal error details to client in production
+    const isDevelopment = process.env.NODE_ENV === 'development'
+    
     return NextResponse.json({ 
-      error: `Server error: ${error.message || 'Unknown'}. Check logs for request ID: ${requestId}`
+      error: 'Internal server error',
+      ...(isDevelopment && { 
+        debug: error.message,
+        requestId 
+      })
     }, { status: 500 })
   }
 }

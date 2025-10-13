@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
+
+// Input validation schema
+const RemoveAccessSchema = z.object({
+  userId: z.string().uuid('Invalid user ID format'),
+  orgId: z.string()
+    .min(1, 'Organization ID required')
+    .max(255, 'Organization ID too long')
+})
 
 const AUTHORIZED_ADMINS = [
   'saarth@sixtyfour.ai',
@@ -21,7 +30,22 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
     
-    const { userId, orgId } = await request.json()
+    // 2. VALIDATE INPUT
+    let body
+    try {
+      const rawBody = await request.json()
+      body = RemoveAccessSchema.parse(rawBody)
+    } catch (validationError: any) {
+      if (validationError instanceof z.ZodError) {
+        return NextResponse.json({ 
+          error: 'Invalid input', 
+          details: validationError.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        }, { status: 400 })
+      }
+      return NextResponse.json({ error: 'Invalid request format' }, { status: 400 })
+    }
+    
+    const { userId, orgId } = body
     
     console.log(`👤 Admin ${user.email} removing user ${userId} from ${orgId}`)
     
