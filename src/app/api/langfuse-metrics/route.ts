@@ -6,7 +6,6 @@ import {
   getDateRange
 } from '@/lib/langfuse'
 import { supabaseAdmin } from '@/lib/supabase'
-import { logger } from '@/lib/debug-logger'
 import { fetchInBatches } from '@/lib/langfuse-parallel'
 
 export const runtime = 'nodejs'
@@ -40,15 +39,6 @@ export async function GET(request: NextRequest) {
   console.log(`Vercel Region: ${process.env.VERCEL_REGION || 'local'}`)
   console.log(`Parallel Fetching: ENABLED (Batch Size: 10)`)
   console.log(`=====================================\n`)
-  
-  logger.log({
-    type: 'API_START',
-    route: '/api/langfuse-metrics',
-    details: {
-      url: request.url,
-      timestamp: new Date().toISOString()
-    }
-  })
   
   try {
     const { searchParams } = new URL(request.url)
