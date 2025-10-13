@@ -335,12 +335,14 @@ export default function DashboardPage() {
       .catch(e => console.error('Failed to load org emails:', e))
   }, [])
   
-  // Update recent activity when chart data loads (instant!)
+  // Fetch recent activity after main data loads
   useEffect(() => {
-    if (langfuseChartData && langfuseChartData.length > 0 && langfuseMetrics) {
-      updateRecentActivity(langfuseChartData)
+    if (langfuseMetrics && !loading) {
+      // Get time range from current state
+      const timeRange = getTimeRange(timePeriod, timeOffset, selectedDate, customRange)
+      fetchRecentActivity(timeRange)
     }
-  }, [langfuseChartData, langfuseMetrics])
+  }, [langfuseMetrics, timePeriod])
   
   // Save contacted users to localStorage whenever it changes
   const toggleContacted = (orgId: string) => {
@@ -357,29 +359,37 @@ export default function DashboardPage() {
     })
   }
   
-  // Get most recent activity for each org from chart data (instant!)
-  const updateRecentActivity = (chartData: any[]) => {
-    if (!chartData || chartData.length === 0) return
-    
-    console.log('⚡ Calculating recent activity from', chartData.length, 'chart points')
-    
-    // Chart data has traces per org per time period
-    // Just use the most recent data point for each org
-    const mostRecentPoint = chartData[chartData.length - 1] // Last point = most recent
-    
-    if (mostRecentPoint && langfuseMetrics?.organizationBreakdown) {
-      // Create activity list from org breakdown
-      const activities = langfuseMetrics.organizationBreakdown
-        .map((org: any) => ({
-          id: org.org_id,
-          org: org.org_id,
-          endpoint: `${org.requests.toLocaleString()} calls`,
-          timestamp: new Date().toISOString(), // Approximate (within time period)
-          timeAgo: 'Recent' // All within selected time period
-        }))
+  // Fetch recent traces efficiently - ONE call, then group by org
+  const fetchRecentActivity = async (timeRange: any) => {
+    try {
+      console.log('⚡ Fetching 200 recent traces to find each org\'s last activity')
       
-      console.log('✅ Activity data ready for', activities.length, 'orgs')
-      setRecentApiCalls(activities)
+      const params = new URLSearchParams({
+        limit: '200' // Fetch enough to cover all orgs
+      })
+      
+      if (timeRange.startDate && timeRange.endDate) {
+        params.set('startDate', timeRange.startDate)
+        params.set('endDate', timeRange.endDate)
+      }
+      
+      const response = await fetch(`/api/recent-api-calls?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Deduplicate - keep first (most recent) of each org
+        const seen = new Set()
+        const uniqueByOrg = (data.calls || []).filter((call: any) => {
+          if (seen.has(call.org)) return false
+          seen.add(call.org)
+          return true
+        })
+        
+        console.log('✅ Got most recent activity for', uniqueByOrg.length, 'orgs')
+        setRecentApiCalls(uniqueByOrg)
+      }
+    } catch (error) {
+      console.error('Failed to fetch recent activity:', error)
     }
   }
   
