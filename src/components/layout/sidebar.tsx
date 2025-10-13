@@ -4,6 +4,7 @@ import { Activity, Workflow, UserPlus, Coins } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Logo } from '@/components/ui/logo'
 
 const navigation = [
   { name: 'Workflows', href: '/workflows', icon: Workflow },
@@ -17,7 +18,8 @@ export function Sidebar() {
   
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-64 bg-background border-r">
-      <div className="flex h-16 items-center px-6">
+      <div className="flex h-16 items-center px-6 gap-3">
+        <Logo width={32} height={32} />
         <h1 className="text-xl font-bold">Sixtyfour</h1>
       </div>
       <nav className="mt-8">
