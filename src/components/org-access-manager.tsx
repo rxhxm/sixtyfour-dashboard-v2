@@ -140,9 +140,38 @@ export function OrgAccessManager() {
       </CardHeader>
       <CardContent className="space-y-6">
         
+        {/* Current Access List */}
+        <div>
+          <h3 className="font-semibold mb-3">Current Organization Access ({mappings.length})</h3>
+          <div className="border rounded-md divide-y max-h-[400px] overflow-y-auto">
+            {mappings.length > 0 ? (
+              mappings.map((mapping, idx) => (
+                <div key={idx} className="p-3 flex items-center justify-between hover:bg-muted/50">
+                  <div>
+                    <p className="font-medium text-sm">{mapping.email}</p>
+                    <p className="text-xs text-muted-foreground">→ {mapping.orgId}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleRemove(mapping.userId, mapping.orgId, mapping.email)}
+                    disabled={loading}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                <p>No org access mappings found</p>
+              </div>
+            )}
+          </div>
+        </div>
+        
         {/* Add User Form */}
         <div className="border rounded-lg p-4 bg-muted/30">
-          <h3 className="font-semibold mb-4">Add User to Organization</h3>
+          <h3 className="font-semibold mb-4">Add New User to Organization</h3>
           
           <div className="grid md:grid-cols-2 gap-4">
             {/* User Selection */}
@@ -151,18 +180,26 @@ export function OrgAccessManager() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Type email address..."
+                  placeholder="Start typing email..."
                   value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedUser(e.target.value)
+                    setUserSearch(e.target.value)
+                  }}
                   className="pl-10"
                   list="user-list"
                 />
                 <datalist id="user-list">
-                  {filteredUsers.slice(0, 100).map(email => (
+                  {filteredUsers.slice(0, 200).map(email => (
                     <option key={email} value={email} />
                   ))}
                 </datalist>
               </div>
+              {filteredUsers.length > 0 && selectedUser && (
+                <p className="text-xs text-muted-foreground">
+                  {filteredUsers.length} matches found
+                </p>
+              )}
             </div>
             
             {/* Org Selection */}
@@ -171,18 +208,26 @@ export function OrgAccessManager() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Type organization name..."
+                  placeholder="Start typing org name..."
                   value={selectedOrg}
-                  onChange={(e) => setSelectedOrg(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedOrg(e.target.value)
+                    setOrgSearch(e.target.value)
+                  }}
                   className="pl-10"
                   list="org-list"
                 />
                 <datalist id="org-list">
-                  {filteredOrgs.slice(0, 100).map(org => (
+                  {filteredOrgs.slice(0, 200).map(org => (
                     <option key={org} value={org} />
                   ))}
                 </datalist>
               </div>
+              {filteredOrgs.length > 0 && selectedOrg && (
+                <p className="text-xs text-muted-foreground">
+                  {filteredOrgs.length} matches found
+                </p>
+              )}
             </div>
           </div>
           
