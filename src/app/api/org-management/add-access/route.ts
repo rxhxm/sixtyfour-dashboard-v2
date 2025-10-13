@@ -14,32 +14,45 @@ const AUTHORIZED_ADMINS = [
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔵 === ORG ACCESS ADD REQUEST STARTED ===')
+    
     // 1. VERIFY ADMIN ACCESS
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    console.log('Step 1: Admin check -', user?.email || 'NO USER', userError ? `Error: ${userError.message}` : 'OK')
     
     if (!user || !AUTHORIZED_ADMINS.includes(user.email?.toLowerCase() || '')) {
       console.log('🚨 UNAUTHORIZED ORG MANAGEMENT ATTEMPT:', user?.email)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
     
-    const { userEmail, orgId } = await request.json()
+    const body = await request.json()
+    const { userEmail, orgId } = body
     
+    console.log(`Step 2: Request data - Email: ${userEmail}, Org: ${orgId}`)
     console.log(`👤 Admin ${user.email} adding ${userEmail} to ${orgId}`)
     
     // 2. VALIDATE ORG EXISTS
+    console.log('Step 3: Validating org exists in organizations table...')
+    
     const { data: org, error: orgError } = await supabaseAdmin
       .from('organizations')
       .select('id, "org-id"')
       .eq('org-id', orgId)
       .single()
     
+    console.log('Org query result:', { org, error: orgError?.message })
+    
     if (orgError || !org) {
-      console.error('❌ Org validation failed:', orgId)
+      console.error('❌ VALIDATION FAILED: Org not found:', orgId)
+      console.error('Error details:', orgError)
       return NextResponse.json({ 
-        error: `Organization "${orgId}" does not exist in organizations table` 
+        error: `Organization "${orgId}" does not exist. Try exact case (e.g., "Conduit" not "conduit")` 
       }, { status: 400 })
     }
+    
+    console.log('✅ Org validated:', org['org-id'])
     
     // 3. VALIDATE USER EXISTS & GET UUID
     let allUsers: any[] = []
@@ -117,9 +130,12 @@ export async function POST(request: NextRequest) {
       org_id: orgId
     })
     
-  } catch (error) {
-    console.error('Error in add-access API:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  } catch (error: any) {
+    console.error('❌ FATAL ERROR in add-access API:', error)
+    console.error('Error stack:', error.stack)
+    return NextResponse.json({ 
+      error: 'Internal server error: ' + (error.message || 'Unknown error')
+    }, { status: 500 })
   }
 }
 
