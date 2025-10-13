@@ -129,12 +129,62 @@ export default function WorkflowsPage() {
     if (authVerified) {
       fetchData()
       
-      // After workflows start loading, preload API Usage data in background
+      // After workflows start loading, preload ALL other tabs in background
       setTimeout(() => {
+        console.log('🔄 Preloading all other tabs in background...')
+        
+        // Preload API Usage
         import('@/lib/preload-api-usage').then(({ preloadApiUsageData }) => {
           preloadApiUsageData()
         })
-      }, 2000) // Wait 2 seconds after workflows load, then preload API Usage
+        
+        // Preload Credits Management (after 3 seconds)
+        setTimeout(() => {
+          console.log('🔄 Preloading Credits Management...')
+          fetch('/api/credits?limit=1000&offset=0')
+            .then(r => r.json())
+            .then(data => {
+              sessionStorage.setItem('credits_cache', JSON.stringify({
+                subscriptions: data.data,
+                timestamp: Date.now()
+              }))
+              console.log('✅ Credits Management preloaded')
+            })
+            .catch(e => console.warn('Credits preload failed:', e))
+        }, 3000)
+        
+        // Preload Platform Access (after 5 seconds)
+        setTimeout(() => {
+          console.log('🔄 Preloading Platform Access...')
+          fetch('/api/posthog/feature-flags?key=platform_access')
+            .then(r => r.json())
+            .then(data => {
+              let pattern = ''
+              let emails: string[] = []
+              
+              if (data.filters?.groups) {
+                const set1 = data.filters.groups[0]
+                if (set1?.properties?.[0]?.value) {
+                  pattern = set1.properties[0].value as string
+                }
+                const set2 = data.filters.groups[1]
+                if (set2?.properties?.[0]?.value && Array.isArray(set2.properties[0].value)) {
+                  emails = set2.properties[0].value
+                }
+              }
+              
+              sessionStorage.setItem('platform_cache', JSON.stringify({
+                featureFlag: data,
+                set1Pattern: pattern,
+                set2Emails: emails,
+                timestamp: Date.now()
+              }))
+              console.log('✅ Platform Access preloaded')
+            })
+            .catch(e => console.warn('Platform preload failed:', e))
+        }, 5000)
+        
+      }, 2000) // Wait 2 seconds after workflows load, then start preloading
     }
   }, [authVerified])
   
