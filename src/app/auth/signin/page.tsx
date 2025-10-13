@@ -136,13 +136,18 @@ export default function SignIn() {
               </div>
             </form>
             
-            {/* Right side - Logo/Branding */}
-            <div className="bg-muted relative hidden md:flex items-center justify-center p-8">
-              <div className="text-center space-y-4">
-                <div className="text-6xl font-bold text-primary">64</div>
-                <p className="text-lg font-medium">Internal Dashboard</p>
-                <p className="text-sm text-muted-foreground">Restricted Access</p>
-              </div>
+            {/* Right side - Animated Logo */}
+            <div className="bg-muted relative hidden md:block">
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="absolute inset-0 h-full w-full object-cover"
+              >
+                <source src="/logo_chrome.mp4" type="video/mp4" />
+              </video>
             </div>
           </CardContent>
         </Card>
