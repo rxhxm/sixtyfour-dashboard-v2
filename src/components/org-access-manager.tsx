@@ -48,7 +48,8 @@ export function OrgAccessManager() {
     const data = await response.json()
     
     // Get unique emails from the emailMap
-    const uniqueEmails = [...new Set(Object.values(data.emailMap || {}))] as string[]
+    // API returns { emailMap: { "orgId": "email", ... } }
+    const uniqueEmails = [...new Set(Object.values(data?.emailMap || {}))] as string[]
     console.log('📧 Loaded', uniqueEmails.length, 'user emails for autocomplete')
     setUsers(uniqueEmails)
   }
@@ -60,12 +61,14 @@ export function OrgAccessManager() {
   }
   
   const loadMappings = async () => {
-    const { data } = await fetch('/api/org-emails').then(r => r.json())
+    const response = await fetch('/api/org-emails').then(r => r.json())
     // Convert emailMap to array for display
-    const mappingArray = Object.entries(data?.emailMap || {}).map(([orgId, email]) => ({
+    // API returns { emailMap: { "orgId": "email", ... } }
+    const mappingArray = Object.entries(response?.emailMap || {}).map(([orgId, email]) => ({
       orgId,
       email
     }))
+    console.log('📊 Loaded mappings:', mappingArray)
     setMappings(mappingArray)
   }
   
