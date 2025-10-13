@@ -1233,49 +1233,35 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer"
-                  onClick={() => {
-                    // Scroll to leaderboard when clicked
-                    document.getElementById('org-leaderboard')?.scrollIntoView({ behavior: 'smooth' })
-                  }}>
+            <Card className="hover:shadow-md transition-shadow duration-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
-                <CardTitle className="text-sm font-medium">Top Orgs</CardTitle>
+                <CardTitle className="text-sm font-medium">Recent API Calls</CardTitle>
                 <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
                   <Activity className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                 </div>
               </CardHeader>
               <CardContent className="pt-1">
                 <div className="text-2xl font-bold tabular-nums">
-                  {langfuseMetrics?.organizationBreakdown?.length || 0}
+                  {langfuseMetrics?.totalRequests || 0}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {timePeriod === '24hours' ? 'Last 24 hours' : getPeriodLabel(timePeriod, timeOffset, selectedDate, customRange)}
+                  Total calls {timePeriod === '24hours' ? '(24h)' : `(${getPeriodLabel(timePeriod, timeOffset, selectedDate, customRange)})`}
                 </p>
-                {langfuseMetrics?.organizationBreakdown && langfuseMetrics.organizationBreakdown.length > 0 && (
+                {langfuseMetrics?.traceTypes && Object.keys(langfuseMetrics.traceTypes).length > 0 && (
                   <div className="mt-2 space-y-1 border-t pt-2">
-                    {langfuseMetrics.organizationBreakdown
-                      .filter((org: any) => org.org_id && org.org_id !== 'Default Key' && org.org_id !== 'Unknown')
-                      .sort((a: any, b: any) => b.requests - a.requests)
+                    <div className="text-xs font-medium text-muted-foreground mb-1">Top API Types:</div>
+                    {Object.entries(langfuseMetrics.traceTypes)
+                      .sort(([, a], [, b]) => (b as number) - (a as number))
                       .slice(0, 3)
-                      .map((org: any, idx: number) => (
-                        <div 
-                          key={org.org_id}
-                          className="flex items-center justify-between text-xs hover:bg-muted/50 px-1 py-0.5 rounded cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setExpandedOrg(org.org_id)
-                            document.getElementById('org-leaderboard')?.scrollIntoView({ behavior: 'smooth' })
-                          }}
-                        >
-                          <span className="text-muted-foreground truncate max-w-[120px] font-medium">
-                            {org.org_id}
-                          </span>
-                          <span className="font-bold text-xs">{org.requests.toLocaleString()}</span>
+                      .map(([type, count]) => (
+                        <div key={type} className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground truncate max-w-[120px]">{type}</span>
+                          <span className="font-medium">{(count as number).toLocaleString()}</span>
                         </div>
                       ))}
-                    {langfuseMetrics.organizationBreakdown.length > 3 && (
-                      <div className="text-xs text-muted-foreground text-center pt-1 font-medium">
-                        Click to see all {langfuseMetrics.organizationBreakdown.length} orgs
+                    {Object.keys(langfuseMetrics.traceTypes).length > 3 && (
+                      <div className="text-xs text-muted-foreground text-center">
+                        +{Object.keys(langfuseMetrics.traceTypes).length - 3} more
                       </div>
                     )}
                   </div>
