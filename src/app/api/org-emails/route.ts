@@ -20,20 +20,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch user-org mapping' }, { status: 500 })
     }
     
-    // Fetch all Supabase Auth users
-    const { data: { users }, error: authError } = await supabaseAdmin.auth.admin.listUsers()
+    // Fetch ALL Supabase Auth users (with pagination!)
+    let allUsers: any[] = []
+    let page = 1
+    const perPage = 1000
     
-    if (authError) {
-      console.error('Error fetching auth users:', authError)
-      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
+    while (true) {
+      const { data, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+        page: page,
+        perPage: perPage
+      })
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError)
+        break
+      }
+      
+      if (!data.users || data.users.length === 0) {
+        break
+      }
+      
+      allUsers = [...allUsers, ...data.users]
+      
+      if (data.users.length < perPage) {
+        break // Last page
+      }
+      
+      page++
     }
+    
+    console.log(`✅ Loaded ${allUsers.length} total auth users (was only loading 50 before!)`)
     
     // Create mapping: org_id -> email
     const orgEmailMap: Record<string, string> = {}
     
     userOrgs?.forEach((userOrg: any) => {
       // Find the auth user for this user_id
-      const authUser = users?.find((u: any) => u.id === userOrg.id)
+      const authUser = allUsers?.find((u: any) => u.id === userOrg.id)
       if (authUser?.email && userOrg.org_id) {
         orgEmailMap[userOrg.org_id] = authUser.email
       }
