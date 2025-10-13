@@ -1303,7 +1303,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium">Recent API Calls</CardTitle>
                 <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
                   <Activity className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                </div>
+          </div>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="text-2xl font-bold tabular-nums">
@@ -1314,17 +1314,27 @@ export default function DashboardPage() {
                 </p>
                 {recentApiCalls && recentApiCalls.length > 0 ? (
                   <div className="space-y-1 border-t pt-2 max-h-[120px] overflow-y-auto">
-                    {recentApiCalls.slice(0, 10).map((call: any, idx: number) => (
-                      <div key={call.id || idx} className="flex items-center justify-between text-xs py-0.5 hover:bg-muted/50 px-1 rounded">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="font-medium truncate">{call.org !== 'Unknown' ? call.org : '???'}</span>
-                          <span className="text-muted-foreground text-[10px] truncate">{call.endpoint}</span>
+                    {(() => {
+                      // Deduplicate by org - show only most recent per org
+                      const seen = new Set()
+                      const uniqueCalls = recentApiCalls.filter(call => {
+                        if (seen.has(call.org)) return false
+                        seen.add(call.org)
+                        return true
+                      })
+                      
+                      return uniqueCalls.slice(0, 10).map((call: any, idx: number) => (
+                        <div key={call.id || idx} className="flex items-center justify-between text-xs py-0.5 hover:bg-muted/50 px-1 rounded">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="font-medium truncate">{call.org !== 'Unknown' ? call.org : '???'}</span>
+                            <span className="text-muted-foreground text-[10px] truncate">{call.endpoint}</span>
+                          </div>
+                          <span className="text-muted-foreground text-[10px] ml-2 whitespace-nowrap">
+                            {call.timeAgo}
+                          </span>
                         </div>
-                        <span className="text-muted-foreground text-[10px] ml-2 whitespace-nowrap">
-                          {call.timeAgo}
-                        </span>
-                      </div>
-                    ))}
+                      ))
+                    })()}
                   </div>
                 ) : (
                   <div className="mt-2 pt-2 text-xs text-muted-foreground text-center">
