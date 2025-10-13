@@ -341,35 +341,6 @@ export function OrgAccessManager() {
           </div>
         )}
         
-        {/* Current Access List */}
-        <div>
-          <h3 className="font-semibold mb-3">Current Organization Access ({mappings.length})</h3>
-          <div className="border rounded-md divide-y max-h-[400px] overflow-y-auto">
-            {mappings.length > 0 ? (
-              mappings.map((mapping, idx) => (
-                <div key={idx} className="p-3 flex items-center justify-between hover:bg-muted/50">
-                  <div>
-                    <p className="font-medium text-sm">{mapping.email}</p>
-                    <p className="text-xs text-muted-foreground">→ {mapping.orgId}</p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleRemove(mapping.userId, mapping.orgId, mapping.email)}
-                    disabled={loading}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))
-            ) : (
-              <div className="p-8 text-center text-muted-foreground">
-                <p>No org access mappings found</p>
-              </div>
-            )}
-          </div>
-        </div>
-        
       </CardContent>
     </Card>
   )
