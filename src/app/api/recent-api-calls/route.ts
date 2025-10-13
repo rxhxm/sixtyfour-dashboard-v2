@@ -48,9 +48,24 @@ export async function GET(request: NextRequest) {
     
     // Extract relevant info from traces
     const enrichedCalls = tracesData.data.map((trace: any) => {
-      // Extract org from tags
+      // Extract org from tags - try multiple sources
+      let orgId = 'Unknown'
+      
+      // 1. Try tags
       const orgTag = trace.tags?.find((t: string) => t.startsWith('org_id:'))
-      const orgId = orgTag ? orgTag.split(':')[1] : trace.metadata?.org_id || 'Unknown'
+      if (orgTag) {
+        orgId = orgTag.split(':')[1]
+      }
+      
+      // 2. Try metadata
+      if (orgId === 'Unknown' && trace.metadata?.org_id) {
+        orgId = trace.metadata.org_id
+      }
+      
+      // 3. Try userId (some traces store org in userId)
+      if (orgId === 'Unknown' && trace.userId) {
+        orgId = trace.userId
+      }
       
       return {
         id: trace.id,

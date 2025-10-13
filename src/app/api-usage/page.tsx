@@ -975,7 +975,7 @@ export default function DashboardPage() {
     
       const fetchEndTime = Date.now()
       if (showLogs) {
-        console.log(`Data fetch completed in ${fetchEndTime - fetchStartTime}ms`)
+      console.log(`Data fetch completed in ${fetchEndTime - fetchStartTime}ms`)
       }
       
       // IMPORTANT: Fetch recent API calls (for 4th card)
@@ -1284,26 +1284,30 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
+            <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer group"
+                  onClick={() => {
+                    // Scroll to leaderboard to see more details
+                    document.getElementById('org-leaderboard')?.scrollIntoView({ behavior: 'smooth' })
+                  }}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Recent API Calls</CardTitle>
                 <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
                   <Activity className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-          </div>
+                </div>
               </CardHeader>
-              <CardContent className="pt-1">
+              <CardContent className="pt-0">
                 <div className="text-2xl font-bold tabular-nums">
                   {recentApiCalls.length || 0}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Most recent
+                <p className="text-xs text-muted-foreground mb-2">
+                  Last 24h (click for details)
                 </p>
                 {recentApiCalls && recentApiCalls.length > 0 ? (
-                  <div className="mt-2 space-y-1.5 border-t pt-2">
-                    {recentApiCalls.slice(0, 4).map((call: any, idx: number) => (
-                      <div key={call.id || idx} className="flex items-center justify-between text-xs py-1">
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <span className="font-medium truncate">{call.org || 'Unknown'}</span>
+                  <div className="space-y-1 border-t pt-2 max-h-[120px] overflow-y-auto">
+                    {recentApiCalls.slice(0, 10).map((call: any, idx: number) => (
+                      <div key={call.id || idx} className="flex items-center justify-between text-xs py-0.5 hover:bg-muted/50 px-1 rounded">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="font-medium truncate">{call.org !== 'Unknown' ? call.org : '???'}</span>
                           <span className="text-muted-foreground text-[10px] truncate">{call.endpoint}</span>
                         </div>
                         <span className="text-muted-foreground text-[10px] ml-2 whitespace-nowrap">
