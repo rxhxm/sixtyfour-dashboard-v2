@@ -90,6 +90,25 @@ export default function CreditsManagementPage() {
   }, [authVerified])
 
   const fetchSubscriptions = async () => {
+    // Check cache first (instant!)
+    const cached = sessionStorage.getItem('credits_cache')
+    if (cached) {
+      try {
+        const { subscriptions, timestamp } = JSON.parse(cached)
+        const age = Date.now() - timestamp
+        
+        // Use cache if less than 10 minutes old
+        if (age < 10 * 60 * 1000) {
+          console.log('⚡ Using cached credits data')
+          setSubscriptions(subscriptions || [])
+          setLoading(false)
+          return
+        }
+      } catch (e) {
+        console.warn('Failed to parse credits cache')
+      }
+    }
+    
     setLoading(true)
     setMessage(null)
     
@@ -105,6 +124,13 @@ export default function CreditsManagementPage() {
       const result = await response.json()
       setSubscriptions(result.data)
       setLoading(false) // Show first batch immediately
+      
+      // Cache the data
+      sessionStorage.setItem('credits_cache', JSON.stringify({
+        subscriptions: result.data,
+        timestamp: Date.now()
+      }))
+      console.log('💾 Credits data cached')
       
       // If there are more users, fetch them in the background
       if (result.total > 1000) {

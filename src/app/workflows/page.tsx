@@ -139,6 +139,27 @@ export default function WorkflowsPage() {
   }, [authVerified])
   
   const fetchData = async () => {
+    // Check cache first (instant!)
+    const cached = sessionStorage.getItem('workflows_cache')
+    if (cached) {
+      try {
+        const { workflows, runs, summary, timestamp } = JSON.parse(cached)
+        const age = Date.now() - timestamp
+        
+        // Use cache if less than 10 minutes old
+        if (age < 10 * 60 * 1000) {
+          console.log('⚡ Using cached workflows data')
+          setWorkflows(workflows || [])
+          setRecentRuns(runs || [])
+          setSummary(summary)
+          setLoading(false)
+          return
+        }
+      } catch (e) {
+        console.warn('Failed to parse workflows cache')
+      }
+    }
+    
     setLoading(true)
     try {
       // Fetch workflows and runs in parallel
@@ -147,16 +168,33 @@ export default function WorkflowsPage() {
         fetch('/api/workflow-runs?limit=100')
       ])
       
+      let workflowsData = null
+      let runsData = null
+      let summaryData = null
+      
       if (workflowsRes.ok) {
         const data = await workflowsRes.json()
-        setWorkflows(data.workflows || [])
-        setSummary(data.summary)
+        workflowsData = data.workflows || []
+        summaryData = data.summary
+        setWorkflows(workflowsData)
+        setSummary(summaryData)
       }
       
       if (runsRes.ok) {
         const data = await runsRes.json()
-        setRecentRuns(data.runs || [])
+        runsData = data.runs || []
+        setRecentRuns(runsData)
       }
+      
+      // Cache the data
+      sessionStorage.setItem('workflows_cache', JSON.stringify({
+        workflows: workflowsData,
+        runs: runsData,
+        summary: summaryData,
+        timestamp: Date.now()
+      }))
+      console.log('💾 Workflows data cached')
+      
     } catch (error) {
       console.error('Error fetching workflow data:', error)
     } finally {

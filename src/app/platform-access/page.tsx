@@ -73,6 +73,27 @@ export default function PlatformAccessPage() {
   }, [authVerified])
 
   const fetchFeatureFlag = async () => {
+    // Check cache first (instant!)
+    const cached = sessionStorage.getItem('platform_cache')
+    if (cached) {
+      try {
+        const { featureFlag, set1Pattern, set2Emails, timestamp } = JSON.parse(cached)
+        const age = Date.now() - timestamp
+        
+        // Use cache if less than 10 minutes old
+        if (age < 10 * 60 * 1000) {
+          console.log('⚡ Using cached platform data')
+          setFeatureFlag(featureFlag)
+          setSet1Pattern(set1Pattern || '')
+          setSet2Emails(set2Emails || [])
+          setLoading(false)
+          return
+        }
+      } catch (e) {
+        console.warn('Failed to parse platform cache')
+      }
+    }
+    
     setLoading(true)
     setMessage(null)
     
@@ -87,20 +108,34 @@ export default function PlatformAccessPage() {
       const data = await response.json()
       setFeatureFlag(data)
 
+      let pattern = ''
+      let emails: string[] = []
+
       // Parse Set 1 and Set 2
       if (data.filters?.groups) {
         // Set 1 should be the regex pattern (first group)
         const set1 = data.filters.groups[0]
         if (set1?.properties?.[0]?.value) {
-          setSet1Pattern(set1.properties[0].value as string)
+          pattern = set1.properties[0].value as string
+          setSet1Pattern(pattern)
         }
 
         // Set 2 should be the email list (second group)
         const set2 = data.filters.groups[1]
         if (set2?.properties?.[0]?.value && Array.isArray(set2.properties[0].value)) {
-          setSet2Emails(set2.properties[0].value)
+          emails = set2.properties[0].value
+          setSet2Emails(emails)
         }
       }
+      
+      // Cache the data
+      sessionStorage.setItem('platform_cache', JSON.stringify({
+        featureFlag: data,
+        set1Pattern: pattern,
+        set2Emails: emails,
+        timestamp: Date.now()
+      }))
+      console.log('💾 Platform data cached')
     } catch (error) {
       console.error('Error fetching feature flag:', error)
       setMessage({
