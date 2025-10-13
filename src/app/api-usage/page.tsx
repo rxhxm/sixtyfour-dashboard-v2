@@ -1115,7 +1115,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold">Langfuse Metrics</h2>
+            <h2 className="text-2xl font-bold">API Metrics</h2>
               {backgroundLoading.size > 0 && (
                 <Badge variant="outline" className="text-xs flex items-center gap-1">
                   <div className="animate-spin rounded-full h-2 w-2 border border-muted-foreground border-t-transparent"></div>
@@ -1148,7 +1148,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Langfuse Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="hover:shadow-md transition-shadow duration-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
                 <CardTitle className="text-sm font-medium">Total Traces</CardTitle>
@@ -1230,6 +1230,35 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground">
                   {expandedOrg ? `${expandedOrg} tokens` : 'Token usage'}
                 </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0">
+                <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+                <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                  <Activity className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-1">
+                <div className="text-2xl font-bold tabular-nums">
+                  {langfuseMetrics?.organizationBreakdown?.length || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Active orgs
+                </p>
+                {langfuseMetrics?.organizationBreakdown && langfuseMetrics.organizationBreakdown.length > 0 && (
+                  <div className="mt-2 space-y-1 border-t pt-2">
+                    {langfuseMetrics.organizationBreakdown
+                      .slice(0, 3)
+                      .map((org: any) => (
+                        <div key={org.org_id} className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground truncate max-w-[100px]">{org.org_name}</span>
+                          <span className="font-medium">{org.requests}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

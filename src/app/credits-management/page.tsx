@@ -408,7 +408,7 @@ export default function CreditsManagementPage() {
                           </div>
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <div className="font-bold text-green-600 dark:text-green-400">
+                          <div className="font-bold text-black dark:text-white">
                             ${creditsToDollars(sub.balance_prepaid || 0)}
                           </div>
                           <div className="text-xs text-muted-foreground">
