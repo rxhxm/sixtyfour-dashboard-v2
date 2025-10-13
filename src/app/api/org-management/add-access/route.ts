@@ -106,19 +106,26 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ User found:', targetUser.email)
     
-    // 4. CHECK FOR DUPLICATE
+    // 4. CHECK FOR EXISTING MAPPING
+    // IMPORTANT: id is PRIMARY KEY - each user can only be in ONE org!
     const { data: existing } = await supabaseAdmin
       .from('users-org')
       .select('*')
       .eq('id', targetUser.id)
-      .eq('org_id', validatedOrgId)  // Correct column name: org_id (with underscore)
-      .single()
+      .maybeSingle()  // Use maybeSingle() to avoid error if not found
     
     if (existing) {
-      console.log('⚠️ Duplicate detected:', userEmail, 'already has access to', validatedOrgId)
-      return NextResponse.json({ 
-        error: `${userEmail} already has access to ${validatedOrgId}` 
-      }, { status: 409 })  // 409 = Conflict
+      if (existing.org_id === validatedOrgId) {
+        console.log('⚠️ User already has access to this org')
+        return NextResponse.json({ 
+          error: `${userEmail} already has access to ${validatedOrgId}` 
+        }, { status: 409 })
+      } else {
+        console.log('⚠️ User already mapped to different org:', existing.org_id)
+        return NextResponse.json({ 
+          error: `${userEmail} is already mapped to organization "${existing.org_id}". Each user can only be in one organization. Remove the existing mapping first.` 
+        }, { status: 409 })
+      }
     }
     
     // 5. INSERT MAPPING (SAFE - all validated!)
