@@ -353,26 +353,40 @@ export default function DashboardPage() {
   // Fetch recent API calls from database
   const fetchRecentTraces = async (timeRange: any) => {
     try {
+      console.log('🔄 fetchRecentTraces called with timeRange:', timeRange)
+      
       const params = new URLSearchParams({
-        limit: '10'
+        limit: '20' // Fetch 20 to ensure we get 10 unique orgs after dedup
       })
       
       if (timeRange.startDate && timeRange.endDate) {
         params.set('startDate', timeRange.startDate)
         params.set('endDate', timeRange.endDate)
+        console.log('📅 Date range:', timeRange.startDate, 'to', timeRange.endDate)
+      } else {
+        console.log('⚠️ No date range provided to fetchRecentTraces!')
       }
       
-      const response = await fetch(`/api/recent-api-calls?${params}`)
+      const url = `/api/recent-api-calls?${params}`
+      console.log('🌐 Fetching:', url)
+      
+      const response = await fetch(url)
+      console.log('📡 Response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
         console.log('📡 Recent API calls response:', data)
         console.log('✅ Loaded', data.calls?.length, 'recent calls')
+        if (data.calls && data.calls.length > 0) {
+          console.log('🔍 First call:', data.calls[0])
+        }
         if (data.debug) {
           console.log('🔍 Debug info:', data.debug)
         }
         setRecentApiCalls(data.calls || [])
       } else {
-        console.error('❌ Recent API calls failed:', response.status)
+        const errorText = await response.text()
+        console.error('❌ Recent API calls failed:', response.status, errorText)
       }
     } catch (error) {
       console.error('Failed to fetch recent API calls:', error)
