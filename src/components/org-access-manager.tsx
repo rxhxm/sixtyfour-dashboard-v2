@@ -187,19 +187,25 @@ export function OrgAccessManager() {
                     setUserSearch(e.target.value)
                   }}
                   className="pl-10"
-                  list="user-list"
                 />
-                <datalist id="user-list">
-                  {filteredUsers.slice(0, 200).map(email => (
-                    <option key={email} value={email} />
-                  ))}
-                </datalist>
+                {/* Custom dropdown suggestions */}
+                {userSearch && filteredUsers.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
+                    {filteredUsers.slice(0, 10).map(email => (
+                      <div
+                        key={email}
+                        className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
+                        onClick={() => {
+                          setSelectedUser(email)
+                          setUserSearch('')
+                        }}
+                      >
+                        {email}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              {filteredUsers.length > 0 && selectedUser && (
-                <p className="text-xs text-muted-foreground">
-                  {filteredUsers.length} matches found
-                </p>
-              )}
             </div>
             
             {/* Org Selection */}
@@ -215,19 +221,25 @@ export function OrgAccessManager() {
                     setOrgSearch(e.target.value)
                   }}
                   className="pl-10"
-                  list="org-list"
                 />
-                <datalist id="org-list">
-                  {filteredOrgs.slice(0, 200).map(org => (
-                    <option key={org} value={org} />
-                  ))}
-                </datalist>
+                {/* Custom dropdown suggestions */}
+                {orgSearch && filteredOrgs.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
+                    {filteredOrgs.slice(0, 10).map(org => (
+                      <div
+                        key={org}
+                        className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
+                        onClick={() => {
+                          setSelectedOrg(org)
+                          setOrgSearch('')
+                        }}
+                      >
+                        {org}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              {filteredOrgs.length > 0 && selectedOrg && (
-                <p className="text-xs text-muted-foreground">
-                  {filteredOrgs.length} matches found
-                </p>
-              )}
             </div>
           </div>
           
