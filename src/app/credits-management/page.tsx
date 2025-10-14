@@ -231,7 +231,11 @@ export default function CreditsManagementPage() {
       })
       setShowSuccessPopup(true)
 
-      // Refresh subscriptions
+      // Clear cache to force fresh data fetch
+      sessionStorage.removeItem('credits_cache')
+      console.log('🗑️ Cleared credits cache to fetch fresh data')
+      
+      // Refresh subscriptions (will fetch fresh data now)
       await fetchSubscriptions()
       
       // Close dialog
