@@ -77,26 +77,40 @@ export async function POST(request: NextRequest) {
     console.log(`[${requestId}]   Email: ${userEmail}`)
     console.log(`[${requestId}]   Org: ${orgId}`)
     
-    // 2. VALIDATE ORG EXISTS (case-insensitive for flexibility)
+    // 2. VALIDATE ORG EXISTS (try exact match first, then case-insensitive)
     console.log('Step 3: Validating org exists in organizations table...')
     
-    const { data: orgsMatch, error: orgError } = await supabaseAdmin
+    // First try EXACT match (preserves user's capitalization)
+    const { data: exactMatch } = await supabaseAdmin
       .from('organizations')
       .select('id, "org-id"')
-      .ilike('org-id', orgId) // Case-insensitive match
+      .eq('org-id', orgId)
     
-    console.log('Org query result:', { matches: orgsMatch?.length, error: orgError?.message })
+    let validatedOrgId: string
     
-    if (orgError || !orgsMatch || orgsMatch.length === 0) {
-      console.error('❌ VALIDATION FAILED: Org not found:', orgId)
-      return NextResponse.json({ 
-        error: `Organization "${orgId}" does not exist in database` 
-      }, { status: 400 })
+    if (exactMatch && exactMatch.length > 0) {
+      // Exact match found - use exactly what user typed!
+      validatedOrgId = exactMatch[0]['org-id']
+      console.log('✅ Exact match found:', validatedOrgId)
+    } else {
+      // No exact match, try case-insensitive
+      const { data: orgsMatch, error: orgError } = await supabaseAdmin
+        .from('organizations')
+        .select('id, "org-id"')
+        .ilike('org-id', orgId)
+      
+      if (orgError || !orgsMatch || orgsMatch.length === 0) {
+        console.error('❌ VALIDATION FAILED: Org not found:', orgId)
+        return NextResponse.json({ 
+          error: `Organization "${orgId}" does not exist in database` 
+        }, { status: 400 })
+      }
+      
+      validatedOrgId = orgsMatch[0]['org-id']
+      console.log('⚠️ Case-insensitive match found:', validatedOrgId, '(user typed:', orgId, ')')
     }
     
-    // Use the exact org-id from database (correct case)
-    const validatedOrgId = orgsMatch[0]['org-id']
-    console.log('✅ Org validated:', validatedOrgId, '(using exact case from DB)')
+    console.log('✅ Org validated:', validatedOrgId)
     
     // 3. VALIDATE USER EXISTS & GET UUID (with timeout protection)
     console.log('Step 4: Fetching auth users...')
