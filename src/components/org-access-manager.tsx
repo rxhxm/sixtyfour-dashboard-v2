@@ -61,14 +61,10 @@ export function OrgAccessManager() {
   }
   
   const loadMappings = async () => {
-    const response = await fetch('/api/org-emails').then(r => r.json())
-    // Convert emailMap to array for display
-    // API returns { emailMap: { "orgId": "email", ... } }
-    const mappingArray = Object.entries(response?.emailMap || {}).map(([orgId, email]) => ({
-      orgId,
-      email
-    }))
-    console.log('📊 Loaded mappings:', mappingArray)
+    const response = await fetch('/api/org-management/mappings').then(r => r.json())
+    // API returns { mappings: [{ userId, orgId, email, createdAt }, ...] }
+    const mappingArray = response?.mappings || []
+    console.log('📊 Loaded mappings:', mappingArray.length, 'user-org assignments')
     setMappings(mappingArray)
   }
   
@@ -175,6 +171,35 @@ export function OrgAccessManager() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        
+        {/* Current Org Access List */}
+        <div>
+          <h3 className="font-semibold mb-3">Current Organization Access ({mappings.length})</h3>
+          <div className="border rounded-md divide-y max-h-[300px] overflow-y-auto">
+            {mappings.length > 0 ? (
+              mappings.map((mapping, idx) => (
+                <div key={idx} className="p-3 flex items-center justify-between hover:bg-muted/50">
+                  <div>
+                    <p className="font-medium text-sm">{mapping.email}</p>
+                    <p className="text-xs text-muted-foreground">→ {mapping.orgId}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleRemove(mapping.userId, mapping.orgId, mapping.email)}
+                    disabled={loading}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                <p className="text-sm">No org access mappings</p>
+              </div>
+            )}
+          </div>
+        </div>
         
         {/* Add User Form */}
         <div className="border rounded-lg p-4 bg-muted/30">
