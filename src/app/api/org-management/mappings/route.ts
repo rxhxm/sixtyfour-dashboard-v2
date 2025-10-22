@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         email: user?.email || 'Unknown',
         createdAt: mapping.created_at
       }
-    }).filter(m => m.email !== 'Unknown') || []
+    }).filter((m: any) => m.email !== 'Unknown') || []
     
     console.log(`✅ Loaded ${enrichedMappings.length} org access mappings`)
     
