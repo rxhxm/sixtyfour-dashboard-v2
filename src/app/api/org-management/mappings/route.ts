@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Create enriched mappings with email
-    const enrichedMappings = userOrgs?.map(mapping => {
+    const enrichedMappings = userOrgs?.map((mapping: any) => {
       const user = allUsers.find(u => u.id === mapping.id)
       return {
         userId: mapping.id,
