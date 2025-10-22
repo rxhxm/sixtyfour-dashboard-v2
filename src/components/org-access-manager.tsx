@@ -175,7 +175,7 @@ export function OrgAccessManager() {
         {/* Current Org Access List */}
         <div>
           <h3 className="font-semibold mb-3">Current Organization Access ({mappings.length})</h3>
-          <div className="border rounded-md divide-y max-h-[300px] overflow-y-auto">
+          <div className="border rounded-md divide-y max-h-[180px] overflow-y-auto">
             {mappings.length > 0 ? (
               mappings.map((mapping, idx) => (
                 <div key={idx} className="p-3 flex items-center justify-between hover:bg-muted/50">

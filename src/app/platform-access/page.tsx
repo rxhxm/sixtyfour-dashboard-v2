@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, Info } from 'lucide-react'
+import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, Info, X } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
@@ -48,6 +48,8 @@ export default function PlatformAccessPage() {
   const [set1Pattern, setSet1Pattern] = useState<string>('')
   const [allUserEmails, setAllUserEmails] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false)
+  const [successEmail, setSuccessEmail] = useState('')
 
   // CRITICAL: HARDCODED AUTH CHECK - BLOCKS RENDERING
   useEffect(() => {
@@ -236,7 +238,13 @@ export default function PlatformAccessPage() {
       // Update local state
       setSet2Emails(updatedEmails)
       setEmailInput('')
-      setMessage({ type: 'success', text: `Successfully added ${email} to platform access` })
+      
+      // Show success popup (like credits management)
+      setSuccessEmail(email)
+      setShowSuccessPopup(true)
+      
+      // Auto-hide popup after 5 seconds
+      setTimeout(() => setShowSuccessPopup(false), 5000)
 
       // Refresh feature flag data
       await fetchFeatureFlag()
@@ -246,6 +254,8 @@ export default function PlatformAccessPage() {
         type: 'error',
         text: error instanceof Error ? error.message : 'Failed to add email'
       })
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setMessage(null), 5000)
     } finally {
       setSubmitting(false)
     }
@@ -483,7 +493,7 @@ export default function PlatformAccessPage() {
               </div>
             ) : (
               <div className="space-y-2 pt-4 border-t">
-                {set2Emails.map((email) => (
+                {[...set2Emails].reverse().map((email) => (
                   <div
                     key={email}
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -509,6 +519,40 @@ export default function PlatformAccessPage() {
         </Card>
 
       </div>
+      
+      {/* Success Popup - Like Credits Management */}
+      {showSuccessPopup && successEmail && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="border-2 shadow-2xl min-w-[450px] animate-in zoom-in-95">
+            <CardContent className="py-6">
+              <div className="flex items-start gap-4">
+                <CheckCircle2 className="h-8 w-8 text-green-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-lg font-bold mb-3">
+                    User Added Successfully
+                  </h4>
+                  <div className="text-sm space-y-2">
+                    <p>
+                      <strong>Email:</strong> {successEmail}
+                    </p>
+                    <p className="text-muted-foreground">
+                      They now have access to the Sixtyfour platform
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSuccessPopup(false)}
+                  className="hover:bg-muted"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </DashboardLayout>
   )
 }
