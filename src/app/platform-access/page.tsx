@@ -46,6 +46,8 @@ export default function PlatformAccessPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [set2Emails, setSet2Emails] = useState<string[]>([])
   const [set1Pattern, setSet1Pattern] = useState<string>('')
+  const [allUserEmails, setAllUserEmails] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   // CRITICAL: HARDCODED AUTH CHECK - BLOCKS RENDERING
   useEffect(() => {
@@ -70,8 +72,22 @@ export default function PlatformAccessPage() {
   useEffect(() => {
     if (authVerified) {
       fetchFeatureFlag()
+      loadAllUserEmails()
     }
   }, [authVerified])
+  
+  // Load all user emails for autocomplete
+  const loadAllUserEmails = async () => {
+    try {
+      const response = await fetch('/api/org-emails')
+      const data = await response.json()
+      const uniqueEmails = [...new Set(Object.values(data?.emailMap || {}))] as string[]
+      setAllUserEmails(uniqueEmails)
+      console.log('📧 Loaded', uniqueEmails.length, 'emails for autocomplete')
+    } catch (e) {
+      console.error('Failed to load user emails:', e)
+    }
+  }
 
   const fetchFeatureFlag = async () => {
     // Check cache first (instant!)
@@ -390,16 +406,56 @@ export default function PlatformAccessPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Add email input */}
-            <div className="flex gap-3">
-              <Input
-                type="email"
-                placeholder="user@example.com"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !submitting && addEmail()}
-                disabled={submitting}
-                className="flex-1"
-              />
+            <div className="flex gap-3 relative">
+              <div className="flex-1 relative">
+                <Input
+                  type="email"
+                  placeholder="Start typing email..."
+                  value={emailInput}
+                  onChange={(e) => {
+                    setEmailInput(e.target.value)
+                    setShowSuggestions(e.target.value.length > 0)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !submitting) {
+                      setShowSuggestions(false)
+                      addEmail()
+                    }
+                    if (e.key === 'Escape') {
+                      setShowSuggestions(false)
+                    }
+                  }}
+                  onFocus={() => emailInput && setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  disabled={submitting}
+                  className="flex-1"
+                />
+                {/* Autocomplete dropdown */}
+                {showSuggestions && emailInput && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
+                    {allUserEmails
+                      .filter(email => email.toLowerCase().includes(emailInput.toLowerCase()))
+                      .slice(0, 10)
+                      .map(email => (
+                        <div
+                          key={email}
+                          className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
+                          onClick={() => {
+                            setEmailInput(email)
+                            setShowSuggestions(false)
+                          }}
+                        >
+                          {email}
+                        </div>
+                      ))}
+                    {allUserEmails.filter(email => email.toLowerCase().includes(emailInput.toLowerCase())).length === 0 && (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        No matching users found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <Button
                 onClick={addEmail}
                 disabled={submitting || !emailInput.trim()}
