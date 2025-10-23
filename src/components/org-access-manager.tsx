@@ -23,6 +23,8 @@ export function OrgAccessManager() {
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [existingMapping, setExistingMapping] = useState<string | null>(null)
+  const [filterOrg, setFilterOrg] = useState('')
+  const [groupByOrg, setGroupByOrg] = useState(false)
   
   // Load data on mount
   useEffect(() => {
@@ -159,6 +161,20 @@ export function OrgAccessManager() {
     o.toLowerCase().includes(orgSearch.toLowerCase())
   )
   
+  // Filter mappings by org if filter is active
+  const filteredMappings = filterOrg 
+    ? mappings.filter(m => m.orgId.toLowerCase().includes(filterOrg.toLowerCase()))
+    : mappings
+  
+  // Group mappings by org
+  const groupedByOrg = mappings.reduce((acc: any, mapping) => {
+    if (!acc[mapping.orgId]) {
+      acc[mapping.orgId] = []
+    }
+    acc[mapping.orgId].push(mapping)
+    return acc
+  }, {})
+  
   return (
     <Card>
       <CardHeader>
@@ -174,29 +190,84 @@ export function OrgAccessManager() {
         
         {/* Current Org Access List */}
         <div>
-          <h3 className="font-semibold mb-3">Current Organization Access ({mappings.length})</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">Current Organization Access ({filteredMappings.length})</h3>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={groupByOrg ? 'default' : 'outline'}
+                onClick={() => setGroupByOrg(!groupByOrg)}
+              >
+                {groupByOrg ? 'Show All' : 'Group by Org'}
+              </Button>
+            </div>
+          </div>
+          
+          {/* Filter input */}
+          <div className="mb-3">
+            <Input
+              placeholder="Filter by org or email..."
+              value={filterOrg}
+              onChange={(e) => setFilterOrg(e.target.value)}
+              className="text-sm"
+            />
+          </div>
+          
           <div className="border rounded-md divide-y max-h-[180px] overflow-y-auto">
-            {mappings.length > 0 ? (
-              mappings.map((mapping, idx) => (
-                <div key={idx} className="p-3 flex items-center justify-between hover:bg-muted/50">
-                  <div>
-                    <p className="font-medium text-sm">{mapping.email}</p>
-                    <p className="text-xs text-muted-foreground">→ {mapping.orgId}</p>
+            {groupByOrg ? (
+              // Grouped by organization view
+              Object.entries(groupedByOrg)
+                .filter(([orgId]) => orgId.toLowerCase().includes(filterOrg.toLowerCase()))
+                .sort(([, a]: any, [, b]: any) => b.length - a.length)
+                .map(([orgId, orgMappings]: any) => (
+                  <div key={orgId} className="p-3">
+                    <div className="font-semibold text-sm mb-2 flex items-center justify-between">
+                      <span>{orgId}</span>
+                      <Badge variant="secondary">{orgMappings.length} users</Badge>
+                    </div>
+                    <div className="space-y-1 pl-4">
+                      {orgMappings.map((mapping: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between text-sm py-1 hover:bg-muted/50 px-2 rounded">
+                          <span className="text-muted-foreground">{mapping.email}</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleRemove(mapping.userId, mapping.orgId, mapping.email)}
+                            disabled={loading}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleRemove(mapping.userId, mapping.orgId, mapping.email)}
-                    disabled={loading}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))
+                ))
             ) : (
-              <div className="p-8 text-center text-muted-foreground">
-                <p className="text-sm">No org access mappings</p>
-              </div>
+              // Regular list view (filtered)
+              filteredMappings.length > 0 ? (
+                filteredMappings.map((mapping, idx) => (
+                  <div key={idx} className="p-3 flex items-center justify-between hover:bg-muted/50">
+                    <div>
+                      <p className="font-medium text-sm">{mapping.email}</p>
+                      <p className="text-xs text-muted-foreground">→ {mapping.orgId}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleRemove(mapping.userId, mapping.orgId, mapping.email)}
+                      disabled={loading}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  <p className="text-sm">
+                    {filterOrg ? 'No matches found' : 'No org access mappings'}
+                  </p>
+                </div>
+              )
             )}
           </div>
         </div>
