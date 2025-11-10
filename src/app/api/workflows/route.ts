@@ -13,17 +13,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
     }
     
-    // Fetch ALL workflows (no limit for accurate count)
+    // Fetch ALL workflows (Supabase defaults to 1000 limit, need to override)
     let workflowQuery = supabaseAdmin
       .from('workflows')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
+      .limit(100000)  // Set very high limit to get all workflows
     
     if (userId) {
       workflowQuery = workflowQuery.eq('user_uuid', userId)
     }
     
-    const { data: workflows, error: workflowsError } = await workflowQuery
+    const { data: workflows, error: workflowsError, count: totalWorkflows } = await workflowQuery
+    
+    console.log(`📊 Fetched ${workflows?.length || 0} workflows (total: ${totalWorkflows || 0})`)
     
     if (workflowsError) {
       console.error('Error fetching workflows:', workflowsError)
@@ -31,10 +34,13 @@ export async function GET(request: NextRequest) {
     }
     
     // Fetch workflow runs to get execution stats (get ALL runs for accurate count)
-    const { data: runs, error: runsError } = await supabaseAdmin
+    const { data: runs, error: runsError, count: totalRuns } = await supabaseAdmin
       .from('workflow_runs')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
+      .limit(100000)  // Set very high limit to get all runs
+    
+    console.log(`📊 Fetched ${runs?.length || 0} runs (total: ${totalRuns || 0})`)
     
     if (runsError) {
       console.error('Error fetching runs:', runsError)
