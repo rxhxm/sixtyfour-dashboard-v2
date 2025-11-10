@@ -203,7 +203,7 @@ export default function PlatformAccessPage() {
       const updatedFilters = {
         ...featureFlag.filters,
         groups: [
-          // Set 1 - Keep unchanged (regex pattern)
+          // Set 1 - Keep unchanged (regex pattern for @sixtyfour.ai)
           featureFlag.filters.groups[0],
           // Set 2 - Updated email list
           {
@@ -217,7 +217,9 @@ export default function PlatformAccessPage() {
               }
             ],
             rollout_percentage: 100
-          }
+          },
+          // Set 3 - PRESERVE surge auto-access (if exists)
+          ...(featureFlag.filters.groups[2] ? [featureFlag.filters.groups[2]] : [])
         ]
       }
 
@@ -279,7 +281,7 @@ export default function PlatformAccessPage() {
       const updatedFilters = {
         ...featureFlag.filters,
         groups: [
-          // Set 1 - Keep unchanged (regex pattern)
+          // Set 1 - Keep unchanged (regex pattern for @sixtyfour.ai)
           featureFlag.filters.groups[0],
           // Set 2 - Updated email list
           {
@@ -293,7 +295,9 @@ export default function PlatformAccessPage() {
               }
             ],
             rollout_percentage: 100
-          }
+          },
+          // Set 3 - PRESERVE surge auto-access (if exists)
+          ...(featureFlag.filters.groups[2] ? [featureFlag.filters.groups[2]] : [])
         ]
       }
 
