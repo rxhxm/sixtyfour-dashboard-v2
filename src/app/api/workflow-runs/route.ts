@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const workflowId = searchParams.get('workflowId')
     const userId = searchParams.get('userId')
-    const limit = parseInt(searchParams.get('limit') || '100')
+    const limit = parseInt(searchParams.get('limit') || '10000')  // Increased default from 100 to 10000
     
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
