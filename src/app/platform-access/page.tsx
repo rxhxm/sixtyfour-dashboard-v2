@@ -200,14 +200,13 @@ export default function PlatformAccessPage() {
 
       // Create updated filters with new email added to Set 2
       const updatedEmails = [...set2Emails, email]
-      const updatedFilters = {
-        ...featureFlag.filters,
-        groups: [
-          // Set 1 - Keep unchanged (regex pattern for @sixtyfour.ai)
-          featureFlag.filters.groups[0],
-          // Set 2 - Updated email list
-          {
-            ...featureFlag.filters.groups[1],
+      
+      // ROBUST APPROACH: Preserve ALL existing groups, only update Group 2 (email list)
+      const updatedGroups = featureFlag.filters.groups.map((group: any, index: number) => {
+        // Only modify Group 2 (index 1) - the email list we manage
+        if (index === 1) {
+          return {
+            ...group,
             properties: [
               {
                 key: 'email',
@@ -217,10 +216,15 @@ export default function PlatformAccessPage() {
               }
             ],
             rollout_percentage: 100
-          },
-          // Set 3 - PRESERVE surge auto-access (if exists)
-          ...(featureFlag.filters.groups[2] ? [featureFlag.filters.groups[2]] : [])
-        ]
+          }
+        }
+        // Keep all other groups completely unchanged
+        return group
+      })
+      
+      const updatedFilters = {
+        ...featureFlag.filters,
+        groups: updatedGroups
       }
 
       const response = await fetch('/api/posthog/feature-flags', {
@@ -278,14 +282,13 @@ export default function PlatformAccessPage() {
 
       // Create updated filters with email removed from Set 2
       const updatedEmails = set2Emails.filter(e => e !== emailToRemove)
-      const updatedFilters = {
-        ...featureFlag.filters,
-        groups: [
-          // Set 1 - Keep unchanged (regex pattern for @sixtyfour.ai)
-          featureFlag.filters.groups[0],
-          // Set 2 - Updated email list
-          {
-            ...featureFlag.filters.groups[1],
+      
+      // ROBUST APPROACH: Preserve ALL existing groups, only update Group 2 (email list)
+      const updatedGroups = featureFlag.filters.groups.map((group: any, index: number) => {
+        // Only modify Group 2 (index 1) - the email list we manage
+        if (index === 1) {
+          return {
+            ...group,
             properties: [
               {
                 key: 'email',
@@ -295,10 +298,15 @@ export default function PlatformAccessPage() {
               }
             ],
             rollout_percentage: 100
-          },
-          // Set 3 - PRESERVE surge auto-access (if exists)
-          ...(featureFlag.filters.groups[2] ? [featureFlag.filters.groups[2]] : [])
-        ]
+          }
+        }
+        // Keep all other groups completely unchanged
+        return group
+      })
+      
+      const updatedFilters = {
+        ...featureFlag.filters,
+        groups: updatedGroups
       }
 
       const response = await fetch('/api/posthog/feature-flags', {
