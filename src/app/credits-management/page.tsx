@@ -257,6 +257,28 @@ export default function CreditsManagementPage() {
     }
   }
 
+  // Load org-users mapping for search
+  const loadOrgUsersMapping = async () => {
+    try {
+      const response = await fetch('/api/org-management/mappings')
+      const data = await response.json()
+      
+      // Create map: org_id -> [user emails]
+      const map = new Map<string, string[]>()
+      data.mappings?.forEach((mapping: any) => {
+        if (!map.has(mapping.orgId)) {
+          map.set(mapping.orgId, [])
+        }
+        map.get(mapping.orgId)?.push(mapping.email)
+      })
+      
+      setOrgToUsersMap(map)
+      console.log(`📊 Loaded user mappings for ${map.size} orgs`)
+    } catch (e) {
+      console.warn('Failed to load org-users mapping:', e)
+    }
+  }
+  
   // Load org-users mapping on mount
   React.useEffect(() => {
     if (authVerified) {
