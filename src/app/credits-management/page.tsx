@@ -45,6 +45,7 @@ export default function CreditsManagementPage() {
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [orgToUsersMap, setOrgToUsersMap] = useState<Map<string, string[]>>(new Map())
   
   // Selected user and action state
   const [selectedUser, setSelectedUser] = useState<Subscription | null>(null)
@@ -256,11 +257,26 @@ export default function CreditsManagementPage() {
     }
   }
 
-  // Filter by search (already sorted by API)
+  // Load org-users mapping on mount
+  React.useEffect(() => {
+    if (authVerified) {
+      loadOrgUsersMapping()
+    }
+  }, [authVerified])
+  
+  // Filter by search (searches org_id AND user emails in that org)
   const filteredAndSortedSubscriptions = subscriptions
-    .filter(sub => 
-      sub.org_id.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    .filter(sub => {
+      const orgIdMatch = sub.org_id.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      // Also search by user emails in this org
+      const usersInOrg = orgToUsersMap.get(sub.org_id) || []
+      const userEmailMatch = usersInOrg.some(email => 
+        email.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      
+      return orgIdMatch || userEmailMatch
+    })
 
   // Auth check first
   if (authChecking || !authVerified) {
