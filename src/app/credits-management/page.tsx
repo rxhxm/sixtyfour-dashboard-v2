@@ -46,6 +46,7 @@ export default function CreditsManagementPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [orgToUsersMap, setOrgToUsersMap] = useState<Map<string, string[]>>(new Map())
+  const [expandedOrgs, setExpandedOrgs] = useState<Set<string>>(new Set())
   
   // Selected user and action state
   const [selectedUser, setSelectedUser] = useState<Subscription | null>(null)
@@ -443,9 +444,39 @@ export default function CreditsManagementPage() {
                       >
                         <td className="py-3 px-4">
                           <div>
-                            <div className="font-medium">{sub.name || sub.org_id}</div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{sub.name || sub.org_id}</span>
+                              {orgToUsersMap.get(sub.org_id) && orgToUsersMap.get(sub.org_id)!.length > 0 && (
+                                <Badge 
+                                  variant="secondary" 
+                                  className="text-xs cursor-pointer hover:bg-secondary/80"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setExpandedOrgs(prev => {
+                                      const next = new Set(prev)
+                                      if (next.has(sub.org_id)) {
+                                        next.delete(sub.org_id)
+                                      } else {
+                                        next.add(sub.org_id)
+                                      }
+                                      return next
+                                    })
+                                  }}
+                                >
+                                  {orgToUsersMap.get(sub.org_id)!.length} user{orgToUsersMap.get(sub.org_id)!.length !== 1 ? 's' : ''}
+                                </Badge>
+                              )}
+                            </div>
                             {sub.name && (
                               <div className="text-xs text-muted-foreground">{sub.org_id}</div>
+                            )}
+                            {expandedOrgs.has(sub.org_id) && orgToUsersMap.get(sub.org_id) && (
+                              <div className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1" onClick={(e) => e.stopPropagation()}>
+                                <div className="font-semibold text-muted-foreground mb-1">Users in this org:</div>
+                                {orgToUsersMap.get(sub.org_id)!.map(email => (
+                                  <div key={email} className="text-muted-foreground">• {email}</div>
+                                ))}
+                              </div>
                             )}
                           </div>
                         </td>
