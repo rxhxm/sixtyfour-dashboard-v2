@@ -81,7 +81,8 @@ export default function PlatformAccessPage() {
   // Load all user emails for autocomplete
   const loadAllUserEmails = async () => {
     try {
-      const response = await fetch('/api/org-emails')
+      // Add cache-busting timestamp to force fresh data
+      const response = await fetch(`/api/org-emails?t=${Date.now()}`)
       const data = await response.json()
       const uniqueEmails = [...new Set(Object.values(data?.emailMap || {}))] as string[]
       setAllUserEmails(uniqueEmails)
@@ -90,6 +91,19 @@ export default function PlatformAccessPage() {
       console.error('Failed to load user emails:', e)
     }
   }
+  
+  // Refresh email list when page becomes visible (user switches back to this tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && authVerified) {
+        console.log('👁️ Tab visible - refreshing email list')
+        loadAllUserEmails()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [authVerified])
 
   const fetchFeatureFlag = async () => {
     // Check cache first (instant!)
