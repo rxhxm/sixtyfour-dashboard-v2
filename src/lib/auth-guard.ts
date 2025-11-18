@@ -1,10 +1,11 @@
 // EMERGENCY AUTH GUARD - HARDCODED WHITELIST
-// ONLY these 3 emails can access ANYTHING
+// ONLY these 4 emails can access ANYTHING
 
 export const AUTHORIZED_TEAM_EMAILS = [
   'saarth@sixtyfour.ai',
   'roham@sixtyfour.ai',
-  'chrisprice@sixtyfour.ai'
+  'chrisprice@sixtyfour.ai',
+  'erik@sixtyfour.ai'
 ] as const
 
 export function isAuthorizedEmail(email: string | undefined | null): boolean {
