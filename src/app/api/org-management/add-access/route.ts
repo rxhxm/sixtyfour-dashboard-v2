@@ -19,7 +19,8 @@ const AddAccessSchema = z.object({
 const AUTHORIZED_ADMINS = [
   'saarth@sixtyfour.ai',
   'roham@sixtyfour.ai',
-  'chrisprice@sixtyfour.ai'
+  'chrisprice@sixtyfour.ai',
+  'erik@sixtyfour.ai'
 ]
 
 export async function POST(request: NextRequest) {

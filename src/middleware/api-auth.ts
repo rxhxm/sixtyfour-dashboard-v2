@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 const AUTHORIZED_EMAILS = [
   'saarth@sixtyfour.ai',
   'roham@sixtyfour.ai',
-  'chrisprice@sixtyfour.ai'
+  'chrisprice@sixtyfour.ai',
+  'erik@sixtyfour.ai'
 ]
 
 export async function checkApiAuth(request: NextRequest): Promise<NextResponse | null> {

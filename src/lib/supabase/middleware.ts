@@ -41,7 +41,8 @@ export async function updateSession(request: NextRequest) {
   const AUTHORIZED_EMAILS = [
     'saarth@sixtyfour.ai',
     'roham@sixtyfour.ai',
-    'chrisprice@sixtyfour.ai'
+    'chrisprice@sixtyfour.ai',
+    'erik@sixtyfour.ai'
   ];
 
   const isAuthorizedEmail = user?.email && AUTHORIZED_EMAILS.includes(user.email.toLowerCase());
