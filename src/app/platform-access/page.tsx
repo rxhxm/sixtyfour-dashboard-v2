@@ -81,12 +81,12 @@ export default function PlatformAccessPage() {
   // Load all user emails for autocomplete
   const loadAllUserEmails = async () => {
     try {
-      // Add cache-busting timestamp to force fresh data
-      const response = await fetch(`/api/org-emails?t=${Date.now()}`)
+      // Load ALL auth users (not just those with org assignments)
+      const response = await fetch(`/api/all-auth-users?t=${Date.now()}`)
       const data = await response.json()
-      const uniqueEmails = [...new Set(Object.values(data?.emailMap || {}))] as string[]
-      setAllUserEmails(uniqueEmails)
-      console.log('📧 Loaded', uniqueEmails.length, 'emails for autocomplete')
+      const allEmails = data?.emails || []
+      setAllUserEmails(allEmails)
+      console.log('📧 Loaded', allEmails.length, 'ALL user emails for autocomplete (including unassigned)')
     } catch (e) {
       console.error('Failed to load user emails:', e)
     }
