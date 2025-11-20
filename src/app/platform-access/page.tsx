@@ -199,8 +199,12 @@ export default function PlatformAccessPage() {
       return
     }
 
-    if (set2Emails.includes(email)) {
-      setMessage({ type: 'error', text: 'This email already has access' })
+    // Case-insensitive duplicate check
+    if (set2Emails.some(e => e.toLowerCase() === email.toLowerCase())) {
+      setMessage({ type: 'error', text: `${email} already has platform access` })
+      // Auto-clear error after 3 seconds
+      setTimeout(() => setMessage(null), 3000)
+      setSubmitting(false)
       return
     }
 
@@ -494,7 +498,11 @@ export default function PlatformAccessPage() {
               </div>
               <Button
                 onClick={addEmail}
-                disabled={submitting || !emailInput.trim()}
+                disabled={
+                  submitting || 
+                  !emailInput.trim() || 
+                  set2Emails.some(e => e.toLowerCase() === emailInput.trim().toLowerCase())
+                }
               >
                 {submitting ? (
                   <>
