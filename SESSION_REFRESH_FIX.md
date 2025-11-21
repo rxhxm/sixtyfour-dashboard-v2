@@ -170,3 +170,5 @@ useEffect(() => {
 
 **Want me to implement Option 1 across all protected pages?**
 
+
+

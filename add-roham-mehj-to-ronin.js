@@ -1,0 +1,80 @@
+require('dotenv').config({ path: '.env.local' })
+const { createClient } = require('@supabase/supabase-js')
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+)
+
+async function addRohamMehjToRonin() {
+  const email = 'roham.mehj@gmail.com'
+  const org = 'ronin'
+  
+  console.log(`📝 Adding ${email} to ${org} org...\n`)
+  
+  // Get all users
+  let allUsers = []
+  let page = 1
+  while (true) {
+    const { data } = await supabase.auth.admin.listUsers({ page, perPage: 1000 })
+    if (!data.users || data.users.length === 0) break
+    allUsers = [...allUsers, ...data.users]
+    if (data.users.length < 1000) break
+    page++
+  }
+  
+  const user = allUsers.find(u => u.email?.toLowerCase() === email.toLowerCase())
+  
+  if (!user) {
+    console.log(`❌ ${email} not found`)
+    console.log('   → User has not signed up yet')
+    process.exit(0)
+  }
+  
+  console.log(`✅ Found: ${user.email}`)
+  console.log(`   UUID: ${user.id}`)
+  
+  // Check current org
+  const { data: currentOrg } = await supabase
+    .from('users-org')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle()
+  
+  if (currentOrg) {
+    if (currentOrg.org_id === org) {
+      console.log(`\n✅ Already in ${org} org!`)
+      process.exit(0)
+    }
+    
+    console.log(`\nMoving from "${currentOrg.org_id}" to "${org}"...`)
+    
+    await supabase
+      .from('users-org')
+      .delete()
+      .eq('id', user.id)
+    
+    console.log(`✅ Removed from ${currentOrg.org_id}`)
+  }
+  
+  // Add to ronin
+  const { error } = await supabase
+    .from('users-org')
+    .insert({
+      id: user.id,
+      org_id: org
+    })
+  
+  if (error) {
+    console.error('❌ Failed:', error)
+    process.exit(1)
+  }
+  
+  console.log(`✅ Added ${email} to ${org}!`)
+  
+  process.exit(0)
+}
+
+addRohamMehjToRonin().catch(console.error)
+
+
