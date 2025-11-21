@@ -1,0 +1,22 @@
+# Cursor AI Rules for This Project
+
+## Codebase Cleanliness
+- NEVER create standalone .js/.ts test scripts in project root (use inline testing only)
+- NEVER create .md documentation files except updating README.md
+- NEVER create .csv, .json, or other data export files in project root
+- NEVER commit temporary debugging/testing code
+- Clean up ALL temporary files immediately after testing
+- All production code must be in src/ directory
+- Use console.log for debugging, remove after testing complete
+
+## Database Safety
+- Never edit database tables directly
+- Never make changes to ANY DATABASE
+- Only read from database, never write/modify
+
+## Code Quality
+- Always test changes before deploying
+- Preserve existing functionality when refactoring
+- Document complex logic inline with comments
+- Follow existing code patterns and style
+
