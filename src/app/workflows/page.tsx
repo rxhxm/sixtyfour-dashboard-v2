@@ -356,9 +356,13 @@ export default function WorkflowsPage() {
               <Workflow className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary?.totalWorkflows || 0}</div>
+              <div className="text-2xl font-bold">
+                {(summary?.totalWorkflows || 0).toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Created workflows
+                {summary?.fetchedWorkflows && summary.fetchedWorkflows < summary.totalWorkflows 
+                  ? `${summary.fetchedWorkflows.toLocaleString()} loaded` 
+                  : 'Created workflows'}
               </p>
             </CardContent>
           </Card>
@@ -369,9 +373,13 @@ export default function WorkflowsPage() {
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary?.totalRuns || 0}</div>
+              <div className="text-2xl font-bold">
+                {(summary?.totalRuns || 0).toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Workflow executions
+                {summary?.fetchedRuns && summary.fetchedRuns < summary.totalRuns 
+                  ? `${summary.fetchedRuns.toLocaleString()} loaded` 
+                  : 'Workflow executions'}
               </p>
             </CardContent>
           </Card>
