@@ -5,12 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, Info, X } from 'lucide-react'
+import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
 import { createClient } from '@/lib/supabase/client'
-import { OrgAccessManager } from '@/components/org-access-manager'
 
 interface FeatureFlag {
   id: number
@@ -424,9 +423,6 @@ export default function PlatformAccessPage() {
             </CardContent>
           </Card>
         )}
-
-        {/* Organization Access Management */}
-        <OrgAccessManager />
 
         {/* Add New User - Unified with user list */}
         <Card>
