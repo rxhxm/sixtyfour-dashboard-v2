@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
       .from('users-org')
       .select('id, org_id')
     
-    const orgMap = new Map(orgMappings?.map(m => [m.id, m.org_id]) || [])
+    const orgMap = new Map(orgMappings?.map((m: any) => [m.id, m.org_id]) || [])
     
-    // Enrich with org info
+    // Enrich with org info (explicit type fix)
     const enrichedSignups = recentSignups.map(user => ({
       email: user.email,
       id: user.id,
@@ -60,4 +60,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
 
