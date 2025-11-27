@@ -1,63 +1,46 @@
+'use client'
+
+import { Activity, Workflow, UserPlus, Coins, TrendingUp } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { Users, Activity, Workflow, UserPlus, Coins, Bot, Building2 } from 'lucide-react'
+import { Logo } from '@/components/ui/logo'
 
 const navigation = [
   { name: 'Workflows', href: '/workflows', icon: Workflow },
   { name: 'API Usage', href: '/api-usage', icon: Activity },
+  { name: 'Marketing', href: '/marketing', icon: TrendingUp },
   { name: 'Platform Access', href: '/platform-access', icon: UserPlus },
-  { name: 'Org Access', href: '/org-access', icon: Building2 },
   { name: 'Credits Management', href: '/credits-management', icon: Coins },
-  { name: 'Model Test', href: '/model-test', icon: Bot },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
-
+  
   return (
-    <div className="flex h-full flex-col gap-y-5 overflow-y-auto bg-white dark:bg-gray-900 px-6 pb-4 border-r border-gray-200 dark:border-gray-800">
-      <div className="flex h-16 shrink-0 items-center">
-        <div className="flex items-center gap-2 font-bold text-xl">
-          <div className="h-8 w-8 rounded-lg bg-black dark:bg-white flex items-center justify-center">
-            <span className="text-white dark:text-black">64</span>
-          </div>
-          <span>Sixtyfour</span>
-        </div>
+    <div className="fixed inset-y-0 left-0 z-50 w-64 bg-background border-r">
+      <div className="flex h-16 items-center px-6 gap-3">
+        <Logo width={32} height={32} />
+        <h1 className="text-xl font-bold">Sixtyfour</h1>
       </div>
-      <nav className="flex flex-1 flex-col">
-        <ul role="list" className="flex flex-1 flex-col gap-y-7">
-          <li>
-            <ul role="list" className="-mx-2 space-y-1">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
-                return (
-                  <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        isActive
-                          ? 'bg-gray-100 dark:bg-gray-800 text-black dark:text-white'
-                          : 'text-gray-700 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800',
-                        'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors'
-                      )}
-                    >
-                      <item.icon
-                        className={cn(
-                          isActive ? 'text-black dark:text-white' : 'text-gray-400 group-hover:text-black dark:group-hover:text-white',
-                          'h-6 w-6 shrink-0'
-                        )}
-                        aria-hidden="true"
-                      />
-                      {item.name}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </li>
+      <nav className="mt-8">
+        <ul className="space-y-2 px-4">
+          {navigation.map((item) => (
+            <li key={item.name}>
+              <Link
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                  pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.name}
+              </Link>
+            </li>
+          ))}
         </ul>
       </nav>
     </div>
   )
-}
+} 

@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react'
+import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, Info, X } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
 import { createClient } from '@/lib/supabase/client'
+import { OrgAccessManager } from '@/components/org-access-manager'
 
 interface FeatureFlag {
   id: number
@@ -80,12 +81,12 @@ export default function PlatformAccessPage() {
   // Load all user emails for autocomplete
   const loadAllUserEmails = async () => {
     try {
-      // Load ALL auth users (not just those with org assignments)
-      const response = await fetch(`/api/all-auth-users?t=${Date.now()}`)
+      // Add cache-busting timestamp to force fresh data
+      const response = await fetch(`/api/org-emails?t=${Date.now()}`)
       const data = await response.json()
-      const allEmails = data?.emails || []
-      setAllUserEmails(allEmails)
-      console.log('📧 Loaded', allEmails.length, 'ALL user emails for autocomplete (including unassigned)')
+      const uniqueEmails = [...new Set(Object.values(data?.emailMap || {}))] as string[]
+      setAllUserEmails(uniqueEmails)
+      console.log('📧 Loaded', uniqueEmails.length, 'emails for autocomplete')
     } catch (e) {
       console.error('Failed to load user emails:', e)
     }
@@ -198,12 +199,8 @@ export default function PlatformAccessPage() {
       return
     }
 
-    // Case-insensitive duplicate check
-    if (set2Emails.some(e => e.toLowerCase() === email.toLowerCase())) {
-      setMessage({ type: 'error', text: `${email} already has platform access` })
-      // Auto-clear error after 3 seconds
-      setTimeout(() => setMessage(null), 3000)
-      setSubmitting(false)
+    if (set2Emails.includes(email)) {
+      setMessage({ type: 'error', text: 'This email already has access' })
       return
     }
 
@@ -424,6 +421,9 @@ export default function PlatformAccessPage() {
           </Card>
         )}
 
+        {/* Organization Access Management */}
+        <OrgAccessManager />
+
         {/* Add New User - Unified with user list */}
         <Card>
           <CardHeader>
@@ -494,11 +494,7 @@ export default function PlatformAccessPage() {
               </div>
               <Button
                 onClick={addEmail}
-                disabled={
-                  submitting || 
-                  !emailInput.trim() || 
-                  set2Emails.some(e => e.toLowerCase() === emailInput.trim().toLowerCase())
-                }
+                disabled={submitting || !emailInput.trim()}
               >
                 {submitting ? (
                   <>

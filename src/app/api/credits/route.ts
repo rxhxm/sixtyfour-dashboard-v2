@@ -10,8 +10,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY! // Use service key 
 const AUTHORIZED_EMAILS = [
   'saarth@sixtyfour.ai',
   'roham@sixtyfour.ai',
-  'chrisprice@sixtyfour.ai',
-  'erik@sixtyfour.ai'
+  'chrisprice@sixtyfour.ai'
 ]
 
 // CRITICAL: Verify authentication for sensitive operations
