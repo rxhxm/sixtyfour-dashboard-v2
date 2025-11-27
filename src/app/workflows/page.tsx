@@ -89,6 +89,54 @@ export default function WorkflowsPage() {
   const [loadingCsv, setLoadingCsv] = useState(false)
   const [showAllBlocks, setShowAllBlocks] = useState(false)
   const [showAllOrgs, setShowAllOrgs] = useState(false)
+  const [orgFilteredRuns, setOrgFilteredRuns] = useState<WorkflowRun[]>([])
+  const [loadingOrgRuns, setLoadingOrgRuns] = useState(false)
+  
+  // Fetch runs for a specific org's workflows
+  const fetchOrgRuns = async (orgId: string) => {
+    if (!orgId) {
+      setOrgFilteredRuns([])
+      return
+    }
+    setLoadingOrgRuns(true)
+    try {
+      // Get all workflow IDs for this org
+      const orgWorkflowIds = workflows
+        .filter(w => w.user_org === orgId)
+        .map(w => w.id)
+      
+      if (orgWorkflowIds.length === 0) {
+        setOrgFilteredRuns([])
+        return
+      }
+      
+      // Fetch runs for all these workflows
+      const runsPromises = orgWorkflowIds.map(wfId => 
+        fetch(`/api/workflow-runs?workflowId=${wfId}&limit=1000`).then(r => r.json())
+      )
+      const results = await Promise.all(runsPromises)
+      
+      // Combine all runs and sort by date
+      const allOrgRuns = results
+        .flatMap(r => r.runs || [])
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      
+      setOrgFilteredRuns(allOrgRuns)
+    } catch (error) {
+      console.error('Error fetching org runs:', error)
+    } finally {
+      setLoadingOrgRuns(false)
+    }
+  }
+  
+  // When org selection changes, fetch that org's runs
+  useEffect(() => {
+    if (selectedOrg && workflows.length > 0) {
+      fetchOrgRuns(selectedOrg)
+    } else {
+      setOrgFilteredRuns([])
+    }
+  }, [selectedOrg, workflows])
   
   // Fetch CSV results
   const fetchCsvResults = async (jobId: string) => {
@@ -356,9 +404,13 @@ export default function WorkflowsPage() {
               <Workflow className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary?.totalWorkflows || 0}</div>
+              <div className="text-2xl font-bold">
+                {(summary?.totalWorkflows || 0).toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Created workflows
+                {summary?.fetchedWorkflows && summary.fetchedWorkflows < summary.totalWorkflows 
+                  ? `${summary.fetchedWorkflows.toLocaleString()} loaded` 
+                  : 'Created workflows'}
               </p>
             </CardContent>
           </Card>
@@ -369,9 +421,13 @@ export default function WorkflowsPage() {
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary?.totalRuns || 0}</div>
+              <div className="text-2xl font-bold">
+                {(summary?.totalRuns || 0).toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Workflow executions
+                {summary?.fetchedRuns && summary.fetchedRuns < summary.totalRuns 
+                  ? `${summary.fetchedRuns.toLocaleString()} loaded` 
+                  : 'Workflow executions'}
               </p>
             </CardContent>
           </Card>
@@ -545,20 +601,22 @@ export default function WorkflowsPage() {
             
             {/* Runs List */}
             <div className="space-y-2">
-              {/* Filter and show runs here */}
-              {recentRuns
+              {/* Show loading state when fetching org-specific runs */}
+              {loadingOrgRuns && selectedOrg && (
+                <div className="text-center py-4 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                  Loading runs for {selectedOrg}...
+                </div>
+              )}
+              {/* Use org-specific runs when org is selected, otherwise filter global runs */}
+              {(selectedOrg ? orgFilteredRuns : recentRuns
                 .filter(run => {
-                  // Filter by selected org
-                  if (selectedOrg) {
-                    const workflow = workflows.find(w => w.id === run.workflow_id)
-                    return workflow?.user_org === selectedOrg
-                  }
                   // Filter by selected workflow
                   if (selectedWorkflow) {
                     return run.workflow_id === selectedWorkflow
                   }
                   return true
-                })
+                }))
                 .map((run) => (
                   <Card
                     key={run.job_id}
