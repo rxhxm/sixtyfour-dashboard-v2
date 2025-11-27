@@ -10,7 +10,6 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
 import { createClient } from '@/lib/supabase/client'
-import { OrgAccessManager } from '@/components/org-access-manager'
 
 interface FeatureFlag {
   id: number
@@ -422,7 +421,6 @@ export default function PlatformAccessPage() {
         )}
 
         {/* Organization Access Management */}
-        <OrgAccessManager />
 
         {/* Add New User - Unified with user list */}
         <Card>
