@@ -61,7 +61,7 @@ export default function OrgAccessPage() {
               Organization Access
             </h1>
             <p className="text-muted-foreground mt-2">
-              Manage user-to-organization assignments for the Sixtyfour platform
+              Manage user-to-organization assignments
             </p>
           </div>
         </div>
@@ -90,4 +90,3 @@ export default function OrgAccessPage() {
     </DashboardLayout>
   )
 }
-
