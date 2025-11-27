@@ -102,8 +102,9 @@ export async function GET(request: NextRequest) {
         }
       } catch (e) {}
       
-      // Get user org
-      const userOrg = userToOrgMap.get(workflow.user_uuid) || 'Unknown'
+      // Use workflow's org_id (tracks org when workflow was created)
+      // Fallback to user's current org if workflow.org_id is missing
+      const userOrg = workflow.org_id || userToOrgMap.get(workflow.user_uuid) || 'Unknown'
       
       // Create a display name (use org or extract from user_uuid)
       const userName = userOrg !== 'Unknown' ? userOrg : workflow.user_uuid?.substring(0, 8)
