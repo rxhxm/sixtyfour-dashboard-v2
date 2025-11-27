@@ -200,8 +200,10 @@ export async function GET(request: NextRequest) {
       const finishedRuns = completedCount + failedCount + cancelledCount
       
       const summary = {
-        totalWorkflows: workflows?.length || 0,
-        totalRuns: runs?.length || 0,
+        totalWorkflows: totalWorkflows || workflows?.length || 0,  // Use exact count from DB
+        totalRuns: totalRuns || runs?.length || 0,  // Use exact count from DB
+        fetchedWorkflows: workflows?.length || 0,  // How many we actually fetched (may be limited)
+        fetchedRuns: runs?.length || 0,  // How many we actually fetched (may be limited)
         totalJobs: totalJobsCount || 0, // Use accurate count from database
         completedRuns: completedCount,
         failedRuns: failedCount,
