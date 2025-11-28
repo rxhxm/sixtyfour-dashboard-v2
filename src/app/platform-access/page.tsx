@@ -127,6 +127,10 @@ export default function PlatformAccessPage() {
           setSet1Pattern(set1Pattern || '')
           setOriginalPattern(set1Pattern || '')
           setSet2Emails(set2Emails || [])
+          
+          // Re-run parsing on cached pattern to ensure domains logic runs
+          parseDomainsFromPattern(set1Pattern || '')
+          
           setLoading(false)
           return
         }
@@ -152,98 +156,34 @@ export default function PlatformAccessPage() {
       let pattern = ''
       let emails: string[] = []
 
-      // Parse Set 1 and Set 2
+      // Parse Set 1 (Regex) and Set 2 (Emails)
       if (data.filters?.groups) {
-        // Set 1 should be the regex pattern (first group)
+        // Group 0: Regex Pattern
         const set1 = data.filters.groups[0]
         if (set1?.properties?.[0]?.value) {
           pattern = set1.properties[0].value as string
           setSet1Pattern(pattern)
           setOriginalPattern(pattern)
           
-          // Try to parse domains from regex
-          try {
-            const extractedDomains: string[] = []
-            
-            // 1. Check for optimization: (a|b|c)\.tld (common PostHog pattern)
-            // Matches: (surgehq|surge)\.ai or (surgehq|surge).ai inside the string
-            // We search globally if there are multiple groups
-            const optimizedRegex = /\(([^)]+)\)\\?\.([a-z0-9]+)/gi
-            let match
-            while ((match = optimizedRegex.exec(pattern)) !== null) {
-               const roots = match[1].split('|')
-               const tld = match[2]
-               roots.forEach(root => {
-                 // Clean up root (remove non-alphanumeric if regex artifacts exist)
-                 const cleanRoot = root.replace(/[^a-z0-9-]/gi, '')
-                 if (cleanRoot) extractedDomains.push(`${cleanRoot}.${tld}`)
-               })
-            }
-            
-            // 2. Aggressive Parser: Extract anything else that looks like a full domain
-            // First, remove known regex prefixes that mess up parsing
-            let cleanPattern = pattern
-              .replace(/\[A-Za-z0-9-]\+\\\./g, '') // Remove [A-Za-z0-9-]+\.
-              .replace(/\(\[A-Za-z0-9-\]+\\\.\)\*/g, '') // Remove ([A-Za-z0-9-]+\.)*
-              .replace(/\[\^\\s@\]\+@/g, '') // Remove [^\s@]+@
-              .replace(/^[^^]*@/, '') // Remove anything up to @ at the start
-            
-            // Now do the character stripping
-            cleanPattern = cleanPattern
-              .replace(/\\./g, '.') // Unescape dots first
-              .replace(/\^/g, '')   // Remove start anchor
-              .replace(/\$/g, '')   // Remove end anchor
-              .replace(/[\[\]\+\*\?]/g, '') // Remove quantifiers/sets
-              .replace(/A-Za-z0-9/g, '') // Remove character class artifacts
-              .replace(/._%+-/g, '')     // Remove email pattern artifacts
-              .replace(/@/g, '|')        // Treat @ as a separator
-            
-            // Split by logical OR (both | and parsed @)
-            const parts = cleanPattern.split('|')
-            
-            parts.forEach(part => {
-              // Clean up parens and whitespace
-              let clean = part.replace(/[\(\)]/g, '').trim()
-              
-              // Clean leading/trailing dots or dashes (common artifacts)
-              clean = clean.replace(/^[\.\-]+|[\.\-]+$/g, '')
-              
-              // Remove empty
-              if (!clean) return
-              
-              // Must look like a domain (x.y) and not contain weird chars
-              if (/^[a-z0-9][a-z0-9\-\.]+\.[a-z]{2,}$/i.test(clean)) {
-                extractedDomains.push(clean)
-              }
-            })
-            
-            // Deduplicate
-            const uniqueDomains = [...new Set(extractedDomains)]
-            
-            if (uniqueDomains.length > 0) {
-              setDomains(uniqueDomains)
-              setUseRawRegex(false)
-            } else {
-              console.log('Aggressive parser found no domains in:', pattern)
-              // Even if empty, we default to empty list (better than raw mode if user hates raw mode)
-              setDomains([])
-              // Only enable raw regex if pattern exists but we found nothing AND it's long?
-              // User asked to remove raw regex toggle, so we must show *something*.
-              // If pattern exists, we show empty list (safer than showing regex which scares user)
-              // But we log it so we know.
-            }
-          } catch (e) {
-            console.warn('Failed to parse regex domains:', e)
-            setUseRawRegex(true)
-          }
+          // Use our improved parsing logic
+          parseDomainsFromPattern(pattern)
         }
 
-        // Set 2 should be the email list (second group)
+        // Group 1: Email List
         const set2 = data.filters.groups[1]
         if (set2?.properties?.[0]?.value && Array.isArray(set2.properties[0].value)) {
           emails = set2.properties[0].value
           setSet2Emails(emails)
         }
+        
+        // DEBUG: Scan other groups for 'surge' just in case it's hiding
+        data.filters.groups.forEach((g: any, i: number) => {
+          if (i > 1 && g.properties?.[0]?.value) {
+            console.log(`⚠️ Found extra group ${i}:`, g.properties[0])
+            // If we find domains here, we might want to alert the user or merge them
+            // For now, let's strictly stick to Group 0 to avoid breaking logic
+          }
+        })
       }
       
       // Cache the data
@@ -262,6 +202,65 @@ export default function PlatformAccessPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+  
+  const parseDomainsFromPattern = (pattern: string) => {
+    try {
+      const extractedDomains: string[] = []
+      
+      // 1. Check for optimization: (a|b|c)\.tld
+      const optimizedRegex = /\(([^)]+)\)\\?\.([a-z0-9]+)/gi
+      let match
+      while ((match = optimizedRegex.exec(pattern)) !== null) {
+         const roots = match[1].split('|')
+         const tld = match[2]
+         roots.forEach(root => {
+           const cleanRoot = root.replace(/[^a-z0-9-]/gi, '')
+           if (cleanRoot) extractedDomains.push(`${cleanRoot}.${tld}`)
+         })
+      }
+      
+      // 2. Aggressive Parser
+      let cleanPattern = pattern
+        .replace(/\[A-Za-z0-9-]\+\\\./g, '')
+        .replace(/\(\[A-Za-z0-9-\]+\\\.\)\*/g, '')
+        .replace(/\[\^\\s@\]\+@/g, '')
+        .replace(/^[^^]*@/, '')
+      
+      cleanPattern = cleanPattern
+        .replace(/\\./g, '.')
+        .replace(/\^/g, '')
+        .replace(/\$/g, '')
+        .replace(/[\[\]\+\*\?]/g, '')
+        .replace(/A-Za-z0-9/g, '')
+        .replace(/._%+-/g, '')
+        .replace(/@/g, '|')
+      
+      const parts = cleanPattern.split('|')
+      
+      parts.forEach(part => {
+        let clean = part.replace(/[\(\)]/g, '').trim()
+        clean = clean.replace(/^[\.\-]+|[\.\-]+$/g, '')
+        
+        if (!clean) return
+        
+        if (/^[a-z0-9][a-z0-9\-\.]+\.[a-z]{2,}$/i.test(clean)) {
+          extractedDomains.push(clean)
+        }
+      })
+      
+      const uniqueDomains = [...new Set(extractedDomains)]
+      
+      if (uniqueDomains.length > 0) {
+        setDomains(uniqueDomains)
+        setUseRawRegex(false)
+      } else {
+        setDomains([])
+      }
+    } catch (e) {
+      console.warn('Failed to parse regex domains:', e)
+      setUseRawRegex(true)
     }
   }
   
