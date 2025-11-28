@@ -203,18 +203,17 @@ export default function PlatformAccessPage() {
         const uniqueDomains = [...new Set(allDomains)]
         setDomains(uniqueDomains)
         console.log('📋 Found domains from all groups:', uniqueDomains)
+        
+        // Cache the data (including domains from all groups)
+        sessionStorage.setItem('platform_cache', JSON.stringify({
+          featureFlag: data,
+          set1Pattern: pattern,
+          set2Emails: emails,
+          domains: uniqueDomains,
+          timestamp: Date.now()
+        }))
+        console.log('💾 Platform data cached with domains:', uniqueDomains)
       }
-      
-      // Cache the data (including domains from all groups)
-      const currentDomains = [...new Set(allDomains)]
-      sessionStorage.setItem('platform_cache', JSON.stringify({
-        featureFlag: data,
-        set1Pattern: pattern,
-        set2Emails: emails,
-        domains: currentDomains,
-        timestamp: Date.now()
-      }))
-      console.log('💾 Platform data cached with domains:', currentDomains)
     } catch (error) {
       console.error('Error fetching feature flag:', error)
       setMessage({
