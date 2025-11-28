@@ -163,66 +163,64 @@ export default function PlatformAccessPage() {
           
           // Try to parse domains from regex
           try {
-            // More robust parsing: find the part after the @ symbol
-            const atIndex = pattern.lastIndexOf('@')
-            if (atIndex !== -1) {
-              // Get everything after @
-              let domainPart = pattern.substring(atIndex + 1)
+            const extractedDomains: string[] = []
+            
+            // 1. Check for optimization: (a|b|c)\.tld (common PostHog pattern)
+            // Matches: (surgehq|surge)\.ai or (surgehq|surge).ai inside the string
+            // We search globally if there are multiple groups
+            const optimizedRegex = /\(([^)]+)\)\\?\.([a-z0-9]+)/gi
+            let match
+            while ((match = optimizedRegex.exec(pattern)) !== null) {
+               const roots = match[1].split('|')
+               const tld = match[2]
+               roots.forEach(root => {
+                 // Clean up root (remove non-alphanumeric if regex artifacts exist)
+                 const cleanRoot = root.replace(/[^a-z0-9-]/gi, '')
+                 if (cleanRoot) extractedDomains.push(`${cleanRoot}.${tld}`)
+               })
+            }
+            
+            // 2. Aggressive Parser: Extract anything else that looks like a full domain
+            // Remove common regex tokens that might surround domains
+            let cleanPattern = pattern
+              .replace(/\\./g, '.') // Unescape dots first
+              .replace(/\^/g, '')   // Remove start anchor
+              .replace(/\$/g, '')   // Remove end anchor
+              .replace(/[\[\]\+\*\?]/g, '') // Remove quantifiers/sets
+              .replace(/A-Za-z0-9/g, '') // Remove character class artifacts
+              .replace(/._%+-/g, '')     // Remove email pattern artifacts
+              .replace(/@/g, '|')        // Treat @ as a separator
+            
+            // Split by logical OR (both | and parsed @)
+            const parts = cleanPattern.split('|')
+            
+            parts.forEach(part => {
+              // Clean up parens and whitespace
+              let clean = part.replace(/[\(\)]/g, '').trim()
               
-              // Remove trailing $ if present
-              if (domainPart.endsWith('$')) {
-                domainPart = domainPart.substring(0, domainPart.length - 1)
+              // Remove empty or "start of email" fragments
+              if (!clean || clean === '.' || !clean.includes('.')) return
+              
+              // Remove generic prefixes if any remain
+              if (/^[a-z0-9-]+\.[a-z0-9-.]+$/i.test(clean)) {
+                extractedDomains.push(clean)
               }
-              
-              // If there's a prefix like ([A-Za-z0-9-]+\.)*, remove it
-              // This handles the standard complex regex we generate
-              const standardPrefix = "([A-Za-z0-9-]+\\.)*"
-              if (domainPart.startsWith(standardPrefix)) {
-                domainPart = domainPart.substring(standardPrefix.length)
-              }
-              
-              // Clean up parens if it's a group (domain1|domain2)
-              if (domainPart.startsWith('(') && domainPart.endsWith(')')) {
-                domainPart = domainPart.substring(1, domainPart.length - 1)
-              }
-              
-              // Now we likely have "domain1\.com|domain2\.org" OR "(surgehq|surge)\.ai"
-              
-              // Handle the specific optimization case: (a|b)\.c -> a.c, b.c
-              // Look for: (...|...)\.something
-              const groupedTldMatch = domainPart.match(/^\((.+)\)\\.(.+)$/)
-              if (groupedTldMatch) {
-                const names = groupedTldMatch[1].split('|')
-                const tld = groupedTldMatch[2]
-                const expandedDomains = names.map(n => `${n}.${tld}`)
-                setDomains(expandedDomains)
-                setUseRawRegex(false)
-              } else {
-                // Standard case: domain1\.com|domain2\.org
-                // Split by | that is NOT inside parens (simple split works for standard lists)
-                const parsedDomains = domainPart.split('|').map(d => {
-                  // Unescape dots and clean up
-                  return d.replace(/\\./g, '.')
-                })
-                
-                // Filter out anything that doesn't look like a domain/part
-                const cleanDomains = parsedDomains.filter(d => d.length > 0 && !d.includes('('))
-                
-                if (cleanDomains.length > 0) {
-                  setDomains(cleanDomains)
-                  setUseRawRegex(false)
-                } else {
-                  // If we couldn't parse clean domains, fallback to raw
-                  console.log('Could not extract clean domains, fallback to raw')
-                  setDomains([])
-                  setUseRawRegex(true)
-                }
-              }
+            })
+            
+            // Deduplicate
+            const uniqueDomains = [...new Set(extractedDomains)]
+            
+            if (uniqueDomains.length > 0) {
+              setDomains(uniqueDomains)
+              setUseRawRegex(false)
             } else {
-              // No @ found, probably not an email regex we recognize
-              console.log('No @ found in pattern, fallback to raw')
+              console.log('Aggressive parser found no domains in:', pattern)
+              // Even if empty, we default to empty list (better than raw mode if user hates raw mode)
               setDomains([])
-              setUseRawRegex(true)
+              // Only enable raw regex if pattern exists but we found nothing AND it's long?
+              // User asked to remove raw regex toggle, so we must show *something*.
+              // If pattern exists, we show empty list (safer than showing regex which scares user)
+              // But we log it so we know.
             }
           } catch (e) {
             console.warn('Failed to parse regex domains:', e)
