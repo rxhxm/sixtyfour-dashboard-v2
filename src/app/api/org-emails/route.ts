@@ -54,6 +54,11 @@ export async function GET(request: NextRequest) {
     // Create mapping: org_id -> email
     const orgEmailMap: Record<string, string> = {}
     
+    // Create list of ALL unique emails
+    const allEmails: string[] = allUsers
+      .map((u: any) => u.email)
+      .filter((email: any) => email && typeof email === 'string')
+    
     userOrgs?.forEach((userOrg: any) => {
       // Find the auth user for this user_id
       const authUser = allUsers?.find((u: any) => u.id === userOrg.id)
@@ -63,8 +68,12 @@ export async function GET(request: NextRequest) {
     })
     
     console.log('✅ Mapped', Object.keys(orgEmailMap).length, 'orgs to emails')
+    console.log('✅ Found', allEmails.length, 'total user emails')
     
-    return NextResponse.json({ emailMap: orgEmailMap })
+    return NextResponse.json({ 
+      emailMap: orgEmailMap,
+      allEmails: allEmails 
+    })
     
   } catch (error) {
     console.error('Error in org-emails API:', error)

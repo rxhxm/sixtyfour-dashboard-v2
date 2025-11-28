@@ -49,11 +49,19 @@ export function OrgAccessManager() {
     const response = await fetch('/api/org-emails')
     const data = await response.json()
     
-    // Get unique emails from the emailMap
-    // API returns { emailMap: { "orgId": "email", ... } }
-    const uniqueEmails = [...new Set(Object.values(data?.emailMap || {}))] as string[]
-    console.log('📧 Loaded', uniqueEmails.length, 'user emails for autocomplete')
-    setUsers(uniqueEmails)
+    // Use the list of ALL emails if available, otherwise fallback to the map values
+    // This ensures we see users who aren't in an org yet (like erik@sixtyfour.ai)
+    let allUserEmails: string[] = []
+    
+    if (data.allEmails && Array.isArray(data.allEmails)) {
+      allUserEmails = data.allEmails
+    } else {
+      // Fallback for older API version
+      allUserEmails = [...new Set(Object.values(data?.emailMap || {}))] as string[]
+    }
+    
+    console.log('📧 Loaded', allUserEmails.length, 'user emails for autocomplete')
+    setUsers(allUserEmails)
   }
   
   const loadOrgs = async () => {
