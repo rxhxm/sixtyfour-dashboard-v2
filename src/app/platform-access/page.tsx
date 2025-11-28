@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react'
+import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, X, Globe, Save, Info } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
 import { createClient } from '@/lib/supabase/client'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface FeatureFlag {
   id: number
@@ -45,6 +46,7 @@ export default function PlatformAccessPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [set2Emails, setSet2Emails] = useState<string[]>([])
   const [set1Pattern, setSet1Pattern] = useState<string>('')
+  const [originalPattern, setOriginalPattern] = useState<string>('')
   const [allUserEmails, setAllUserEmails] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
@@ -117,6 +119,7 @@ export default function PlatformAccessPage() {
           console.log('⚡ Using cached platform data')
           setFeatureFlag(featureFlag)
           setSet1Pattern(set1Pattern || '')
+          setOriginalPattern(set1Pattern || '')
           setSet2Emails(set2Emails || [])
           setLoading(false)
           return
@@ -150,6 +153,7 @@ export default function PlatformAccessPage() {
         if (set1?.properties?.[0]?.value) {
           pattern = set1.properties[0].value as string
           setSet1Pattern(pattern)
+          setOriginalPattern(pattern)
         }
 
         // Set 2 should be the email list (second group)
@@ -176,6 +180,68 @@ export default function PlatformAccessPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const updatePattern = async () => {
+    if (!featureFlag) return
+    setSubmitting(true)
+    setMessage(null)
+    
+    try {
+      // ROBUST APPROACH: Preserve ALL existing groups, only update Group 0 (pattern)
+      const updatedGroups = featureFlag.filters.groups.map((group: any, index: number) => {
+        // Only modify Group 0 (index 0) - the regex pattern
+        if (index === 0) {
+          return {
+            ...group,
+            properties: [
+              {
+                key: 'email',
+                value: set1Pattern,
+                operator: 'regex',
+                type: 'person'
+              }
+            ],
+            rollout_percentage: 100
+          }
+        }
+        // Keep all other groups completely unchanged
+        return group
+      })
+      
+      const updatedFilters = {
+        ...featureFlag.filters,
+        groups: updatedGroups
+      }
+
+      const response = await fetch('/api/posthog/feature-flags', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          flagId: featureFlag.id,
+          filters: updatedFilters
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update pattern')
+      }
+
+      setOriginalPattern(set1Pattern)
+      setMessage({ type: 'success', text: 'Organization access rules updated successfully' })
+      
+      // Refresh
+      await fetchFeatureFlag()
+    } catch (error) {
+      console.error('Error updating pattern:', error)
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to update pattern'
+      })
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -423,6 +489,59 @@ export default function PlatformAccessPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Organization Access Rules (Regex Pattern) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Organization Access Rules
+            </CardTitle>
+            <CardDescription>
+              Auto-approve users based on their email domain regex pattern (e.g., matching <code>@surgehq.ai</code>)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Email Domain Regex Pattern</label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>PostHog Regex Pattern.</p>
+                      <p className="mt-1">Example: <code>(surgehq|surge)\.ai</code> matches anything ending in @surgehq.ai or @surge.ai</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="flex gap-3">
+                <Input 
+                  value={set1Pattern}
+                  onChange={(e) => setSet1Pattern(e.target.value)}
+                  placeholder="(example|test)\.com"
+                  className="font-mono"
+                />
+                <Button 
+                  onClick={updatePattern}
+                  disabled={submitting || set1Pattern === originalPattern}
+                >
+                  {submitting && set1Pattern !== originalPattern ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Update Rule
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Current active pattern: <code className="bg-muted px-1 py-0.5 rounded">{originalPattern}</code>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Add New User - Unified with user list */}
         <Card>
