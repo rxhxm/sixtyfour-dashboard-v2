@@ -163,27 +163,64 @@ export default function PlatformAccessPage() {
           
           // Try to parse domains from regex
           try {
-            // Standard prefix for our auto-generated regex
-            const prefix = "^[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+\\.)*"
-            const suffix = "$"
-            
-            // Check if it matches our expected format
-            if (pattern.startsWith(prefix) && pattern.endsWith(suffix)) {
-              // Extract the domain part: remove prefix and suffix
-              let domainPart = pattern.substring(prefix.length, pattern.length - suffix.length)
+            // More robust parsing: find the part after the @ symbol
+            const atIndex = pattern.lastIndexOf('@')
+            if (atIndex !== -1) {
+              // Get everything after @
+              let domainPart = pattern.substring(atIndex + 1)
               
-              // Remove outer parens if they exist (grouping for multiple domains)
+              // Remove trailing $ if present
+              if (domainPart.endsWith('$')) {
+                domainPart = domainPart.substring(0, domainPart.length - 1)
+              }
+              
+              // If there's a prefix like ([A-Za-z0-9-]+\.)*, remove it
+              // This handles the standard complex regex we generate
+              const standardPrefix = "([A-Za-z0-9-]+\\.)*"
+              if (domainPart.startsWith(standardPrefix)) {
+                domainPart = domainPart.substring(standardPrefix.length)
+              }
+              
+              // Clean up parens if it's a group (domain1|domain2)
               if (domainPart.startsWith('(') && domainPart.endsWith(')')) {
                 domainPart = domainPart.substring(1, domainPart.length - 1)
               }
               
-              // Split by | and unescape dots
-              const parsedDomains = domainPart.split('|').map(d => d.replace(/\\./g, '.'))
-              setDomains(parsedDomains)
-              setUseRawRegex(false)
+              // Now we likely have "domain1\.com|domain2\.org" OR "(surgehq|surge)\.ai"
+              
+              // Handle the specific optimization case: (a|b)\.c -> a.c, b.c
+              // Look for: (...|...)\.something
+              const groupedTldMatch = domainPart.match(/^\((.+)\)\\.(.+)$/)
+              if (groupedTldMatch) {
+                const names = groupedTldMatch[1].split('|')
+                const tld = groupedTldMatch[2]
+                const expandedDomains = names.map(n => `${n}.${tld}`)
+                setDomains(expandedDomains)
+                setUseRawRegex(false)
+              } else {
+                // Standard case: domain1\.com|domain2\.org
+                // Split by | that is NOT inside parens (simple split works for standard lists)
+                const parsedDomains = domainPart.split('|').map(d => {
+                  // Unescape dots and clean up
+                  return d.replace(/\\./g, '.')
+                })
+                
+                // Filter out anything that doesn't look like a domain/part
+                const cleanDomains = parsedDomains.filter(d => d.length > 0 && !d.includes('('))
+                
+                if (cleanDomains.length > 0) {
+                  setDomains(cleanDomains)
+                  setUseRawRegex(false)
+                } else {
+                  // If we couldn't parse clean domains, fallback to raw
+                  console.log('Could not extract clean domains, fallback to raw')
+                  setDomains([])
+                  setUseRawRegex(true)
+                }
+              }
             } else {
-              // If pattern doesn't match our standard format, fallback to raw mode
-              console.log('Pattern does not match standard format, using raw mode')
+              // No @ found, probably not an email regex we recognize
+              console.log('No @ found in pattern, fallback to raw')
               setDomains([])
               setUseRawRegex(true)
             }
@@ -585,41 +622,20 @@ export default function PlatformAccessPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-end">
-              <div className="flex items-center space-x-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-xs text-muted-foreground h-6"
-                  onClick={() => {
-                    setUseRawRegex(!useRawRegex)
-                    if (!useRawRegex) {
-                      // Switching TO raw mode - just keep current pattern
-                    } else {
-                      // Switching FROM raw mode - try to parse again (revert to parsed if possible)
-                      // Ideally we'd re-run parsing logic here, but for now let's just clear
-                      // or better, rely on rebuildRegex if domains exist
-                      if (domains.length > 0) rebuildRegex(domains)
-                    }
-                  }}
-                >
-                  {useRawRegex ? "Switch to Simple Mode" : "Advanced: Edit Raw Regex"}
-                </Button>
-              </div>
-            </div>
+            {/* Hidden advanced toggle - logic automatically handles fallback to raw mode if parsing fails */}
 
             {useRawRegex ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">Email Domain Regex Pattern</label>
+                  <label className="text-sm font-medium">Email Domain Regex Pattern (Complex)</label>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger>
                         <Info className="h-4 w-4 text-muted-foreground" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
-                        <p>PostHog Regex Pattern.</p>
-                        <p className="mt-1">Example: <code>(surgehq|surge)\.ai</code> matches anything ending in @surgehq.ai or @surge.ai</p>
+                        <p>This regex pattern is too complex to display as a simple list.</p>
+                        <p className="mt-1">You can edit it directly here.</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -628,7 +644,6 @@ export default function PlatformAccessPage() {
                   <Input 
                     value={set1Pattern}
                     onChange={(e) => setSet1Pattern(e.target.value)}
-                    placeholder="(example|test)\.com"
                     className="font-mono"
                   />
                   <Button 
@@ -640,7 +655,7 @@ export default function PlatformAccessPage() {
                     ) : (
                       <Save className="h-4 w-4 mr-2" />
                     )}
-                    Update Rule
+                    Update
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -678,7 +693,7 @@ export default function PlatformAccessPage() {
                       value={domainInput}
                       onChange={(e) => setDomainInput(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && addDomain()}
-                      placeholder="e.g. google.com"
+                      placeholder="Start typing domain..."
                     />
                     <Button onClick={addDomain} variant="outline" disabled={!domainInput.trim()}>
                       <Plus className="h-4 w-4 mr-2" />
@@ -687,10 +702,7 @@ export default function PlatformAccessPage() {
                   </div>
                 </div>
                 
-                <div className="pt-2 border-t flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    Generates regex: <code className="bg-muted px-1 py-0.5 rounded ml-1 max-w-[200px] inline-block truncate align-bottom">{set1Pattern || '(empty)'}</code>
-                  </p>
+                <div className="pt-2 border-t flex items-center justify-end">
                   <Button 
                     onClick={updatePattern}
                     disabled={submitting || set1Pattern === originalPattern}
