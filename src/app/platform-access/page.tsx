@@ -181,8 +181,15 @@ export default function PlatformAccessPage() {
             }
             
             // 2. Aggressive Parser: Extract anything else that looks like a full domain
-            // Remove common regex tokens that might surround domains
+            // First, remove known regex prefixes that mess up parsing
             let cleanPattern = pattern
+              .replace(/\[A-Za-z0-9-]\+\\\./g, '') // Remove [A-Za-z0-9-]+\.
+              .replace(/\(\[A-Za-z0-9-\]+\\\.\)\*/g, '') // Remove ([A-Za-z0-9-]+\.)*
+              .replace(/\[\^\\s@\]\+@/g, '') // Remove [^\s@]+@
+              .replace(/^[^^]*@/, '') // Remove anything up to @ at the start
+            
+            // Now do the character stripping
+            cleanPattern = cleanPattern
               .replace(/\\./g, '.') // Unescape dots first
               .replace(/\^/g, '')   // Remove start anchor
               .replace(/\$/g, '')   // Remove end anchor
@@ -198,11 +205,14 @@ export default function PlatformAccessPage() {
               // Clean up parens and whitespace
               let clean = part.replace(/[\(\)]/g, '').trim()
               
-              // Remove empty or "start of email" fragments
-              if (!clean || clean === '.' || !clean.includes('.')) return
+              // Clean leading/trailing dots or dashes (common artifacts)
+              clean = clean.replace(/^[\.\-]+|[\.\-]+$/g, '')
               
-              // Remove generic prefixes if any remain
-              if (/^[a-z0-9-]+\.[a-z0-9-.]+$/i.test(clean)) {
+              // Remove empty
+              if (!clean) return
+              
+              // Must look like a domain (x.y) and not contain weird chars
+              if (/^[a-z0-9][a-z0-9\-\.]+\.[a-z]{2,}$/i.test(clean)) {
                 extractedDomains.push(clean)
               }
             })
