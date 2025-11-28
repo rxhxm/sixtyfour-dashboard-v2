@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, X, Globe, Save, Info } from 'lucide-react'
+import { UserPlus, Mail, Trash2, AlertCircle, CheckCircle2, Loader2, X, Globe, Save, Info, Plus } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
@@ -47,6 +47,12 @@ export default function PlatformAccessPage() {
   const [set2Emails, setSet2Emails] = useState<string[]>([])
   const [set1Pattern, setSet1Pattern] = useState<string>('')
   const [originalPattern, setOriginalPattern] = useState<string>('')
+  
+  // New state for domain management
+  const [domains, setDomains] = useState<string[]>([])
+  const [domainInput, setDomainInput] = useState('')
+  const [useRawRegex, setUseRawRegex] = useState(false)
+  
   const [allUserEmails, setAllUserEmails] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
@@ -154,6 +160,37 @@ export default function PlatformAccessPage() {
           pattern = set1.properties[0].value as string
           setSet1Pattern(pattern)
           setOriginalPattern(pattern)
+          
+          // Try to parse domains from regex
+          try {
+            // Standard prefix for our auto-generated regex
+            const prefix = "^[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+\\.)*"
+            const suffix = "$"
+            
+            // Check if it matches our expected format
+            if (pattern.startsWith(prefix) && pattern.endsWith(suffix)) {
+              // Extract the domain part: remove prefix and suffix
+              let domainPart = pattern.substring(prefix.length, pattern.length - suffix.length)
+              
+              // Remove outer parens if they exist (grouping for multiple domains)
+              if (domainPart.startsWith('(') && domainPart.endsWith(')')) {
+                domainPart = domainPart.substring(1, domainPart.length - 1)
+              }
+              
+              // Split by | and unescape dots
+              const parsedDomains = domainPart.split('|').map(d => d.replace(/\\./g, '.'))
+              setDomains(parsedDomains)
+              setUseRawRegex(false)
+            } else {
+              // If pattern doesn't match our standard format, fallback to raw mode
+              console.log('Pattern does not match standard format, using raw mode')
+              setDomains([])
+              setUseRawRegex(true)
+            }
+          } catch (e) {
+            console.warn('Failed to parse regex domains:', e)
+            setUseRawRegex(true)
+          }
         }
 
         // Set 2 should be the email list (second group)
@@ -181,6 +218,52 @@ export default function PlatformAccessPage() {
     } finally {
       setLoading(false)
     }
+  }
+  
+  const addDomain = () => {
+    const domain = domainInput.trim().toLowerCase()
+    if (!domain) return
+    
+    // Simple validation
+    if (!domain.includes('.') || domain.includes('@')) {
+      setMessage({ type: 'error', text: 'Please enter a valid domain (e.g. google.com)' })
+      return
+    }
+    
+    if (domains.includes(domain)) {
+      setMessage({ type: 'error', text: 'Domain already in list' })
+      return
+    }
+    
+    const newDomains = [...domains, domain]
+    setDomains(newDomains)
+    setDomainInput('')
+    
+    // Rebuild regex pattern
+    rebuildRegex(newDomains)
+  }
+  
+  const removeDomain = (domain: string) => {
+    const newDomains = domains.filter(d => d !== domain)
+    setDomains(newDomains)
+    rebuildRegex(newDomains)
+  }
+  
+  const rebuildRegex = (domainList: string[]) => {
+    if (domainList.length === 0) {
+      // If empty, maybe just match nothing or keep it empty? 
+      // For safety, let's keep it empty which effectively disables the rule if updated
+      setSet1Pattern('')
+      return
+    }
+    
+    const escapedDomains = domainList.map(d => d.replace(/\./g, '\\.'))
+    const domainPart = escapedDomains.length > 1 
+      ? `(${escapedDomains.join('|')})`
+      : escapedDomains[0]
+      
+    const newPattern = `^[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+\\.)*${domainPart}$`
+    setSet1Pattern(newPattern)
   }
 
   const updatePattern = async () => {
@@ -502,44 +585,126 @@ export default function PlatformAccessPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Email Domain Regex Pattern</label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>PostHog Regex Pattern.</p>
-                      <p className="mt-1">Example: <code>(surgehq|surge)\.ai</code> matches anything ending in @surgehq.ai or @surge.ai</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <div className="flex gap-3">
-                <Input 
-                  value={set1Pattern}
-                  onChange={(e) => setSet1Pattern(e.target.value)}
-                  placeholder="(example|test)\.com"
-                  className="font-mono"
-                />
+            <div className="flex items-center justify-end">
+              <div className="flex items-center space-x-2">
                 <Button 
-                  onClick={updatePattern}
-                  disabled={submitting || set1Pattern === originalPattern}
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs text-muted-foreground h-6"
+                  onClick={() => {
+                    setUseRawRegex(!useRawRegex)
+                    if (!useRawRegex) {
+                      // Switching TO raw mode - just keep current pattern
+                    } else {
+                      // Switching FROM raw mode - try to parse again (revert to parsed if possible)
+                      // Ideally we'd re-run parsing logic here, but for now let's just clear
+                      // or better, rely on rebuildRegex if domains exist
+                      if (domains.length > 0) rebuildRegex(domains)
+                    }
+                  }}
                 >
-                  {submitting && set1Pattern !== originalPattern ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Update Rule
+                  {useRawRegex ? "Switch to Simple Mode" : "Advanced: Edit Raw Regex"}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Current active pattern: <code className="bg-muted px-1 py-0.5 rounded">{originalPattern}</code>
-              </p>
             </div>
+
+            {useRawRegex ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Email Domain Regex Pattern</label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>PostHog Regex Pattern.</p>
+                        <p className="mt-1">Example: <code>(surgehq|surge)\.ai</code> matches anything ending in @surgehq.ai or @surge.ai</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="flex gap-3">
+                  <Input 
+                    value={set1Pattern}
+                    onChange={(e) => setSet1Pattern(e.target.value)}
+                    placeholder="(example|test)\.com"
+                    className="font-mono"
+                  />
+                  <Button 
+                    onClick={updatePattern}
+                    disabled={submitting || set1Pattern === originalPattern}
+                  >
+                    {submitting && set1Pattern !== originalPattern ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Update Rule
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Current active pattern: <code className="bg-muted px-1 py-0.5 rounded">{originalPattern}</code>
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Allowed Domains</label>
+                  <p className="text-xs text-muted-foreground">
+                    Users with email addresses from these domains will be automatically granted platform access.
+                  </p>
+                  
+                  {/* Domain List */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {domains.length === 0 ? (
+                      <span className="text-sm text-muted-foreground italic">No domains configured</span>
+                    ) : (
+                      domains.map(domain => (
+                        <Badge key={domain} variant="secondary" className="px-3 py-1 text-sm flex items-center gap-2">
+                          {domain}
+                          <X 
+                            className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => removeDomain(domain)}
+                          />
+                        </Badge>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add Domain Input */}
+                  <div className="flex gap-3 max-w-md">
+                    <Input 
+                      value={domainInput}
+                      onChange={(e) => setDomainInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && addDomain()}
+                      placeholder="e.g. google.com"
+                    />
+                    <Button onClick={addDomain} variant="outline" disabled={!domainInput.trim()}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Generates regex: <code className="bg-muted px-1 py-0.5 rounded ml-1 max-w-[200px] inline-block truncate align-bottom">{set1Pattern || '(empty)'}</code>
+                  </p>
+                  <Button 
+                    onClick={updatePattern}
+                    disabled={submitting || set1Pattern === originalPattern}
+                  >
+                    {submitting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
