@@ -117,7 +117,7 @@ export default function PlatformAccessPage() {
     const cached = sessionStorage.getItem('platform_cache')
     if (cached) {
       try {
-        const { featureFlag, set1Pattern, set2Emails, timestamp } = JSON.parse(cached)
+        const { featureFlag, set1Pattern, set2Emails, domains: cachedDomains, timestamp } = JSON.parse(cached)
         const age = Date.now() - timestamp
         
         // Use cache if less than 10 minutes old
@@ -128,8 +128,13 @@ export default function PlatformAccessPage() {
           setOriginalPattern(set1Pattern || '')
           setSet2Emails(set2Emails || [])
           
-          // Re-run parsing on cached pattern to ensure domains logic runs
-          parseDomainsFromPattern(set1Pattern || '')
+          // Use cached domains if available, otherwise extract from regex
+          if (cachedDomains && cachedDomains.length > 0) {
+            setDomains(cachedDomains)
+          } else {
+            const regexDomains = extractDomainsFromRegex(set1Pattern || '')
+            setDomains(regexDomains)
+          }
           
           setLoading(false)
           return
@@ -156,44 +161,60 @@ export default function PlatformAccessPage() {
       let pattern = ''
       let emails: string[] = []
 
-      // Parse Set 1 (Regex) and Set 2 (Emails)
+      // Parse ALL groups to find domain rules and email list
       if (data.filters?.groups) {
-        // Group 0: Regex Pattern
-        const set1 = data.filters.groups[0]
-        if (set1?.properties?.[0]?.value) {
-          pattern = set1.properties[0].value as string
-          setSet1Pattern(pattern)
-          setOriginalPattern(pattern)
-          
-          // Use our improved parsing logic
-          parseDomainsFromPattern(pattern)
-        }
-
-        // Group 1: Email List
-        const set2 = data.filters.groups[1]
-        if (set2?.properties?.[0]?.value && Array.isArray(set2.properties[0].value)) {
-          emails = set2.properties[0].value
-          setSet2Emails(emails)
-        }
+        const allDomains: string[] = []
         
-        // DEBUG: Scan other groups for 'surge' just in case it's hiding
-        data.filters.groups.forEach((g: any, i: number) => {
-          if (i > 1 && g.properties?.[0]?.value) {
-            console.log(`⚠️ Found extra group ${i}:`, g.properties[0])
-            // If we find domains here, we might want to alert the user or merge them
-            // For now, let's strictly stick to Group 0 to avoid breaking logic
+        data.filters.groups.forEach((group: any, index: number) => {
+          const prop = group.properties?.[0]
+          if (!prop) return
+          
+          // Check operator type
+          if (prop.operator === 'regex' && typeof prop.value === 'string') {
+            // Group 0 style: Regex pattern
+            if (index === 0) {
+              pattern = prop.value
+              setSet1Pattern(pattern)
+              setOriginalPattern(pattern)
+            }
+            // Parse domains from this regex
+            const regexDomains = extractDomainsFromRegex(prop.value)
+            allDomains.push(...regexDomains)
+            
+          } else if (prop.operator === 'icontains' && typeof prop.value === 'string') {
+            // Group 2/3 style: icontains "@surgehq.ai"
+            // Extract the domain by removing @ prefix
+            let domain = prop.value.trim()
+            if (domain.startsWith('@')) {
+              domain = domain.substring(1)
+            }
+            if (domain && domain.includes('.')) {
+              allDomains.push(domain)
+            }
+            
+          } else if (prop.operator === 'exact' && Array.isArray(prop.value)) {
+            // Group 1 style: Email list
+            emails = prop.value
+            setSet2Emails(emails)
           }
         })
+        
+        // Deduplicate and set domains
+        const uniqueDomains = [...new Set(allDomains)]
+        setDomains(uniqueDomains)
+        console.log('📋 Found domains from all groups:', uniqueDomains)
       }
       
-      // Cache the data
+      // Cache the data (including domains from all groups)
+      const currentDomains = [...new Set(allDomains)]
       sessionStorage.setItem('platform_cache', JSON.stringify({
         featureFlag: data,
         set1Pattern: pattern,
         set2Emails: emails,
+        domains: currentDomains,
         timestamp: Date.now()
       }))
-      console.log('💾 Platform data cached')
+      console.log('💾 Platform data cached with domains:', currentDomains)
     } catch (error) {
       console.error('Error fetching feature flag:', error)
       setMessage({
@@ -205,7 +226,8 @@ export default function PlatformAccessPage() {
     }
   }
   
-  const parseDomainsFromPattern = (pattern: string) => {
+  // Extract domains from a regex pattern string
+  const extractDomainsFromRegex = (pattern: string): string[] => {
     try {
       const extractedDomains: string[] = []
       
@@ -250,17 +272,10 @@ export default function PlatformAccessPage() {
         }
       })
       
-      const uniqueDomains = [...new Set(extractedDomains)]
-      
-      if (uniqueDomains.length > 0) {
-        setDomains(uniqueDomains)
-        setUseRawRegex(false)
-      } else {
-        setDomains([])
-      }
+      return extractedDomains
     } catch (e) {
       console.warn('Failed to parse regex domains:', e)
-      setUseRawRegex(true)
+      return []
     }
   }
   
