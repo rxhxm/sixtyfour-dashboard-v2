@@ -1,20 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { ParquetReader } from '@dsnp/parquetjs'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
+// Helper to convert BigInt values to strings for JSON serialization
+function serializeRow(row: any): any {
+  const result: any = {}
+  for (const [key, value] of Object.entries(row)) {
+    if (typeof value === 'bigint') {
+      result[key] = value.toString()
+    } else if (value instanceof Date) {
+      result[key] = value.toISOString()
+    } else if (Buffer.isBuffer(value)) {
+      result[key] = value.toString('utf-8')
+    } else if (typeof value === 'object' && value !== null) {
+      result[key] = serializeRow(value)
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 // Parse Parquet buffer to rows
-async function parseParquet(buffer: ArrayBuffer): Promise<{ headers: string[], rows: any[] }> {
+async function parseParquet(buffer: Buffer): Promise<{ headers: string[], rows: any[] }> {
   try {
-    // Dynamic import to avoid issues with edge runtime
-    const parquet = await import('parquetjs-lite')
-    
-    // Convert ArrayBuffer to Buffer
-    const nodeBuffer = Buffer.from(buffer)
-    
-    // Create a reader from the buffer
-    const reader = await parquet.ParquetReader.openBuffer(nodeBuffer)
+    const reader = await ParquetReader.openBuffer(buffer)
     
     // Get schema to extract column names
     const schema = reader.getSchema()
@@ -26,14 +39,14 @@ async function parseParquet(buffer: ArrayBuffer): Promise<{ headers: string[], r
     let record = null
     
     while (record = await cursor.next()) {
-      rows.push(record)
+      rows.push(serializeRow(record))
     }
     
     await reader.close()
     
     return { headers, rows }
-  } catch (error) {
-    console.error('Parquet parsing error:', error)
+  } catch (error: any) {
+    console.error('Parquet parsing error:', error?.message || error)
     throw error
   }
 }
@@ -41,7 +54,7 @@ async function parseParquet(buffer: ArrayBuffer): Promise<{ headers: string[], r
 // Parse CSV text to rows
 function parseCsv(text: string): { headers: string[], rows: any[] } {
   const lines = text.split('\n').filter((line: string) => line.trim())
-  const headers = lines[0]?.split(',').map(h => h.trim()) || []
+  const headers = lines[0]?.split(',').map(h => h.trim().replace(/^"|"$/g, '')) || []
   const rows = lines.slice(1).map((line: string) => {
     // Handle quoted CSV values
     const values: string[] = []
@@ -53,13 +66,13 @@ function parseCsv(text: string): { headers: string[], rows: any[] } {
       if (char === '"') {
         inQuotes = !inQuotes
       } else if (char === ',' && !inQuotes) {
-        values.push(current.trim())
+        values.push(current.trim().replace(/^"|"$/g, ''))
         current = ''
       } else {
         current += char
       }
     }
-    values.push(current.trim())
+    values.push(current.trim().replace(/^"|"$/g, ''))
     
     return headers.reduce((obj: any, header: string, idx: number) => {
       obj[header] = values[idx] || ''
@@ -72,15 +85,13 @@ function parseCsv(text: string): { headers: string[], rows: any[] } {
 
 // Convert rows to CSV text for download
 function rowsToCsv(headers: string[], rows: any[]): string {
-  const headerLine = headers.join(',')
+  const headerLine = headers.map(h => `"${h}"`).join(',')
   const dataLines = rows.map(row => 
     headers.map(h => {
       const val = row[h] ?? ''
-      // Quote values that contain commas or quotes
-      if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) {
-        return `"${val.replace(/"/g, '""')}"`
-      }
-      return val
+      const strVal = String(val)
+      // Quote all values for safety
+      return `"${strVal.replace(/"/g, '""')}"`
     }).join(',')
   )
   return [headerLine, ...dataLines].join('\n')
@@ -114,21 +125,15 @@ export async function GET(request: NextRequest) {
     
     console.log(`Found ${results?.length || 0} results for job ${jobId}`)
     
-    // If no results found, return early with helpful message
     if (!results || results.length === 0) {
-      console.log('No workflow_results found for this job')
       return NextResponse.json({
         input: null,
         output: null,
         total: 0,
         allResults: [],
-        message: 'No CSV data saved for this workflow run yet'
+        message: 'No data saved for this workflow run yet'
       })
     }
-    
-    // Log the first result to see its structure
-    console.log('Sample result structure:', JSON.stringify(results[0], null, 2))
-    console.log(`Attempting to download ${results.length} files from storage...`)
     
     // Fetch file content from Supabase Storage
     const enrichedResults = await Promise.all(
@@ -136,7 +141,6 @@ export async function GET(request: NextRequest) {
         try {
           console.log(`Downloading: ${result.storage_bucket}/${result.storage_url}`)
           
-          // Download file from storage
           const { data: fileData, error: storageError } = await supabaseAdmin
             .storage
             .from(result.storage_bucket)
@@ -144,21 +148,19 @@ export async function GET(request: NextRequest) {
           
           if (storageError) {
             console.error('Storage download error:', storageError)
-            console.error('Failed file:', result.storage_bucket, result.storage_url)
-            return { ...result, csvData: null, error: 'Storage access denied or file not found', storageError: storageError.message }
+            return { ...result, error: 'File not found', storageError: storageError.message }
           }
           
-          // Get the file as ArrayBuffer to check format
           const arrayBuffer = await fileData.arrayBuffer()
+          const nodeBuffer = Buffer.from(arrayBuffer)
           const uint8Array = new Uint8Array(arrayBuffer)
           
           // Check if it's a Parquet file (magic bytes: PAR1)
-          const isParquet = uint8Array[0] === 0x50 && // P
-                           uint8Array[1] === 0x41 && // A
-                           uint8Array[2] === 0x52 && // R
-                           uint8Array[3] === 0x31    // 1
+          const isParquet = uint8Array[0] === 0x50 && 
+                           uint8Array[1] === 0x41 && 
+                           uint8Array[2] === 0x52 && 
+                           uint8Array[3] === 0x31
           
-          // Also check file extension as backup
           const isParquetExt = result.storage_url?.toLowerCase().endsWith('.parquet')
           
           let headers: string[] = []
@@ -167,47 +169,44 @@ export async function GET(request: NextRequest) {
           let format: string = 'csv'
           
           if (isParquet || isParquetExt) {
-            console.log(`File is Parquet format: ${result.storage_url}`)
+            console.log(`Parsing Parquet file: ${result.storage_url}`)
             format = 'parquet'
             
             try {
-              const parsed = await parseParquet(arrayBuffer)
+              const parsed = await parseParquet(nodeBuffer)
               headers = parsed.headers
               rows = parsed.rows
-              // Convert to CSV for download compatibility
               raw = rowsToCsv(headers, rows)
-            } catch (parseError) {
-              console.error('Parquet parse error:', parseError)
+              console.log(`Parquet parsed: ${headers.length} columns, ${rows.length} rows`)
+            } catch (parseError: any) {
+              console.error('Parquet parse error:', parseError?.message)
               return { 
                 ...result, 
-                error: 'Failed to parse Parquet file',
+                error: `Parquet parse failed: ${parseError?.message || 'Unknown error'}`,
                 format: 'parquet'
               }
             }
           } else {
-            // Assume CSV
             format = 'csv'
             const text = new TextDecoder().decode(uint8Array)
             
-            // Check if it looks like valid CSV (not binary garbage)
+            // Check if it looks like binary data
             const firstLine = text.split('\n')[0] || ''
-            const hasBinaryGarbage = firstLine.includes('\0') || 
-                                     firstLine.includes('PAR1') ||
-                                     /[\x00-\x08\x0E-\x1F]/.test(firstLine)
+            const hasBinaryGarbage = /[\x00-\x08\x0E-\x1F]/.test(firstLine.slice(0, 100))
             
             if (hasBinaryGarbage) {
-              console.log('File appears to be binary, attempting Parquet parse...')
+              // Try parsing as Parquet anyway
+              console.log('File appears binary, attempting Parquet parse...')
               try {
-                const parsed = await parseParquet(arrayBuffer)
+                const parsed = await parseParquet(nodeBuffer)
                 headers = parsed.headers
                 rows = parsed.rows
                 raw = rowsToCsv(headers, rows)
                 format = 'parquet'
-              } catch (parseError) {
-                console.error('Binary file is not valid Parquet:', parseError)
+              } catch {
                 return { 
                   ...result, 
-                  error: 'File format not recognized (not CSV or Parquet)',
+                  error: 'Unknown binary format',
                   format: 'unknown'
                 }
               }
@@ -222,53 +221,35 @@ export async function GET(request: NextRequest) {
           return {
             ...result,
             headers,
-            preview: rows.slice(0, 100), // First 100 rows for preview
+            preview: rows.slice(0, 100),
             row_count: rows.length,
             totalRows: rows.length,
-            raw, // CSV format for download
+            raw,
             format
           }
-        } catch (e) {
-          console.error('Error processing result:', e)
-          return { ...result, csvData: null, error: 'Failed to process file' }
+        } catch (e: any) {
+          console.error('Error processing result:', e?.message)
+          return { ...result, error: `Processing failed: ${e?.message}` }
         }
       })
     )
     
-    // Separate input and output results
-    console.log('Enriched results:', enrichedResults.map((r: any) => ({ 
-      id: r.id, 
-      block_number: r.block_number,
-      storage_url: r.storage_url,
-      has_headers: !!r.headers,
-      has_error: !!r.error,
-      format: r.format,
-      row_count: r.row_count
-    })))
-    
-    // Check if any results had errors
     const errorResults = enrichedResults.filter((r: any) => r.error)
-    if (errorResults.length > 0) {
-      console.error(`${errorResults.length} files failed to process`)
-      console.error('First error:', errorResults[0].error)
-    }
-    
-    // Filter out results that failed to download
     const successfulResults = enrichedResults.filter((r: any) => r.headers && !r.error)
     
+    console.log(`Processed: ${successfulResults.length} success, ${errorResults.length} errors`)
+    
     if (successfulResults.length === 0 && enrichedResults.length > 0) {
-      // Results exist in DB but all processing failed
       return NextResponse.json({
         input: null,
         output: null,
         total: 0,
         allResults: [],
-        message: 'Files exist but could not be processed. Format may not be supported.',
+        message: 'Files exist but could not be processed.',
         error: errorResults[0]?.error || 'Processing failed'
       })
     }
     
-    // Find first and last results (typically input is first, output is last)
     const inputResult = successfulResults[0] || null
     const outputResult = successfulResults[successfulResults.length - 1] || null
     
@@ -277,10 +258,10 @@ export async function GET(request: NextRequest) {
       output: outputResult,
       total: successfulResults.length,
       allResults: successfulResults,
-      ...(errorResults.length > 0 ? { partialError: `${errorResults.length} files could not be processed` } : {})
+      ...(errorResults.length > 0 ? { partialError: `${errorResults.length} files failed` } : {})
     })
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in workflow-results API:', error)
     return NextResponse.json(
       { error: 'Failed to fetch workflow results' },
