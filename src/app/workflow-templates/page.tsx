@@ -79,9 +79,10 @@ export default function WorkflowTemplatesPage() {
   const [editValue, setEditValue] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; onUndo?: () => void } | null>(null)
   
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [lastChange, setLastChange] = useState<{ templateId: string; previousOrg: string | null } | null>(null)
   
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
@@ -159,10 +160,10 @@ export default function WorkflowTemplatesPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Show toast
-  const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
+  // Show toast with optional undo
+  const showToast = (message: string, type: 'success' | 'error', onUndo?: () => void) => {
+    setToast({ message, type, onUndo })
+    setTimeout(() => setToast(null), 5000) // 5 seconds for undo
   }
 
   // Start editing
@@ -181,8 +182,12 @@ export default function WorkflowTemplatesPage() {
     setShowSuggestions(false)
   }
 
-  // Save org_id
-  const saveOrgId = async (templateId: string, newOrgId: string) => {
+  // Save org_id with undo support
+  const saveOrgId = async (templateId: string, newOrgId: string, isUndo = false) => {
+    // Get the current org before changing (for undo)
+    const currentTemplate = templates.find(t => t.id === templateId)
+    const previousOrg = currentTemplate?.org_id || null
+    
     setSaving(true)
     try {
       const res = await fetch(`/api/workflow-templates/${templateId}`, {
@@ -199,7 +204,16 @@ export default function WorkflowTemplatesPage() {
         if (newOrgId && !uniqueOrgs.includes(newOrgId)) {
           setUniqueOrgs(prev => [...prev, newOrgId].sort())
         }
-        showToast(data.message, 'success')
+        
+        // Show toast with undo option (unless this IS an undo)
+        if (!isUndo) {
+          const undoFn = () => {
+            saveOrgId(templateId, previousOrg || '', true)
+          }
+          showToast(`Changed to ${newOrgId || 'Unassigned'}`, 'success', undoFn)
+        } else {
+          showToast('Reverted!', 'success')
+        }
       } else {
         showToast(data.error || 'Failed to update', 'error')
       }
@@ -238,15 +252,26 @@ export default function WorkflowTemplatesPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Toast */}
+        {/* Toast with Undo */}
         {toast && (
-          <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 transition-all ${
+          <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all ${
             toast.type === 'success' 
               ? 'bg-green-900/90 text-green-100 border border-green-700' 
               : 'bg-red-900/90 text-red-100 border border-red-700'
           }`}>
             {toast.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-            {toast.message}
+            <span>{toast.message}</span>
+            {toast.onUndo && (
+              <button
+                onClick={() => {
+                  toast.onUndo?.()
+                  setToast(null)
+                }}
+                className="ml-2 px-2 py-1 text-xs font-medium bg-white/20 hover:bg-white/30 rounded transition-colors"
+              >
+                Undo
+              </button>
+            )}
           </div>
         )}
 
