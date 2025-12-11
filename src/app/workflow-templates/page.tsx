@@ -215,7 +215,7 @@ export default function WorkflowTemplatesPage() {
           const undoFn = () => {
             saveOrgId(templateId, previousOrg || '', true)
           }
-          showToast(`Changed to ${newOrgId || 'Unassigned'}`, 'success', undoFn)
+          showToast(`Changed to ${newOrgId || 'Global'}`, 'success', undoFn)
         } else {
           showToast('Reverted!', 'success')
         }
@@ -344,7 +344,7 @@ export default function WorkflowTemplatesPage() {
                 className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[200px]"
               >
                 <option value="">All Organizations</option>
-                <option value="null">⚠️ Unassigned</option>
+                <option value="null">🌐 Global</option>
                 {uniqueOrgs.map(org => (
                   <option key={org} value={org}>{org}</option>
                 ))}
@@ -483,7 +483,7 @@ export default function WorkflowTemplatesPage() {
                                 </Badge>
                               ) : (
                                 <Badge variant="outline" className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10 cursor-pointer transition-colors">
-                                  Unassigned
+                                  Global
                                 </Badge>
                               )}
                             </button>
