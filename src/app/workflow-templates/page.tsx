@@ -334,7 +334,7 @@ export default function WorkflowTemplatesPage() {
               <>
                 <div className="space-y-2">
                   {templates.map((template) => (
-                    <div key={template.id} className="border rounded-lg overflow-hidden">
+                    <div key={template.id} className="border rounded-lg overflow-visible">
                       {/* Main Row */}
                       <div 
                         className={`flex items-center gap-4 p-4 cursor-pointer hover:bg-muted/50 transition-colors ${
@@ -421,7 +421,7 @@ export default function WorkflowTemplatesPage() {
                               {showSuggestions && filteredSuggestions.length > 0 && (
                                 <div 
                                   ref={suggestionsRef}
-                                  className="absolute top-full left-0 mt-1 w-48 bg-popover border rounded-md shadow-xl z-[100] max-h-52 overflow-y-auto"
+                                  className="absolute bottom-full left-0 mb-1 w-48 bg-popover border rounded-md shadow-xl z-[100] max-h-52 overflow-y-auto"
                                 >
                                   <div className="py-1">
                                     {filteredSuggestions.map(org => (
