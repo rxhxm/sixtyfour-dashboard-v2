@@ -42,14 +42,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Get unique org_ids for autocomplete
-    const { data: allOrgs } = await supabaseAdmin
-      .from('workflow_templates')
+    // Get ALL platform orgs from users-org table for autocomplete
+    const { data: platformOrgs } = await supabaseAdmin
+      .from('users-org')
       .select('org_id')
     
     const uniqueOrgs = [...new Set(
-      (allOrgs || [])
-        .map((t: any) => t.org_id)
+      (platformOrgs || [])
+        .map((o: any) => o.org_id)
         .filter((org: any) => org !== null && org !== '')
     )].sort()
 
@@ -74,3 +74,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+

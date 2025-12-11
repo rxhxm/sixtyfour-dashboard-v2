@@ -170,7 +170,7 @@ export default function WorkflowTemplatesPage() {
     e.stopPropagation()
     setEditingId(template.id)
     setEditValue(template.org_id || '')
-    setShowSuggestions(true)
+    setShowSuggestions(false) // Don't show suggestions until user types
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
@@ -385,13 +385,15 @@ export default function WorkflowTemplatesPage() {
                                 <Input
                                   ref={inputRef}
                                   value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  onFocus={() => setShowSuggestions(true)}
+                                  onChange={(e) => {
+                                    setEditValue(e.target.value)
+                                    setShowSuggestions(e.target.value.length > 0)
+                                  }}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') saveOrgId(template.id, editValue)
                                     if (e.key === 'Escape') cancelEdit()
                                   }}
-                                  placeholder="Type org name..."
+                                  placeholder="Type to search orgs..."
                                   className="h-8 w-36"
                                   disabled={saving}
                                 />
