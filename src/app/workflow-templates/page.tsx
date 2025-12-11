@@ -394,8 +394,8 @@ export default function WorkflowTemplatesPage() {
                                     if (e.key === 'Enter') saveOrgId(template.id, editValue)
                                     if (e.key === 'Escape') cancelEdit()
                                   }}
-                                  placeholder="Type to search orgs..."
-                                  className="h-8 w-36"
+                                  placeholder="Search orgs..."
+                                  className="h-8 w-32"
                                   disabled={saving}
                                 />
                                 <Button 
