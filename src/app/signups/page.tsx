@@ -3,7 +3,7 @@
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Users, FileText, ArrowRightLeft, TrendingUp } from 'lucide-react'
+import { Users, FileText, TrendingUp } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
 import { createClient } from '@/lib/supabase/client'
@@ -61,7 +61,7 @@ export default function SignupsPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Signups</CardTitle>
@@ -81,17 +81,6 @@ export default function SignupsPage() {
             <CardContent>
               <div className="text-2xl font-bold">{data.summary.totalInterestForms}</div>
               <p className="text-xs text-muted-foreground">Form submissions</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Conversion</CardTitle>
-              <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{data.summary.conversionRate}%</div>
-              <p className="text-xs text-muted-foreground">{data.summary.overlap} overlap</p>
             </CardContent>
           </Card>
           
