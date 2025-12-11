@@ -16,10 +16,10 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || null
     const offset = (page - 1) * limit
 
-    // Build query
+    // Build query - fetch all relevant fields
     let query = supabaseAdmin
       .from('workflow_templates')
-      .select('id, org_id, created_at, name', { count: 'exact' })
+      .select('id, org_id, created_at, name, description, category, difficulty, estimated_time, preview_blocks, blocks, author_name, featured, is_global', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.ilike('id', `%${search}%`)
+      // Search by name or ID
+      query = query.or(`name.ilike.%${search}%,id.ilike.%${search}%`)
     }
 
     const { data: templates, error, count } = await query
@@ -73,4 +74,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-

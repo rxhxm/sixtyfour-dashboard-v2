@@ -13,17 +13,50 @@ import {
   ChevronRight,
   Check,
   X,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Blocks,
+  ArrowRight,
+  User,
+  Clock,
+  Star
 } from 'lucide-react'
 import React, { useState, useEffect, useRef } from 'react'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
 import { createClient } from '@/lib/supabase/client'
 
+interface Block {
+  block_name: string
+  block_type: string
+  sequence_number?: number
+  specs?: any
+}
+
 interface Template {
   id: string
   org_id: string | null
   created_at: string
-  name?: string
+  name: string
+  description?: string
+  category?: string
+  difficulty?: string
+  estimated_time?: string
+  preview_blocks?: string[]
+  blocks?: Block[]
+  author_name?: string
+  featured?: boolean
+  is_global?: boolean
+}
+
+// Block type colors
+const blockTypeColors: Record<string, string> = {
+  io: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  transform: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  enrich: 'bg-green-500/20 text-green-400 border-green-500/30',
+  filter: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  action: 'bg-red-500/20 text-red-400 border-red-500/30',
+  default: 'bg-slate-500/20 text-slate-400 border-slate-500/30'
 }
 
 export default function WorkflowTemplatesPage() {
@@ -47,6 +80,8 @@ export default function WorkflowTemplatesPage() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
@@ -72,7 +107,7 @@ export default function WorkflowTemplatesPage() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '30'
+        limit: '20'
       })
       if (orgFilter) params.set('org', orgFilter)
       if (searchQuery) params.set('search', searchQuery)
@@ -131,7 +166,8 @@ export default function WorkflowTemplatesPage() {
   }
 
   // Start editing
-  const startEdit = (template: Template) => {
+  const startEdit = (template: Template, e: React.MouseEvent) => {
+    e.stopPropagation()
     setEditingId(template.id)
     setEditValue(template.org_id || '')
     setShowSuggestions(true)
@@ -157,11 +193,9 @@ export default function WorkflowTemplatesPage() {
       const data = await res.json()
       
       if (data.success) {
-        // Update local state
         setTemplates(prev => 
           prev.map(t => t.id === templateId ? { ...t, org_id: newOrgId || null } : t)
         )
-        // Add to uniqueOrgs if new
         if (newOrgId && !uniqueOrgs.includes(newOrgId)) {
           setUniqueOrgs(prev => [...prev, newOrgId].sort())
         }
@@ -177,10 +211,20 @@ export default function WorkflowTemplatesPage() {
     }
   }
 
+  // Toggle expanded row
+  const toggleExpanded = (id: string) => {
+    setExpandedId(expandedId === id ? null : id)
+  }
+
   // Filter suggestions
   const filteredSuggestions = uniqueOrgs.filter(org => 
     org.toLowerCase().includes(editValue.toLowerCase())
   )
+
+  // Get block color
+  const getBlockColor = (blockType: string) => {
+    return blockTypeColors[blockType] || blockTypeColors.default
+  }
 
   if (authChecking) {
     return (
@@ -208,7 +252,7 @@ export default function WorkflowTemplatesPage() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Workflow Templates</h1>
-          <p className="text-muted-foreground mt-1">Manage organization assignments for workflow templates</p>
+          <p className="text-muted-foreground mt-1">Manage organization assignments and view template blocks</p>
         </div>
 
         {/* Stats Cards */}
@@ -251,7 +295,7 @@ export default function WorkflowTemplatesPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by template ID..."
+                  placeholder="Search by template name or ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -277,7 +321,7 @@ export default function WorkflowTemplatesPage() {
           <CardHeader>
             <CardTitle>Templates</CardTitle>
             <CardDescription>
-              Click on an organization to edit. Type to search or add new.
+              Click a row to view blocks. Click organization to edit assignment.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -287,108 +331,212 @@ export default function WorkflowTemplatesPage() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left">
-                        <th className="pb-3 font-medium w-[45%]">Template ID</th>
-                        <th className="pb-3 font-medium w-[30%]">Organization</th>
-                        <th className="pb-3 font-medium w-[25%]">Created</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {templates.map((template) => (
-                        <tr key={template.id} className="hover:bg-muted/50 group">
-                          <td className="py-3">
-                            <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                              {template.id.slice(0, 8)}...{template.id.slice(-4)}
-                            </code>
-                          </td>
-                          <td className="py-3">
-                            {editingId === template.id ? (
-                              <div className="relative">
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    ref={inputRef}
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onFocus={() => setShowSuggestions(true)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') saveOrgId(template.id, editValue)
-                                      if (e.key === 'Escape') cancelEdit()
-                                    }}
-                                    placeholder="Type org name..."
-                                    className="h-8 w-40"
-                                    disabled={saving}
-                                  />
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => saveOrgId(template.id, editValue)}
-                                    disabled={saving}
-                                  >
-                                    <Check className="h-4 w-4 text-green-500" />
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={cancelEdit}
-                                    disabled={saving}
-                                  >
-                                    <X className="h-4 w-4 text-red-500" />
-                                  </Button>
+                <div className="space-y-2">
+                  {templates.map((template) => (
+                    <div key={template.id} className="border rounded-lg overflow-hidden">
+                      {/* Main Row */}
+                      <div 
+                        className={`flex items-center gap-4 p-4 cursor-pointer hover:bg-muted/50 transition-colors ${
+                          expandedId === template.id ? 'bg-muted/30' : ''
+                        }`}
+                        onClick={() => toggleExpanded(template.id)}
+                      >
+                        {/* Expand Icon */}
+                        <div className="text-muted-foreground">
+                          {expandedId === template.id ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </div>
+                        
+                        {/* Template Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">{template.name || 'Untitled'}</span>
+                            {template.featured && (
+                              <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                            )}
+                            {template.is_global && (
+                              <Badge variant="outline" className="text-xs">Global</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                            {template.category && (
+                              <span>{template.category}</span>
+                            )}
+                            {template.difficulty && (
+                              <span className="px-1.5 py-0.5 rounded bg-muted">{template.difficulty}</span>
+                            )}
+                            {template.preview_blocks && (
+                              <span className="flex items-center gap-1">
+                                <Blocks className="h-3 w-3" />
+                                {template.preview_blocks.length} blocks
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Organization */}
+                        <div onClick={(e) => e.stopPropagation()}>
+                          {editingId === template.id ? (
+                            <div className="relative">
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  ref={inputRef}
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onFocus={() => setShowSuggestions(true)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') saveOrgId(template.id, editValue)
+                                    if (e.key === 'Escape') cancelEdit()
+                                  }}
+                                  placeholder="Type org name..."
+                                  className="h-8 w-36"
+                                  disabled={saving}
+                                />
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => saveOrgId(template.id, editValue)}
+                                  disabled={saving}
+                                >
+                                  <Check className="h-4 w-4 text-green-500" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={cancelEdit}
+                                  disabled={saving}
+                                >
+                                  <X className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                              
+                              {showSuggestions && filteredSuggestions.length > 0 && (
+                                <div 
+                                  ref={suggestionsRef}
+                                  className="absolute top-full right-0 mt-1 w-44 bg-popover border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto"
+                                >
+                                  {filteredSuggestions.map(org => (
+                                    <button
+                                      key={org}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
+                                      onClick={() => {
+                                        setEditValue(org)
+                                        setShowSuggestions(false)
+                                      }}
+                                    >
+                                      {org}
+                                    </button>
+                                  ))}
                                 </div>
-                                
-                                {/* Suggestions Dropdown */}
-                                {showSuggestions && filteredSuggestions.length > 0 && (
-                                  <div 
-                                    ref={suggestionsRef}
-                                    className="absolute top-full left-0 mt-1 w-48 bg-popover border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto"
-                                  >
-                                    {filteredSuggestions.map(org => (
-                                      <button
-                                        key={org}
-                                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
-                                        onClick={() => {
-                                          setEditValue(org)
-                                          setShowSuggestions(false)
-                                        }}
+                              )}
+                            </div>
+                          ) : (
+                            <button onClick={(e) => startEdit(template, e)}>
+                              {template.org_id ? (
+                                <Badge variant="secondary" className="hover:bg-accent cursor-pointer transition-colors">
+                                  {template.org_id}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10 cursor-pointer transition-colors">
+                                  Unassigned
+                                </Badge>
+                              )}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Date */}
+                        <div className="text-sm text-muted-foreground w-24 text-right">
+                          {new Date(template.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      {/* Expanded Content - Blocks */}
+                      {expandedId === template.id && (
+                        <div className="border-t bg-muted/20 p-4">
+                          {/* Template Details */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            {template.description && (
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Description</p>
+                                <p className="text-sm">{template.description}</p>
+                              </div>
+                            )}
+                            <div className="flex flex-wrap gap-4 text-sm">
+                              {template.author_name && (
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <User className="h-3 w-3" />
+                                  {template.author_name}
+                                </div>
+                              )}
+                              {template.estimated_time && (
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <Clock className="h-3 w-3" />
+                                  {template.estimated_time}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Blocks Flow */}
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
+                              <Blocks className="h-3 w-3" />
+                              Workflow Blocks
+                            </p>
+                            
+                            {template.blocks && template.blocks.length > 0 ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                {template.blocks
+                                  .sort((a, b) => (a.sequence_number || 0) - (b.sequence_number || 0))
+                                  .map((block, index) => (
+                                    <React.Fragment key={index}>
+                                      <div 
+                                        className={`px-3 py-2 rounded-md border text-sm font-mono ${getBlockColor(block.block_type)}`}
+                                        title={`Type: ${block.block_type}\n${block.specs ? JSON.stringify(block.specs, null, 2).slice(0, 200) : ''}`}
                                       >
-                                        {org}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
+                                        <div className="font-medium">{block.block_name}</div>
+                                        <div className="text-xs opacity-70">{block.block_type}</div>
+                                      </div>
+                                      {index < template.blocks!.length - 1 && (
+                                        <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                      )}
+                                    </React.Fragment>
+                                  ))}
+                              </div>
+                            ) : template.preview_blocks && template.preview_blocks.length > 0 ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                {template.preview_blocks.map((blockName, index) => (
+                                  <React.Fragment key={index}>
+                                    <div className="px-3 py-2 rounded-md border bg-slate-500/20 text-slate-400 border-slate-500/30 text-sm font-mono">
+                                      {blockName}
+                                    </div>
+                                    {index < template.preview_blocks!.length - 1 && (
+                                      <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                    )}
+                                  </React.Fragment>
+                                ))}
                               </div>
                             ) : (
-                              <button
-                                onClick={() => startEdit(template)}
-                                className="text-left group/org"
-                              >
-                                {template.org_id ? (
-                                  <Badge variant="secondary" className="hover:bg-accent cursor-pointer transition-colors">
-                                    {template.org_id}
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10 cursor-pointer transition-colors">
-                                    Unassigned
-                                  </Badge>
-                                )}
-                                <span className="ml-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                                  click to edit
-                                </span>
-                              </button>
+                              <p className="text-sm text-muted-foreground">No blocks defined</p>
                             )}
-                          </td>
-                          <td className="py-3 text-muted-foreground">
-                            {new Date(template.created_at).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </div>
+
+                          {/* Template ID */}
+                          <div className="mt-4 pt-3 border-t">
+                            <code className="text-xs text-muted-foreground font-mono">
+                              ID: {template.id}
+                            </code>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 {/* Pagination */}
@@ -427,4 +575,3 @@ export default function WorkflowTemplatesPage() {
     </DashboardLayout>
   )
 }
-
