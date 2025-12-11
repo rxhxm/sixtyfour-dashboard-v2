@@ -4,7 +4,9 @@
 export const AUTHORIZED_TEAM_EMAILS = [
   'saarth@sixtyfour.ai',
   'roham@sixtyfour.ai',
-  'chrisprice@sixtyfour.ai'
+  'chrisprice@sixtyfour.ai',
+  'hashim@sixtyfour.ai',
+  'erik@sixtyfour.ai'
 ] as const
 
 export function isAuthorizedEmail(email: string | undefined | null): boolean {
