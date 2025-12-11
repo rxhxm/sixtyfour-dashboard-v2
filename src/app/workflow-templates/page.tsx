@@ -216,10 +216,11 @@ export default function WorkflowTemplatesPage() {
     setExpandedId(expandedId === id ? null : id)
   }
 
-  // Filter suggestions
+  // Filter suggestions - exclude exact matches and limit results
   const filteredSuggestions = uniqueOrgs.filter(org => 
-    org.toLowerCase().includes(editValue.toLowerCase())
-  )
+    org.toLowerCase().includes(editValue.toLowerCase()) &&
+    org.toLowerCase() !== editValue.toLowerCase() // Don't show exact match
+  ).slice(0, 8) // Limit to 8 suggestions
 
   // Get block color
   const getBlockColor = (blockType: string) => {
@@ -420,20 +421,21 @@ export default function WorkflowTemplatesPage() {
                               {showSuggestions && filteredSuggestions.length > 0 && (
                                 <div 
                                   ref={suggestionsRef}
-                                  className="absolute top-full right-0 mt-1 w-44 bg-popover border rounded-md shadow-lg z-50 max-h-48 overflow-y-auto"
+                                  className="absolute top-full left-0 mt-1 w-48 bg-popover border rounded-md shadow-xl z-[100] max-h-52 overflow-y-auto"
                                 >
-                                  {filteredSuggestions.map(org => (
-                                    <button
-                                      key={org}
-                                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors"
-                                      onClick={() => {
-                                        setEditValue(org)
-                                        setShowSuggestions(false)
-                                      }}
-                                    >
-                                      {org}
-                                    </button>
-                                  ))}
+                                  <div className="py-1">
+                                    {filteredSuggestions.map(org => (
+                                      <button
+                                        key={org}
+                                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors first:rounded-t-md last:rounded-b-md"
+                                        onClick={() => {
+                                          saveOrgId(editingId!, org)
+                                        }}
+                                      >
+                                        {org}
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
                             </div>
