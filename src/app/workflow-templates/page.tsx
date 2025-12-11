@@ -20,7 +20,8 @@ import {
   ArrowRight,
   User,
   Clock,
-  Star
+  Star,
+  Undo2
 } from 'lucide-react'
 import React, { useState, useEffect, useRef } from 'react'
 import { isAuthorizedEmail } from '@/lib/auth-guard'
@@ -160,10 +161,14 @@ export default function WorkflowTemplatesPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Show toast with optional undo
+  // Show toast - persists if has undo, otherwise auto-dismiss
   const showToast = (message: string, type: 'success' | 'error', onUndo?: () => void) => {
     setToast({ message, type, onUndo })
-    setTimeout(() => setToast(null), 5000) // 5 seconds for undo
+    // Only auto-dismiss if no undo (error toasts or revert confirmations)
+    if (!onUndo) {
+      setTimeout(() => setToast(null), 3000)
+    }
+    // Undo toasts stay until clicked or next change
   }
 
   // Start editing
@@ -252,25 +257,41 @@ export default function WorkflowTemplatesPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Toast with Undo */}
+        {/* Toast / Undo Bar */}
         {toast && (
           <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all ${
-            toast.type === 'success' 
-              ? 'bg-green-900/90 text-green-100 border border-green-700' 
-              : 'bg-red-900/90 text-red-100 border border-red-700'
+            toast.onUndo 
+              ? 'bg-slate-800 text-slate-100 border border-slate-600' 
+              : toast.type === 'success' 
+                ? 'bg-green-900/90 text-green-100 border border-green-700' 
+                : 'bg-red-900/90 text-red-100 border border-red-700'
           }`}>
-            {toast.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-            <span>{toast.message}</span>
-            {toast.onUndo && (
-              <button
-                onClick={() => {
-                  toast.onUndo?.()
-                  setToast(null)
-                }}
-                className="ml-2 px-2 py-1 text-xs font-medium bg-white/20 hover:bg-white/30 rounded transition-colors"
-              >
-                Undo
-              </button>
+            {toast.onUndo ? (
+              <>
+                <Undo2 className="h-4 w-4" />
+                <span>{toast.message}</span>
+                <button
+                  onClick={() => {
+                    toast.onUndo?.()
+                    setToast(null)
+                  }}
+                  className="ml-2 px-3 py-1.5 text-sm font-medium bg-white text-slate-900 hover:bg-slate-100 rounded transition-colors"
+                >
+                  Undo
+                </button>
+                <button
+                  onClick={() => setToast(null)}
+                  className="ml-1 p-1 hover:bg-slate-700 rounded transition-colors"
+                  title="Dismiss"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                {toast.type === 'success' ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                <span>{toast.message}</span>
+              </>
             )}
           </div>
         )}
@@ -282,7 +303,7 @@ export default function WorkflowTemplatesPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Templates</CardTitle>
@@ -300,16 +321,6 @@ export default function WorkflowTemplatesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{uniqueOrgs.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-amber-800/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
-              <AlertCircle className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-500">{unassignedCount}</div>
             </CardContent>
           </Card>
         </div>
