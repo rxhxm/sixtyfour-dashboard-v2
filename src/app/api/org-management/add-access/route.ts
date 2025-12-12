@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { isAuthorizedEmail } from '@/lib/auth-guard'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -14,15 +15,6 @@ const AddAccessSchema = z.object({
     .max(255, 'Organization ID too long')
     .regex(/^[a-zA-Z0-9-_.]+$/, 'Invalid organization ID format')
 })
-
-// HARDCODED WHITELIST - ONLY THESE 3 CAN MANAGE ORG ACCESS
-const AUTHORIZED_ADMINS = [
-  'saarth@sixtyfour.ai',
-  'roham@sixtyfour.ai',
-  'chrisprice@sixtyfour.ai',
-  'hashim@sixtyfour.ai',
-  'erik@sixtyfour.ai'
-]
 
 export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7)
@@ -49,7 +41,7 @@ export async function POST(request: NextRequest) {
     console.log(`[${requestId}]   User: ${user?.email || 'NONE'}`)
     console.log(`[${requestId}]   Error: ${userError?.message || 'NONE'}`)
     
-    if (!user || !AUTHORIZED_ADMINS.includes(user.email?.toLowerCase() || '')) {
+    if (!user || !isAuthorizedEmail(user.email)) {
       console.log(`[${requestId}]   ✗ UNAUTHORIZED:`, user?.email)
       return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 403 })
     }

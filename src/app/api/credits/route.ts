@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'
+import { isAuthorizedEmail } from '@/lib/auth-guard'
 
 // Server-side only - credentials never exposed to client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY! // Use service key for admin operations
-
-// HARDCODED WHITELIST - ONLY THESE 3 EMAILS CAN MODIFY CREDITS
-const AUTHORIZED_EMAILS = [
-  'saarth@sixtyfour.ai',
-  'roham@sixtyfour.ai',
-  'chrisprice@sixtyfour.ai',
-  'hashim@sixtyfour.ai',
-  'erik@sixtyfour.ai'
-]
 
 // CRITICAL: Verify authentication for sensitive operations
 async function verifyAuth(): Promise<{ authorized: boolean, email?: string }> {
@@ -32,8 +24,8 @@ async function verifyAuth(): Promise<{ authorized: boolean, email?: string }> {
     const email = user.email?.toLowerCase()
     console.log('📧 User email from session:', email)
     
-    // Check against whitelist
-    if (!email || !AUTHORIZED_EMAILS.includes(email)) {
+    // Check against centralized whitelist
+    if (!isAuthorizedEmail(email)) {
       console.log('🚨 UNAUTHORIZED ACCESS ATTEMPT:', email || 'unknown')
       return { authorized: false }
     }

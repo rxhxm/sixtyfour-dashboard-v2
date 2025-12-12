@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { isAuthorizedEmail } from '@/lib/auth-guard'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -14,21 +15,13 @@ const RemoveAccessSchema = z.object({
     .max(255, 'Organization ID too long')
 })
 
-const AUTHORIZED_ADMINS = [
-  'saarth@sixtyfour.ai',
-  'roham@sixtyfour.ai',
-  'chrisprice@sixtyfour.ai',
-  'hashim@sixtyfour.ai',
-  'erik@sixtyfour.ai'
-]
-
 export async function DELETE(request: NextRequest) {
   try {
     // 1. VERIFY ADMIN ACCESS
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     
-    if (!user || !AUTHORIZED_ADMINS.includes(user.email?.toLowerCase() || '')) {
+    if (!user || !isAuthorizedEmail(user.email)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
     

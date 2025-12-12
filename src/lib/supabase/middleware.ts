@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { addSecurityHeaders } from "@/middleware/security-headers";
+import { isAuthorizedEmail } from "@/lib/auth-guard";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -37,16 +38,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // HARDCODED WHITELIST - ONLY THESE 3 EMAILS CAN ACCESS DASHBOARD
-  const AUTHORIZED_EMAILS = [
-    'saarth@sixtyfour.ai',
-    'roham@sixtyfour.ai',
-    'chrisprice@sixtyfour.ai',
-    'hashim@sixtyfour.ai',
-    'erik@sixtyfour.ai'
-  ];
-
-  const isAuthorizedEmail = user?.email && AUTHORIZED_EMAILS.includes(user.email.toLowerCase());
+  const userIsAuthorized = isAuthorizedEmail(user?.email);
 
   // Protected routes that require authorization
   const protectedPaths = ['/', '/workflows', '/api-usage', '/credits-management', '/platform-access'];
@@ -66,7 +58,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If user exists but NOT in whitelist, block access to protected routes
-  if (user && isProtectedRoute && !isAuthorizedEmail) {
+  if (user && isProtectedRoute && !userIsAuthorized) {
     console.log('🚨 UNAUTHORIZED EMAIL ATTEMPTING ACCESS:', user.email);
     
     // Sign them out

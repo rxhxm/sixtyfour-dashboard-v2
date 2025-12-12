@@ -1,14 +1,7 @@
 // Middleware to protect ALL API routes with email whitelist
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
-const AUTHORIZED_EMAILS = [
-  'saarth@sixtyfour.ai',
-  'roham@sixtyfour.ai',
-  'chrisprice@sixtyfour.ai',
-  'hashim@sixtyfour.ai',
-  'erik@sixtyfour.ai'
-]
+import { isAuthorizedEmail } from '@/lib/auth-guard'
 
 export async function checkApiAuth(request: NextRequest): Promise<NextResponse | null> {
   try {
@@ -23,17 +16,15 @@ export async function checkApiAuth(request: NextRequest): Promise<NextResponse |
       )
     }
     
-    const email = user.email?.toLowerCase()
-    
-    if (!email || !AUTHORIZED_EMAILS.includes(email)) {
-      console.log('🚨 API: Unauthorized email:', email)
+    if (!isAuthorizedEmail(user.email)) {
+      console.log('🚨 API: Unauthorized email:', user.email)
       return NextResponse.json(
         { error: 'Unauthorized - Access denied' },
         { status: 403 }
       )
     }
     
-    console.log('✅ API: Authorized access:', email)
+    console.log('✅ API: Authorized access:', user.email)
     return null // Auth passed, continue
     
   } catch (error) {
