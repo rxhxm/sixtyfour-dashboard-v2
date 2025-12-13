@@ -21,3 +21,4 @@ export function requireAuth(email: string | undefined | null): void {
 }
 
  
+// Update timestamp: Fri Dec 12 18:20:27 PST 2025
